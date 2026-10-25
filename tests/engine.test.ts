@@ -6,6 +6,7 @@ import {
 } from '../features/game/outcomes';
 import {
   blendChoices,
+  applySurvivalLives,
   normalizeChoiceText,
   validateFakeAnswer,
   resolveZartoRound,
@@ -87,6 +88,30 @@ async function createDemoBlockRound(roundSeconds = 30) {
 
   return { host, roomCode: room.code, targetId };
 }
+
+describe('Survival mode life rules', () => {
+  test('deducts a life for a wrong answer, preserves correct answers and clamps eliminated players at zero', () => {
+    const players = [
+      { ...createPlayer('alive-correct', 'Doğru'), livesRemaining: 2 },
+      { ...createPlayer('alive-wrong', 'Yanlış'), livesRemaining: 1 },
+      { ...createPlayer('eliminated', 'Elendi'), livesRemaining: 0 },
+    ];
+    const choices: RoundChoice[] = [
+      { choiceIndex: 0, text: '1923', authorId: null, isCorrect: true },
+      { choiceIndex: 1, text: '1881', authorId: 'alive-correct', isCorrect: false },
+    ];
+    const resolution = resolveZartoRound({
+      question: sampleQuestion,
+      players,
+      choices,
+      picks: { 'alive-correct': 0, 'alive-wrong': 1 },
+    });
+    const next = applySurvivalLives(players, resolution.rows);
+    assert.equal(next['alive-correct'].livesRemaining, 2);
+    assert.equal(next['alive-wrong'].livesRemaining, 0);
+    assert.equal(next.eliminated.livesRemaining, 0);
+  });
+});
 
 describe('TUZAK Game Engine — Bluff & Scoring Tests', () => {
   test('Normalizes Turkish casing and compatibility characters without stripping punctuation', () => {
