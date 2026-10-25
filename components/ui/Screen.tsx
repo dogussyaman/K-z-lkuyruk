@@ -1,8 +1,10 @@
 import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors, radii, spacing, typography } from '@/theme';
+import { colors, radii } from '@/theme';
 import { useTheme } from '@/theme/ThemeProvider';
+import { useGameStore } from '@/store/gameStore';
+import { getGameModeTheme } from '@/features/game/themes';
 import type { ReactNode } from 'react';
 
 interface ScreenProps {
@@ -23,28 +25,38 @@ export function Screen({
   style,
 }: ScreenProps) {
   const { colors: themeColors } = useTheme();
+  const { roomState } = useGameStore();
+  const modeTheme = roomState?.config.gameMode ? getGameModeTheme(roomState.config.gameMode) : null;
+  const background = modeTheme?.background ?? themeColors.bgDarkest;
+  const middle = modeTheme?.surface ?? themeColors.bgDark;
+
   return (
-    <View style={[styles.root, { backgroundColor: themeColors.bgDarkest }]}>
-      {/* Full-bleed edge-to-edge background */}
+    <View style={[styles.root, { backgroundColor: background }]}>
       {gradient ? (
         <LinearGradient
-          colors={[themeColors.bgDarkest, themeColors.bgDark, themeColors.bgDarkest]}
+          colors={[background, middle, background]}
           locations={[0, 0.55, 1]}
           style={StyleSheet.absoluteFill}
         />
       ) : (
-        <View style={[StyleSheet.absoluteFill, { backgroundColor: themeColors.bgDarkest }]} />
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: background }]} />
       )}
 
-      {/* Decorative diagonal game slices */}
+      {modeTheme ? (
+        <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+          <View style={[styles.modeGlowTop, { backgroundColor: modeTheme.glow }]} />
+          <View style={[styles.modeGlowBottom, { backgroundColor: modeTheme.glow }]} />
+          <Text style={[styles.modeMark, { color: modeTheme.accent }]}>{modeTheme.heroEmoji}</Text>
+        </View>
+      ) : null}
+
       {diagonalSlice && (
         <View pointerEvents="none" style={styles.diagonalWrapper}>
-          <View style={styles.diagonalSliceTop} />
-          <View style={styles.diagonalSliceBottom} />
+          <View style={[styles.diagonalSliceTop, modeTheme && { backgroundColor: modeTheme.glow }]} />
+          <View style={[styles.diagonalSliceBottom, modeTheme && { backgroundColor: modeTheme.glow }]} />
         </View>
       )}
 
-      {/* Content wrapper with selective safe area edges (default top only to avoid tab bar gaps) */}
       <SafeAreaView
         style={[styles.safeContent, padded && styles.padded, style]}
         edges={edges}
@@ -106,6 +118,32 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: 'Poppins-Regular',
     marginTop: 2,
+  },
+  modeGlowTop: {
+    position: 'absolute',
+    width: 300,
+    height: 300,
+    borderRadius: 999,
+    top: -145,
+    right: -135,
+    opacity: 0.85,
+  },
+  modeGlowBottom: {
+    position: 'absolute',
+    width: 280,
+    height: 280,
+    borderRadius: 999,
+    bottom: -160,
+    left: -140,
+    opacity: 0.5,
+  },
+  modeMark: {
+    position: 'absolute',
+    right: 18,
+    top: 74,
+    fontSize: 54,
+    opacity: 0.065,
+    transform: [{ rotate: '10deg' }],
   },
   diagonalWrapper: {
     position: 'absolute',

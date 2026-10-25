@@ -5,21 +5,27 @@ import type { OutcomeLabel, RoundOutcome } from '../features/game/outcomes';
 export type PlayerId = string;
 export type TeamId = 'A' | 'B';
 
-export type GameMode = 'classic' | 'survival' | 'suspicious' | 'blitz' | 'team_battle';
+export type GameMode =
+  | 'classic'
+  | 'survival'
+  | 'suspicious'
+  | 'blitz'
+  | 'team_battle'
+  | 'secret_missions'
+  | 'double_trap'
+  | 'golden_question'
+  | 'detective_fox';
 
 export interface Player {
   id: PlayerId;
   name: string;
-  avatarKey: string; // Persistent avatar selection key or public image URL
+  avatarKey: string;
   isHost: boolean;
   isReady: boolean;
   isOnline: boolean;
   score: number;
-  /** Assigned side in Team Battle. Undefined in solo modes. */
   teamId?: TeamId | null;
-  /** Current match lives. Only used by Survival mode. */
   livesRemaining?: number;
-  /** Spendable wallet for this match; resets when the next match starts. */
   credits?: number;
   creditMilestonesAwarded?: number;
   avatarUrl?: string | null;
@@ -59,7 +65,6 @@ export interface RoomConfig {
   totalRounds: number;
   roundSeconds: number;
   selectedCategoryIds: CategoryId[];
-  /** Defaults to Classic for older clients and rooms. */
   gameMode?: GameMode;
 }
 
@@ -84,7 +89,6 @@ export interface SuspectSubmission {
   suspectPlayerId: PlayerId;
 }
 
-// Backward-compatible with previous submission shape
 export interface AnswerSubmission {
   playerId: PlayerId;
   questionId: string;
@@ -97,9 +101,9 @@ export interface AnswerSubmission {
 export interface RoundChoice {
   choiceIndex: number;
   text: string;
-  authorId?: PlayerId | null; // NULL if correct answer or system decoy
+  authorId?: PlayerId | null;
   isCorrect?: boolean;
-  isOwnFake?: boolean; // Client flag
+  isOwnFake?: boolean;
 }
 
 export interface RoundResultRow {
@@ -113,15 +117,14 @@ export interface RoundResultRow {
   ownFakeText?: string;
   isBlocked?: boolean;
   penaltyDelta?: number;
-  /** In Herkes Şüpheli mode: the rival player suspected of bluffing. */
   suspectId?: PlayerId | null;
-  /** In Herkes Şüpheli mode: bonus awarded for correctly identifying a bluffer (+1). */
   suspectBonus?: number;
-  /** In Fırtına Turu mode: speed bonus for answering correctly within the early window (+1). */
   speedBonus?: number;
   isFastAnswer?: boolean;
-  /** In Team Battle: team that receives this player's round contribution. */
   teamId?: TeamId | null;
+  missionBonus?: number;
+  goldenMultiplier?: number;
+  detectiveBonus?: number;
 }
 
 export interface GameState {
@@ -138,7 +141,6 @@ export interface GameState {
   roundResults: Record<PlayerId, RoundResultRow>;
   history: RoundResultRow[][];
   suspectPicks?: Record<PlayerId, PlayerId>;
-  /** Team totals are server-owned in Team Battle. */
   teamScores?: Partial<Record<TeamId, number>>;
   pickTimes?: Record<PlayerId, number>;
   phaseStartedAt?: number;
@@ -146,6 +148,11 @@ export interface GameState {
   pausedAt?: number | null;
   stateVersion?: number;
   progress?: RoundProgress;
+  modeMeta?: {
+    isGoldenRound?: boolean;
+    detectivePlayerId?: PlayerId | null;
+    secretMissionHint?: string | null;
+  };
 }
 
 export interface RoundProgress {

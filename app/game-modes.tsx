@@ -1,607 +1,149 @@
-import { useTheme, useThemeStyles } from '@/theme/ThemeProvider';
-import type { ThemeColors } from '@/theme/ThemeProvider';
-import { useState } from 'react';
-import {
-  StyleSheet,
-  Text,
-  View,
-  ScrollView,
-  Pressable,
-  Image,
-} from 'react-native';
-import { router } from 'expo-router';
-import {
-  ChevronLeft,
-  Sparkles,
-  Zap,
-  Shield,
-  Search,
-  Users,
-  Scroll,
-  Boxes,
-  Crown,
-  Clock,
-  CheckCircle2,
-  Lock,
-  ArrowRight,
-  Flame,
-} from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Screen, Button, Badge, Card } from '@/components/ui';
-import { spacing, typography, radii, shadows } from '@/theme';
-import { useHaptics } from '@/hooks/useHaptics';
-import {
-  GAME_MODES,
-  type GameModeDefinition,
-  type AnyGameModeId,
-} from '@/features/game/modes';
-import { gameModeImages } from '@/assets/game-modes';
-import { soundService } from '@/services/soundService';
+import { router } from 'expo-router';
+import { useMemo, useState, type ReactNode } from 'react';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ChevronLeft, Clock3, Flame, Gamepad2, Sparkles, Users } from 'lucide-react-native';
+import { gameModeImages } from '../assets/game-modes';
+import { GAME_MODES, type GameModeDefinition } from '../features/game/modes';
+import { getGameModeTheme } from '../features/game/themes';
 
-type FilterTab = 'all' | 'active' | 'coming_soon';
+type FilterId = 'all' | 'fast' | 'competitive' | 'social' | 'chaos';
+
+const FILTERS: Array<{ id: FilterId; label: string }> = [
+  { id: 'all', label: 'Tümü' },
+  { id: 'fast', label: 'Hızlı' },
+  { id: 'competitive', label: 'Rekabetçi' },
+  { id: 'social', label: 'Sosyal' },
+  { id: 'chaos', label: 'Kaos' },
+];
+
+const GROUPS: Record<Exclude<FilterId, 'all'>, string[]> = {
+  fast: ['blitz', 'golden_question'],
+  competitive: ['survival', 'blitz', 'team_battle', 'golden_question'],
+  social: ['suspicious', 'secret_missions', 'detective_fox', 'team_battle'],
+  chaos: ['double_trap', 'golden_question', 'suspicious'],
+};
 
 export default function GameModesScreen() {
-  const { colors } = useTheme();
-  const styles = useThemeStyles(createStyles);
-  const { trigger } = useHaptics();
-
-  const [filter, setFilter] = useState<FilterTab>('all');
-  const [selectedModeId, setSelectedModeId] = useState<AnyGameModeId>('suspicious');
-
-  const filteredModes = GAME_MODES.filter((m) => {
-    if (filter === 'active') return m.status === 'active';
-    if (filter === 'coming_soon') return m.status === 'coming_soon';
-    return true;
-  });
-
-  const handleSelectMode = (id: AnyGameModeId) => {
-    soundService.play('click');
-    trigger('light');
-    setSelectedModeId(id);
-  };
-
-  const handlePlayMode = (modeItem: GameModeDefinition) => {
-    if (modeItem.status !== 'active') return;
-    soundService.play('click');
-    trigger('medium');
-    router.push({
-      pathname: '/create-room',
-      params: { mode: modeItem.id },
-    });
-  };
-
-  const renderIcon = (iconName: string, color: string, size = 18) => {
-    switch (iconName) {
-      case 'Zap':
-        return <Zap size={size} color={color} />;
-      case 'Shield':
-        return <Shield size={size} color={color} />;
-      case 'Search':
-        return <Search size={size} color={color} />;
-      case 'Users':
-        return <Users size={size} color={color} />;
-      case 'Scroll':
-        return <Scroll size={size} color={color} />;
-      case 'Boxes':
-        return <Boxes size={size} color={color} />;
-      case 'Crown':
-        return <Crown size={size} color={color} />;
-      default:
-        return <Sparkles size={size} color={color} />;
-    }
-  };
+  const [filter, setFilter] = useState<FilterId>('all');
+  const visible = useMemo(() => filter === 'all' ? GAME_MODES : GAME_MODES.filter((mode) => GROUPS[filter].includes(mode.id)), [filter]);
 
   return (
-    <Screen gradient diagonalSlice padded={false} edges={['top', 'bottom']}>
-      {/* Top Header */}
-      <View style={styles.topBar}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Geri dön"
-          onPress={() => {
-            soundService.play('click');
-            router.back();
-          }}
-          style={styles.backBtn}
-        >
-          <ChevronLeft color={colors.textPrimary} size={22} />
-        </Pressable>
-        <View style={styles.topBarTextWrap}>
-          <Text style={styles.screenTitle} numberOfLines={1}>Oyun Modları</Text>
-          <Text style={styles.screenSubtitle}>Kızılkuyruk Dünyasını Keşfet</Text>
+    <View style={styles.root}>
+      <LinearGradient colors={['#100B18', '#191026', '#0D111B']} style={StyleSheet.absoluteFill} />
+      <View style={styles.orangeGlow} />
+      <View style={styles.blueGlow} />
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.topBar}>
+          <Pressable onPress={() => router.back()} style={styles.iconButton}><ChevronLeft color="#FFF" size={22} /></Pressable>
+          <View style={styles.topCenter}><Text style={styles.eyebrow}>KIZILKUYRUK EVRENİ</Text><Text style={styles.headerTitle}>Oyun Modları</Text></View>
+          <View style={styles.playablePill}><Flame color="#FF7A45" size={14} /><Text style={styles.playableText}>9 OYNANABİLİR</Text></View>
         </View>
-        <Badge tone="orange" sticker>
-          4 OYNANABİLİR
-        </Badge>
-      </View>
 
-      <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={styles.scroll}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Featured Hero Banner */}
-        <LinearGradient
-          colors={[colors.zartoSurface, '#351B5C', '#1D0F33']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.heroBanner}
-        >
-          <View style={styles.heroRow}>
-            <View style={{ flex: 1 }}>
-              <View style={styles.heroKicker}>
-                <Flame size={13} color={colors.yellow} />
-                <Text style={styles.heroKickerText}>YENİ ÇIKANLAR</Text>
-              </View>
-              <Text style={styles.heroTitle}>Herkes Şüpheli & Fırtına Turu</Text>
-              <Text style={styles.heroDesc}>
-                Artık sadece blöf yetmez! Dedektif çıkarımlarıyla tuzakçıları yakala veya 7 saniyede yıldırım hızında cevap ver.
-              </Text>
-            </View>
-            <Image
-              source={gameModeImages.suspicious}
-              style={styles.heroImage}
-              resizeMode="cover"
-            />
+        <View style={styles.hero}>
+          <LinearGradient colors={['rgba(255,101,77,0.32)', 'rgba(53,184,255,0.20)', 'rgba(16,11,24,0.86)']} style={StyleSheet.absoluteFill} />
+          <View style={styles.heroCopy}>
+            <Text style={styles.heroKicker}>9 FARKLI OYUN STİLİ</Text>
+            <Text style={styles.heroTitle}>Her gece başka bir oyun.</Text>
+            <Text style={styles.heroText}>Blöf, hayatta kalma, takım savaşı, gizli görev, dedektiflik, hız ve kaos aynı parti evreninde.</Text>
           </View>
-        </LinearGradient>
-
-        {/* Filter Pills */}
-        <View style={styles.filterRow}>
-          <Pressable
-            accessibilityRole="tab"
-            accessibilityState={{ selected: filter === 'all' }}
-            onPress={() => {
-              trigger('light');
-              setFilter('all');
-            }}
-            style={[styles.filterPill, filter === 'all' && styles.filterPillActive]}
-          >
-            <Text style={[styles.filterPillText, filter === 'all' && styles.filterPillTextActive]}>
-              Tümü ({GAME_MODES.length})
-            </Text>
-          </Pressable>
-          <Pressable
-            accessibilityRole="tab"
-            accessibilityState={{ selected: filter === 'active' }}
-            onPress={() => {
-              trigger('light');
-              setFilter('active');
-            }}
-            style={[styles.filterPill, filter === 'active' && styles.filterPillActive]}
-          >
-            <Text style={[styles.filterPillText, filter === 'active' && styles.filterPillTextActive]}>
-              Oynanabilir (4)
-            </Text>
-          </Pressable>
-          <Pressable
-            accessibilityRole="tab"
-            accessibilityState={{ selected: filter === 'coming_soon' }}
-            onPress={() => {
-              trigger('light');
-              setFilter('coming_soon');
-            }}
-            style={[styles.filterPill, filter === 'coming_soon' && styles.filterPillActive]}
-          >
-            <Text style={[styles.filterPillText, filter === 'coming_soon' && styles.filterPillTextActive]}>
-              Yakında (5)
-            </Text>
-          </Pressable>
+          <Text style={styles.heroFox}>🦊</Text>
         </View>
 
-        {/* Game Mode Cards */}
-        <View style={styles.cardsContainer}>
-          {filteredModes.map((item) => {
-            const isActive = item.status === 'active';
-            const isSelected = selectedModeId === item.id;
-            const imageSource = gameModeImages[item.illustrationKey];
-
-            return (
-              <Pressable
-                key={item.id}
-                onPress={() => handleSelectMode(item.id)}
-                style={styles.cardPressable}
-                accessibilityRole="button"
-                accessibilityLabel={`${item.name} modu seç`}
-              >
-                <Card
-                  variant="surface"
-                  style={[
-                    styles.modeCard,
-                    isSelected && styles.modeCardSelected,
-                    !isActive && styles.modeCardDisabled,
-                  ]}
-                >
-                {/* Image Header with Gradient Overlay & Badges */}
-                <View style={styles.cardImageContainer}>
-                  <Image
-                    source={imageSource}
-                    style={styles.cardImage}
-                    resizeMode="cover"
-                  />
-                  <LinearGradient
-                    colors={['transparent', 'rgba(17, 13, 27, 0.85)']}
-                    style={StyleSheet.absoluteFill}
-                  />
-
-                  {/* Badges on Image */}
-                  <View style={styles.imageBadgeTopRow}>
-                    <View
-                      style={[
-                        styles.statusBadge,
-                        { backgroundColor: isActive ? item.accentColor : 'rgba(100, 100, 120, 0.8)' },
-                      ]}
-                    >
-                      {isActive ? (
-                        renderIcon(item.iconName, '#FFFFFF', 12)
-                      ) : (
-                        <Lock size={11} color="#FFFFFF" />
-                      )}
-                      <Text style={styles.statusBadgeText}>{item.badge}</Text>
-                    </View>
-
-                    <View style={styles.difficultyBadge}>
-                      <Text style={styles.difficultyBadgeText}>{item.difficultyLabel}</Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.imageBottomRow}>
-                    <View style={styles.iconCircle}>
-                      {renderIcon(item.iconName, item.accentColor, 18)}
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.cardTitle}>{item.name}</Text>
-                      <Text style={[styles.cardTagline, { color: item.accentColor }]}>
-                        {item.tagline}
-                      </Text>
-                    </View>
-                  </View>
-                </View>
-
-                {/* Card Body */}
-                <View style={styles.cardBody}>
-                  <Text style={styles.cardDescription}>{item.description}</Text>
-
-                  {/* Metadata Chips (Player Count, Duration, Round Style) */}
-                  <View style={styles.metaRow}>
-                    <View style={styles.metaChip}>
-                      <Users size={12} color={colors.textSecondary} />
-                      <Text style={styles.metaChipText}>{item.playerCountLabel}</Text>
-                    </View>
-                    <View style={styles.metaChip}>
-                      <Clock size={12} color={colors.textSecondary} />
-                      <Text style={styles.metaChipText}>{item.estimatedDurationLabel}</Text>
-                    </View>
-                    <View style={styles.metaChip}>
-                      <Zap size={12} color={colors.textSecondary} />
-                      <Text style={styles.metaChipText}>
-                        {item.rules.defaultRoundSeconds}s Soru Süresi
-                      </Text>
-                    </View>
-                  </View>
-
-                  {/* Mode Rules & Highlights */}
-                  <View style={styles.featuresBox}>
-                    {item.features.map((feat, index) => (
-                      <View key={index} style={styles.featureLine}>
-                        <CheckCircle2
-                          size={13}
-                          color={isActive ? item.accentColor : colors.textMuted}
-                        />
-                        <Text style={styles.featureText}>{feat}</Text>
-                      </View>
-                    ))}
-                  </View>
-
-                  {/* Action Button */}
-                  <View style={styles.actionWrap}>
-                    {isActive ? (
-                      <Button
-                        label="Bu Modla Oda Aç"
-                        variant={item.id === 'survival' ? 'danger' : 'orange'}
-                        size="md"
-                        fullWidth
-                        icon={<ArrowRight size={16} color="#FFFFFF" />}
-                        onPress={() => handlePlayMode(item)}
-                      />
-                    ) : (
-                      <View style={styles.comingSoonBox}>
-                        <Lock size={14} color={colors.textMuted} />
-                        <Text style={styles.comingSoonText}>
-                          Çok Yakında — Geliştirme Aşamasında
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                </View>
-              </Card>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
+          {FILTERS.map((item) => (
+            <Pressable key={item.id} onPress={() => setFilter(item.id)} style={[styles.filter, filter === item.id && styles.filterActive]}>
+              <Text style={[styles.filterText, filter === item.id && styles.filterTextActive]}>{item.label}</Text>
             </Pressable>
-          );
-        })}
+          ))}
+        </ScrollView>
+
+        <View style={styles.sectionHeader}>
+          <View><Text style={styles.sectionTitle}>{filter === 'all' ? 'Tüm Modlar' : FILTERS.find((item) => item.id === filter)?.label}</Text><Text style={styles.sectionSub}>{visible.length} oyun modu</Text></View>
+          <Gamepad2 color="rgba(255,255,255,0.34)" size={22} />
+        </View>
+
+        <View style={styles.grid}>
+          {visible.map((mode) => <ModeCard key={mode.id} mode={mode} />)}
         </View>
       </ScrollView>
-    </Screen>
+    </View>
   );
 }
 
-const createStyles = (colors: ThemeColors) =>
-  StyleSheet.create({
-    topBar: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: spacing.lg,
-      paddingTop: spacing.xs,
-      paddingBottom: spacing.sm,
-      gap: spacing.sm,
-    },
-    backBtn: {
-      width: 42,
-      height: 42,
-      borderRadius: radii.md,
-      backgroundColor: colors.bgSurface,
-      borderWidth: 1,
-      borderColor: colors.borderStrong,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    topBarTextWrap: {
-      flex: 1,
-    },
-    screenTitle: {
-      ...typography.h3,
-      fontFamily: 'Poppins-Bold',
-      color: colors.textPrimary,
-      lineHeight: 26,
-    },
-    screenSubtitle: {
-      ...typography.caption,
-      color: colors.textSecondary,
-    },
-    scroll: {
-      paddingHorizontal: spacing.lg,
-      paddingBottom: 110,
-    },
-    heroBanner: {
-      borderRadius: radii.xl,
-      borderWidth: 1.5,
-      borderColor: 'rgba(161, 107, 255, 0.35)',
-      padding: spacing.md,
-      marginTop: spacing.xs,
-      marginBottom: spacing.md,
-      overflow: 'hidden',
-      ...shadows.card,
-    },
-    heroRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.sm,
-    },
-    heroKicker: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 4,
-      backgroundColor: 'rgba(255, 209, 102, 0.18)',
-      paddingHorizontal: 7,
-      paddingVertical: 2,
-      borderRadius: radii.xs,
-      alignSelf: 'flex-start',
-      marginBottom: 5,
-    },
-    heroKickerText: {
-      fontFamily: 'Poppins-Bold',
-      fontSize: 9.5,
-      color: colors.yellow,
-      letterSpacing: 0.5,
-    },
-    heroTitle: {
-      fontFamily: 'Poppins-Bold',
-      fontSize: 16,
-      color: colors.textPrimary,
-      lineHeight: 22,
-    },
-    heroDesc: {
-      ...typography.caption,
-      color: colors.textSecondary,
-      marginTop: 3,
-      lineHeight: 16,
-    },
-    heroImage: {
-      width: 90,
-      height: 90,
-      borderRadius: radii.lg,
-      borderWidth: 1,
-      borderColor: 'rgba(255, 255, 255, 0.15)',
-    },
-    filterRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.xs + 2,
-      marginBottom: spacing.md,
-    },
-    filterPill: {
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.xs + 3,
-      borderRadius: radii.pill,
-      backgroundColor: colors.bgSurface,
-      borderWidth: 1,
-      borderColor: colors.border,
-    },
-    filterPillActive: {
-      backgroundColor: colors.orange,
-      borderColor: colors.orange,
-    },
-    filterPillText: {
-      ...typography.caption,
-      fontFamily: 'Poppins-SemiBold',
-      color: colors.textSecondary,
-    },
-    filterPillTextActive: {
-      color: '#FFFFFF',
-      fontFamily: 'Poppins-Bold',
-    },
-    cardsContainer: {
-      gap: spacing.lg,
-    },
-    cardPressable: {
-      width: '100%',
-    },
-    modeCard: {
-      padding: 0,
-      borderRadius: radii.xl,
-      overflow: 'hidden',
-      borderWidth: 1.5,
-      borderColor: colors.borderStrong,
-    },
-    modeCardSelected: {
-      borderColor: colors.orange,
-    },
-    modeCardDisabled: {
-      opacity: 0.85,
-    },
-    cardImageContainer: {
-      width: '100%',
-      height: 180,
-      position: 'relative',
-      justifyContent: 'space-between',
-      padding: spacing.md,
-    },
-    cardImage: {
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      width: '100%',
-      height: '100%',
-    },
-    imageBadgeTopRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      zIndex: 2,
-    },
-    statusBadge: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 5,
-      paddingHorizontal: spacing.sm,
-      paddingVertical: 3,
-      borderRadius: radii.pill,
-    },
-    statusBadgeText: {
-      fontFamily: 'Poppins-Bold',
-      fontSize: 10,
-      color: '#FFFFFF',
-      letterSpacing: 0.6,
-    },
-    difficultyBadge: {
-      backgroundColor: 'rgba(17, 13, 27, 0.72)',
-      paddingHorizontal: spacing.sm,
-      paddingVertical: 3,
-      borderRadius: radii.pill,
-      borderWidth: 1,
-      borderColor: 'rgba(255, 255, 255, 0.12)',
-    },
-    difficultyBadgeText: {
-      fontFamily: 'Poppins-Medium',
-      fontSize: 10,
-      color: colors.textSecondary,
-    },
-    imageBottomRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.sm,
-      zIndex: 2,
-    },
-    iconCircle: {
-      width: 38,
-      height: 38,
-      borderRadius: radii.full,
-      backgroundColor: 'rgba(17, 13, 27, 0.82)',
-      borderWidth: 1,
-      borderColor: 'rgba(255, 255, 255, 0.2)',
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    cardTitle: {
-      fontFamily: 'Poppins-Bold',
-      fontSize: 19,
-      color: '#FFFFFF',
-      lineHeight: 24,
-    },
-    cardTagline: {
-      fontFamily: 'Poppins-Medium',
-      fontSize: 11.5,
-      lineHeight: 16,
-    },
-    cardBody: {
-      padding: spacing.md,
-      gap: spacing.sm,
-    },
-    cardDescription: {
-      ...typography.small,
-      color: colors.textSecondary,
-      lineHeight: 19,
-    },
-    metaRow: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: spacing.xs,
-      marginVertical: 2,
-    },
-    metaChip: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 5,
-      backgroundColor: colors.bgDarkest,
-      borderWidth: 1,
-      borderColor: colors.border,
-      paddingHorizontal: spacing.sm,
-      paddingVertical: 4,
-      borderRadius: radii.xs,
-    },
-    metaChipText: {
-      ...typography.caption,
-      color: colors.textSecondary,
-      fontSize: 10.5,
-    },
-    featuresBox: {
-      backgroundColor: colors.bgDarkest,
-      borderWidth: 1,
-      borderColor: colors.border,
-      borderRadius: radii.md,
-      padding: spacing.sm,
-      gap: 5,
-    },
-    featureLine: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
-    },
-    featureText: {
-      ...typography.caption,
-      color: colors.textPrimary,
-      flexShrink: 1,
-      fontSize: 11,
-    },
-    actionWrap: {
-      marginTop: spacing.xs,
-    },
-    comingSoonBox: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: spacing.xs,
-      backgroundColor: colors.bgDarkest,
-      borderWidth: 1,
-      borderColor: colors.border,
-      borderRadius: radii.md,
-      paddingVertical: spacing.sm + 2,
-    },
-    comingSoonText: {
-      ...typography.caption,
-      fontFamily: 'Poppins-SemiBold',
-      color: colors.textMuted,
-    },
-  });
+function ModeCard({ mode }: { mode: GameModeDefinition }) {
+  const theme = getGameModeTheme(mode.id);
+  return (
+    <Pressable
+      onPress={() => router.push({ pathname: '/mode-create-room', params: { mode: mode.id } })}
+      style={({ pressed }) => [styles.card, { borderColor: theme.glow }, pressed && styles.cardPressed]}
+    >
+      <View style={styles.imageWrap}>
+        <Image source={gameModeImages[mode.illustrationKey]} style={styles.image} resizeMode="cover" />
+        <LinearGradient colors={['transparent', theme.background]} style={StyleSheet.absoluteFill} />
+        <View style={[styles.badge, { backgroundColor: theme.accent }]}><Text style={styles.badgeText}>{mode.badge}</Text></View>
+        <Text style={styles.atmosphereEmoji}>{theme.heroEmoji}</Text>
+      </View>
+      <View style={styles.cardBody}>
+        <Text style={styles.cardTitle}>{mode.name}</Text>
+        <Text style={[styles.cardTagline, { color: theme.accent }]} numberOfLines={2}>{mode.tagline}</Text>
+        <Text style={styles.cardDescription} numberOfLines={3}>{mode.description}</Text>
+        <View style={styles.metaRow}>
+          <Meta icon={<Users color="rgba(255,255,255,0.62)" size={14} />} text={mode.playerCountLabel.replace(' Oyuncu', '')} />
+          <Meta icon={<Clock3 color="rgba(255,255,255,0.62)" size={14} />} text={mode.estimatedDurationLabel} />
+          <Meta icon={<Sparkles color="rgba(255,255,255,0.62)" size={14} />} text={mode.difficultyLabel} />
+        </View>
+        <View style={[styles.playButton, { backgroundColor: theme.accent }]}><Text style={styles.playButtonText}>Bu Modu Oyna</Text></View>
+      </View>
+    </Pressable>
+  );
+}
+
+function Meta({ icon, text }: { icon: ReactNode; text: string }) {
+  return <View style={styles.meta}><View>{icon}</View><Text style={styles.metaText}>{text}</Text></View>;
+}
+
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: '#100B18' },
+  content: { paddingHorizontal: 16, paddingTop: 54, paddingBottom: 52 },
+  orangeGlow: { position: 'absolute', width: 360, height: 360, borderRadius: 999, backgroundColor: 'rgba(255,101,77,0.12)', top: -170, left: -140 },
+  blueGlow: { position: 'absolute', width: 350, height: 350, borderRadius: 999, backgroundColor: 'rgba(53,184,255,0.10)', top: 220, right: -220 },
+  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 },
+  iconButton: { width: 42, height: 42, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.07)' },
+  topCenter: { alignItems: 'center' },
+  eyebrow: { color: '#FF7A45', fontSize: 9, fontWeight: '900', letterSpacing: 1.8 },
+  headerTitle: { color: '#FFF', fontSize: 19, fontWeight: '900', marginTop: 2 },
+  playablePill: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(255,122,69,0.10)', borderRadius: 14, paddingHorizontal: 9, height: 34 },
+  playableText: { color: '#FF9A6F', fontSize: 9, fontWeight: '900' },
+  hero: { minHeight: 190, borderRadius: 28, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', marginBottom: 17, justifyContent: 'center' },
+  heroCopy: { padding: 22, paddingRight: 104 },
+  heroKicker: { color: '#FFD166', fontWeight: '900', letterSpacing: 1.5, fontSize: 10 },
+  heroTitle: { color: '#FFF', fontSize: 26, lineHeight: 30, fontWeight: '900', marginTop: 7 },
+  heroText: { color: 'rgba(255,255,255,0.67)', fontSize: 13, lineHeight: 19, marginTop: 8 },
+  heroFox: { position: 'absolute', right: 20, bottom: 18, fontSize: 70, transform: [{ rotate: '-8deg' }] },
+  filters: { gap: 8, paddingBottom: 18 },
+  filter: { paddingHorizontal: 15, height: 38, borderRadius: 14, justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.055)' },
+  filterActive: { backgroundColor: '#FFF' },
+  filterText: { color: 'rgba(255,255,255,0.62)', fontWeight: '800', fontSize: 12 },
+  filterTextActive: { color: '#17101F' },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  sectionTitle: { color: '#FFF', fontSize: 20, fontWeight: '900' },
+  sectionSub: { color: 'rgba(255,255,255,0.42)', fontSize: 11, marginTop: 2 },
+  grid: { gap: 14 },
+  card: { borderRadius: 26, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.055)', borderWidth: 1 },
+  cardPressed: { opacity: 0.78, transform: [{ scale: 0.99 }] },
+  imageWrap: { height: 180, overflow: 'hidden' },
+  image: { width: '100%', height: '100%' },
+  badge: { position: 'absolute', top: 13, left: 13, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10 },
+  badgeText: { color: '#FFF', fontSize: 9, fontWeight: '900', letterSpacing: 0.8 },
+  atmosphereEmoji: { position: 'absolute', right: 14, top: 12, fontSize: 30 },
+  cardBody: { padding: 17 },
+  cardTitle: { color: '#FFF', fontSize: 21, fontWeight: '900' },
+  cardTagline: { fontSize: 12, fontWeight: '800', marginTop: 4 },
+  cardDescription: { color: 'rgba(255,255,255,0.60)', fontSize: 12, lineHeight: 18, marginTop: 8 },
+  metaRow: { flexDirection: 'row', gap: 7, marginTop: 14 },
+  meta: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 8, height: 30, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.055)' },
+  metaText: { color: 'rgba(255,255,255,0.72)', fontSize: 10, fontWeight: '700' },
+  playButton: { minHeight: 46, marginTop: 15, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+  playButtonText: { color: '#FFF', fontWeight: '900', fontSize: 13 },
+});

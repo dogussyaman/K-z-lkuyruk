@@ -107,6 +107,7 @@ function RootNavigator() {
         <Stack.Screen name="auth" options={{ animation: 'fade' }} />
         <Stack.Screen name="auth/callback" options={{ animation: 'fade' }} />
         <Stack.Screen name="create-room" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="mode-create-room" options={{ animation: 'fade_from_bottom' }} />
         <Stack.Screen name="join-room" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen
           name="category-select"

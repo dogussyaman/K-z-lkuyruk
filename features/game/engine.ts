@@ -9,12 +9,13 @@ import type {
 } from '../../types/game';
 import { computeOutcome, POINTS } from './outcomes';
 import type { Question } from './questions';
+import {
+  countsAsTrapVictim,
+  detectiveForRound,
+  isGoldenRound,
+  missionBonusForRound,
+} from './modeRules';
 
-/**
- * Apply Survival-mode life loss after each authoritative round result.
- * Incorrect answers and timeouts cost one life; correct answers and eliminated
- * players remain unchanged. Classic scoring never calls this helper.
- */
 export function applySurvivalLives(
   players: Player[],
   rows: Record<PlayerId, RoundResultRow>
@@ -33,13 +34,14 @@ export interface ZartoRoundInput {
   question: Question;
   players: Player[];
   choices: RoundChoice[];
-  picks: Record<PlayerId, number>; // playerId -> choiceIndex
+  picks: Record<PlayerId, number>;
   fakeAnswers?: Record<PlayerId, string>;
   abilityActions?: AbilityAction[];
   gameMode?: GameMode;
   suspectPicks?: Record<PlayerId, PlayerId>;
   pickTimes?: Record<PlayerId, number>;
   phaseStartedAt?: number;
+  currentRound?: number;
 }
 
 export interface ZartoRoundResolution {
@@ -53,42 +55,31 @@ export function applyRoundBlockEffects(
   abilityActions: AbilityAction[]
 ): Record<PlayerId, Player> {
   const shieldedPlayers = new Set(
-    abilityActions
-      .filter((action) => action.abilityId === 'shield')
-      .map((action) => action.playerId)
+    abilityActions.filter((a) => a.abilityId === 'shield').map((a) => a.playerId)
   );
   const blockersByTarget = new Map<PlayerId, PlayerId[]>();
-
   for (const action of abilityActions) {
     if (action.abilityId !== 'block' || !action.targetId) continue;
     const blockers = blockersByTarget.get(action.targetId) ?? [];
     blockers.push(action.playerId);
     blockersByTarget.set(action.targetId, blockers);
   }
-
   const next = Object.fromEntries(players.map((player) => [player.id, { ...player }]));
   for (const [targetId, blockers] of blockersByTarget) {
     if (shieldedPlayers.has(targetId) || !next[targetId]) continue;
     const blockerId = [...blockers].sort()[0];
-    next[targetId] = {
-      ...next[targetId],
-      isBlockedCurrentRound: true,
-      blockedByPlayerId: blockerId,
-    };
+    next[targetId] = { ...next[targetId], isBlockedCurrentRound: true, blockedByPlayerId: blockerId };
   }
   return next;
 }
 
 export function clearRoundBlockState(players: Player[]): Record<PlayerId, Player> {
-  return Object.fromEntries(players.map((player) => [
-    player.id,
-    {
-      ...player,
-      isBlockedCurrentRound: false,
-      isBlockedNextRound: false,
-      blockedByPlayerId: null,
-    },
-  ]));
+  return Object.fromEntries(players.map((player) => [player.id, {
+    ...player,
+    isBlockedCurrentRound: false,
+    isBlockedNextRound: false,
+    blockedByPlayerId: null,
+  }]));
 }
 
 export function normalizeChoiceText(text: string): string {
@@ -97,7 +88,6 @@ export function normalizeChoiceText(text: string): string {
 
 export type FakeAnswerValidationError = 'correct_answer' | 'duplicate_answer' | null;
 
-/** Validate submitted bluff text against the actual answer and other players' submissions. */
 export function validateFakeAnswer(
   question: Question,
   fakeAnswer: string,
@@ -112,48 +102,25 @@ export function validateFakeAnswer(
   return null;
 }
 
-/**
- * Blend the true answer and player fake answers into a single shuffled choice list.
- */
 export function blendChoices(
   question: Question,
   fakeAnswers: Record<PlayerId, string>,
   randomSeed = 42
 ): RoundChoice[] {
-  interface RawChoice {
-    text: string;
-    authorId: PlayerId | null;
-    isCorrect: boolean;
-  }
-
-  const rawList: RawChoice[] = [];
-
-  // 1. True answer
   const trueAnswer = question.correctAnswer?.trim();
   if (!trueAnswer) throw new Error('Soru için doğrulanmış doğru cevap bulunamadı.');
-  rawList.push({
-    text: trueAnswer,
-    authorId: null,
-    isCorrect: true,
-  });
-
-  // 2. Player fake answers
+  const rawList: Array<{ text: string; authorId: PlayerId | null; isCorrect: boolean }> = [
+    { text: trueAnswer, authorId: null, isCorrect: true },
+  ];
   const seenTexts = new Set<string>([normalizeChoiceText(trueAnswer)]);
   for (const [playerId, fakeText] of Object.entries(fakeAnswers)) {
     const clean = fakeText.trim();
     if (!clean) continue;
-    // Don't add if identical to true answer
     const normalized = normalizeChoiceText(clean);
     if (seenTexts.has(normalized)) continue;
     seenTexts.add(normalized);
-    rawList.push({
-      text: clean,
-      authorId: playerId,
-      isCorrect: false,
-    });
+    rawList.push({ text: clean, authorId: playerId, isCorrect: false });
   }
-
-  // Deterministic Fisher-Yates shuffle
   const arr = [...rawList];
   let s = randomSeed * 9301 + 49297;
   for (let i = arr.length - 1; i > 0; i--) {
@@ -161,21 +128,11 @@ export function blendChoices(
     const j = Math.floor((s / 233280) * (i + 1));
     [arr[i], arr[j]] = [arr[j], arr[i]];
   }
-
-  return arr.map((item, index) => ({
-    choiceIndex: index,
-    text: item.text,
-    authorId: item.authorId,
-    isCorrect: item.isCorrect,
-  }));
+  return arr.map((item, index) => ({ choiceIndex: index, ...item }));
 }
 
-/**
- * Authoritative ZARTO Round Resolution
- */
 export function resolveZartoRound(input: ZartoRoundInput): ZartoRoundResolution {
   const {
-    question,
     players,
     choices,
     picks,
@@ -185,19 +142,15 @@ export function resolveZartoRound(input: ZartoRoundInput): ZartoRoundResolution 
     suspectPicks = {},
     pickTimes = {},
     phaseStartedAt,
+    currentRound = 1,
   } = input;
 
-  const choicesByIndex = new Map<number, RoundChoice>();
-  for (const c of choices) {
-    choicesByIndex.set(c.choiceIndex, c);
-  }
-
-  // 1. Register purchased abilities for this round
+  const choicesByIndex = new Map<number, RoundChoice>(choices.map((c) => [c.choiceIndex, c]));
+  const playerById = new Map(players.map((p) => [p.id, p]));
   const blocksByTarget = new Map<PlayerId, PlayerId[]>();
   const abilityUsesByPlayer = new Map<PlayerId, Record<string, number>>();
-
   for (const action of abilityActions) {
-    const player = players.find((candidate) => candidate.id === action.playerId);
+    const player = playerById.get(action.playerId);
     if (!player) continue;
     const uses = abilityUsesByPlayer.get(action.playerId) ?? {};
     uses[action.abilityId] = (uses[action.abilityId] ?? 0) + 1;
@@ -209,54 +162,42 @@ export function resolveZartoRound(input: ZartoRoundInput): ZartoRoundResolution 
     }
   }
 
-  // 2. Calculate picks and fake answer traps
-  // Count how many players picked each fake answer author
   const victimCountsByAuthor = new Map<PlayerId, number>();
-  for (const p of players) {
-    const pickIndex = picks[p.id];
+  for (const picker of players) {
+    const pickIndex = picks[picker.id];
     if (pickIndex === undefined) continue;
     const chosen = choicesByIndex.get(pickIndex);
-    if (chosen && !chosen.isCorrect && chosen.authorId && chosen.authorId !== p.id) {
-      victimCountsByAuthor.set(
-        chosen.authorId,
-        (victimCountsByAuthor.get(chosen.authorId) ?? 0) + 1
-      );
+    const author = chosen?.authorId ? playerById.get(chosen.authorId) : undefined;
+    if (chosen && !chosen.isCorrect && author && countsAsTrapVictim(picker, author, gameMode)) {
+      victimCountsByAuthor.set(author.id, (victimCountsByAuthor.get(author.id) ?? 0) + 1);
     }
   }
 
+  const detectiveId = detectiveForRound(players, gameMode, currentRound);
+  const golden = isGoldenRound(gameMode, currentRound);
   const rows: Record<PlayerId, RoundResultRow> = {};
   const rowsList: RoundResultRow[] = [];
   const updatedPlayers: Record<PlayerId, Player> = {};
 
   for (const p of players) {
-    const isBlocked = !!p.isBlockedCurrentRound;
-
     const pickIndex = picks[p.id];
-    const chosen = pickIndex !== undefined ? choicesByIndex.get(pickIndex) : undefined;
-
+    const hasPick = pickIndex !== undefined;
+    const chosen = hasPick ? choicesByIndex.get(pickIndex) : undefined;
+    const chosenAuthor = chosen?.authorId ? playerById.get(chosen.authorId) : undefined;
     const answeredCorrectly = !!chosen?.isCorrect;
-    const choseRivalFake = !!(chosen && !chosen.isCorrect && chosen.authorId && chosen.authorId !== p.id);
-    const deceivedByAuthorId = choseRivalFake ? chosen!.authorId : null;
-    const victimsCount = pickIndex === undefined
-      ? 0
-      : victimCountsByAuthor.get(p.id) ?? 0;
-
-    const outcome = computeOutcome({
-      answeredCorrectly,
-      victimsCount,
-      choseRivalFake,
-    });
+    const choseRivalFake = !!(chosen && !chosen.isCorrect && chosenAuthor && countsAsTrapVictim(p, chosenAuthor, gameMode));
+    const deceivedByAuthorId = choseRivalFake ? chosenAuthor!.id : null;
+    const victimsCount = hasPick ? (victimCountsByAuthor.get(p.id) ?? 0) : 0;
+    const outcome = computeOutcome({ answeredCorrectly, victimsCount, choseRivalFake });
 
     let suspectBonus = 0;
     let suspectId: PlayerId | null = null;
-    if (gameMode === 'suspicious' && suspectPicks[p.id]) {
+    if (hasPick && (gameMode === 'suspicious' || (gameMode === 'detective_fox' && detectiveId === p.id)) && suspectPicks[p.id]) {
       const accusedId = suspectPicks[p.id];
       if (accusedId && accusedId !== p.id) {
         suspectId = accusedId;
         const accusedVictims = victimCountsByAuthor.get(accusedId) ?? 0;
-        if (accusedVictims > 0) {
-          suspectBonus = 1;
-        }
+        if (accusedVictims > 0) suspectBonus = gameMode === 'detective_fox' ? 2 : 1;
       }
     }
 
@@ -270,8 +211,14 @@ export function resolveZartoRound(input: ZartoRoundInput): ZartoRoundResolution 
       }
     }
 
-    const pointsDelta = outcome.pointsEarned + suspectBonus + speedBonus;
-    const penaltyDelta = 0;
+    const missionBonus = hasPick
+      ? missionBonusForRound({ mode: gameMode, player: p, chosen, victimsCount, round: currentRound })
+      : 0;
+    const basePoints = outcome.pointsEarned + suspectBonus + speedBonus + missionBonus;
+    const goldenMultiplier = golden && answeredCorrectly ? 3 : 1;
+    const pointsDelta = golden && answeredCorrectly
+      ? basePoints + Math.max(0, outcome.pointsEarned * (goldenMultiplier - 1))
+      : basePoints;
 
     const row: RoundResultRow = {
       playerId: p.id,
@@ -282,60 +229,49 @@ export function resolveZartoRound(input: ZartoRoundInput): ZartoRoundResolution 
       deceivedByAuthorId,
       pickedText: chosen?.text,
       ownFakeText: fakeAnswers[p.id],
-      isBlocked,
-      penaltyDelta,
+      isBlocked: !!p.isBlockedCurrentRound,
+      penaltyDelta: 0,
       suspectId,
-      suspectBonus: suspectBonus > 0 ? suspectBonus : undefined,
-      speedBonus: speedBonus > 0 ? speedBonus : undefined,
+      suspectBonus: suspectBonus || undefined,
+      detectiveBonus: gameMode === 'detective_fox' ? suspectBonus || undefined : undefined,
+      speedBonus: speedBonus || undefined,
       isFastAnswer: isFastAnswer || undefined,
+      teamId: gameMode === 'team_battle' ? p.teamId ?? null : undefined,
+      missionBonus: missionBonus || undefined,
+      goldenMultiplier: golden && answeredCorrectly ? goldenMultiplier : undefined,
     };
-
     rows[p.id] = row;
     rowsList.push(row);
 
-    // Abilities are purchased with credits, not unlocked by score streaks.
     const consecutiveCorrect = answeredCorrectly ? p.consecutiveCorrect + 1 : 0;
-    const shieldsAvailable = p.shieldsAvailable;
-    const blocksAvailable = p.blocksAvailable;
-
     const abilityUsedCounts = { ...p.abilityUsedCounts };
     for (const [abilityId, usedCount] of Object.entries(abilityUsesByPlayer.get(p.id) ?? {})) {
       abilityUsedCounts[abilityId as keyof typeof abilityUsedCounts] += usedCount;
     }
-
     const nextScore = Math.max(0, p.score + pointsDelta);
     const reachedMilestones = nextScore >= 15 ? 3 : nextScore >= 10 ? 2 : nextScore >= 5 ? 1 : 0;
     const milestonesAwarded = p.creditMilestonesAwarded ?? 0;
+    const newMilestones = Math.max(0, reachedMilestones - milestonesAwarded);
     updatedPlayers[p.id] = {
       ...p,
       score: nextScore,
-      credits: (p.credits ?? 0) + Math.max(0, reachedMilestones - milestonesAwarded),
+      credits: (p.credits ?? 0) + newMilestones * (golden && answeredCorrectly ? 2 : 1),
       creditMilestonesAwarded: Math.max(milestonesAwarded, reachedMilestones),
       abilityUsedCounts,
       consecutiveCorrect,
-      shieldsAvailable,
-      blocksAvailable,
-      isBlockedCurrentRound: p.isBlockedCurrentRound,
       isBlockedNextRound: false,
       blockedByPlayerId: p.isBlockedCurrentRound ? p.blockedByPlayerId ?? null : null,
-      lastBlockedPlayerId: p.lastBlockedPlayerId,
     };
   }
 
-  // Legacy penalty/counter action payloads can no longer subtract score.
-
   for (const [targetId, attackerIds] of blocksByTarget) {
     for (const attackerId of attackerIds) {
-      if (updatedPlayers[attackerId]) {
-        updatedPlayers[attackerId].lastBlockedPlayerId = targetId;
-      }
+      if (updatedPlayers[attackerId]) updatedPlayers[attackerId].lastBlockedPlayerId = targetId;
     }
   }
-
   return { rows, rowsList, updatedPlayers };
 }
 
-// Backward-compatible resolveRound signature for existing tests & UI
 export function resolveRound(input: {
   question: Question;
   players: Player[];
@@ -343,34 +279,15 @@ export function resolveRound(input: {
   abilityActions?: AbilityAction[];
 }): { rows: Record<string, RoundResultRow>; rowsList: RoundResultRow[] } {
   const { question, players, answers, abilityActions = [] } = input;
-
-  // Adapt old AnswerSubmission to ZARTO picks / fakeAnswers
   const picks: Record<PlayerId, number> = {};
   const fakeAnswers: Record<PlayerId, string> = {};
-
   for (const [pid, sub] of Object.entries(answers)) {
-    if (sub.choiceIndex !== undefined) {
-      picks[pid] = sub.choiceIndex;
-    } else if (sub.selectedIndex !== undefined) {
-      picks[pid] = sub.selectedIndex;
-    }
-    if (sub.fakeAnswer) {
-      fakeAnswers[pid] = sub.fakeAnswer;
-    }
+    if (sub.choiceIndex !== undefined) picks[pid] = sub.choiceIndex;
+    else if (sub.selectedIndex !== undefined) picks[pid] = sub.selectedIndex;
+    if (sub.fakeAnswer) fakeAnswers[pid] = sub.fakeAnswer;
   }
-
-  // Generate choices if not supplied
   const choices = blendChoices(question, fakeAnswers);
-
-  const res = resolveZartoRound({
-    question,
-    players,
-    choices,
-    picks,
-    fakeAnswers,
-    abilityActions,
-  });
-
+  const res = resolveZartoRound({ question, players, choices, picks, fakeAnswers, abilityActions });
   return { rows: res.rows, rowsList: res.rowsList };
 }
 
@@ -406,10 +323,7 @@ export function applyAbilityActionsToPlayers(
     if (!p) continue;
     next[a.playerId] = {
       ...p,
-      abilityUsedCounts: {
-        ...p.abilityUsedCounts,
-        [a.abilityId]: (p.abilityUsedCounts?.[a.abilityId] ?? 0) + 1,
-      },
+      abilityUsedCounts: { ...p.abilityUsedCounts, [a.abilityId]: (p.abilityUsedCounts?.[a.abilityId] ?? 0) + 1 },
     };
   }
   return next;
