@@ -181,17 +181,18 @@ export function resolveZartoRound(input: ZartoRoundInput): ZartoRoundResolution 
 
   for (const p of players) {
     const pickIndex = picks[p.id];
-    const chosen = pickIndex !== undefined ? choicesByIndex.get(pickIndex) : undefined;
+    const hasPick = pickIndex !== undefined;
+    const chosen = hasPick ? choicesByIndex.get(pickIndex) : undefined;
     const chosenAuthor = chosen?.authorId ? playerById.get(chosen.authorId) : undefined;
     const answeredCorrectly = !!chosen?.isCorrect;
     const choseRivalFake = !!(chosen && !chosen.isCorrect && chosenAuthor && countsAsTrapVictim(p, chosenAuthor, gameMode));
     const deceivedByAuthorId = choseRivalFake ? chosenAuthor!.id : null;
-    const victimsCount = victimCountsByAuthor.get(p.id) ?? 0;
+    const victimsCount = hasPick ? (victimCountsByAuthor.get(p.id) ?? 0) : 0;
     const outcome = computeOutcome({ answeredCorrectly, victimsCount, choseRivalFake });
 
     let suspectBonus = 0;
     let suspectId: PlayerId | null = null;
-    if ((gameMode === 'suspicious' || (gameMode === 'detective_fox' && detectiveId === p.id)) && suspectPicks[p.id]) {
+    if (hasPick && (gameMode === 'suspicious' || (gameMode === 'detective_fox' && detectiveId === p.id)) && suspectPicks[p.id]) {
       const accusedId = suspectPicks[p.id];
       if (accusedId && accusedId !== p.id) {
         suspectId = accusedId;
@@ -210,7 +211,9 @@ export function resolveZartoRound(input: ZartoRoundInput): ZartoRoundResolution 
       }
     }
 
-    const missionBonus = missionBonusForRound({ mode: gameMode, player: p, chosen, victimsCount, round: currentRound });
+    const missionBonus = hasPick
+      ? missionBonusForRound({ mode: gameMode, player: p, chosen, victimsCount, round: currentRound })
+      : 0;
     const basePoints = outcome.pointsEarned + suspectBonus + speedBonus + missionBonus;
     const goldenMultiplier = golden && answeredCorrectly ? 3 : 1;
     const pointsDelta = golden && answeredCorrectly
