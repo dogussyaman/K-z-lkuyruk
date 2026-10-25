@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
   description: { color: 'rgba(255,255,255,0.68)', lineHeight: 20, fontSize: 13, marginBottom: 15 },
   featureRow: { flexDirection: 'row', gap: 10, alignItems: 'center', marginTop: 9 },
   dot: { width: 7, height: 7, borderRadius: 99 },
-  featureText: { color: 'rgba(255,255,255,0.88)', fontSize: 13, fontWeight: '650', flex: 1 },
+  featureText: { color: 'rgba(255,255,255,0.88)', fontSize: 13, fontWeight: '600', flex: 1 },
   callout: { borderWidth: 1, padding: 17, borderRadius: 22 },
   calloutTitle: { fontWeight: '900', fontSize: 13, marginBottom: 5 },
   calloutText: { color: '#FFF', lineHeight: 19, fontSize: 13 },
