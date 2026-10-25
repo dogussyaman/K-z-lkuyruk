@@ -285,17 +285,17 @@ export default function CreateRoomScreen() {
                 onPress={() => handleSelectGameMode('classic')}
                 style={[styles.modeSelectCard, gameMode === 'classic' && styles.modeSelectCardActive]}
               >
-                <View style={styles.modeCardHeader}>
+                <View style={styles.modeCardTopRow}>
                   <Image source={gameModeImages.classic} style={styles.modeCardThumb} />
-                  <View style={{ flex: 1 }}>
-                    <View style={styles.modeTitleRow}>
-                      <Text style={[styles.modeSelectTitle, gameMode === 'classic' && styles.modeSelectTitleActive]}>
-                        Klasik Blöf
-                      </Text>
-                      <Badge tone="orange" style={styles.modeTinyBadge}>VARSAYILAN</Badge>
-                    </View>
-                    <Text style={styles.modeSelectDesc}>Puan biriktir, tuzak kur ve en yüksek skorla kazan.</Text>
-                  </View>
+                  <Badge tone="orange" style={styles.modeTinyBadge}>VARSAYILAN</Badge>
+                </View>
+                <View style={styles.modeCardContent}>
+                  <Text style={[styles.modeSelectTitle, gameMode === 'classic' && styles.modeSelectTitleActive]} numberOfLines={1}>
+                    Klasik Blöf
+                  </Text>
+                  <Text style={styles.modeSelectDesc} numberOfLines={2}>
+                    Puan biriktir, tuzak kur ve kazan.
+                  </Text>
                 </View>
               </Pressable>
 
@@ -306,17 +306,17 @@ export default function CreateRoomScreen() {
                 onPress={() => handleSelectGameMode('survival')}
                 style={[styles.modeSelectCard, gameMode === 'survival' && styles.modeSelectCardActive]}
               >
-                <View style={styles.modeCardHeader}>
+                <View style={styles.modeCardTopRow}>
                   <Image source={gameModeImages.survival} style={styles.modeCardThumb} />
-                  <View style={{ flex: 1 }}>
-                    <View style={styles.modeTitleRow}>
-                      <Text style={[styles.modeSelectTitle, gameMode === 'survival' && styles.modeSelectTitleActive]}>
-                        Hayatta Kalma
-                      </Text>
-                      <Badge tone="danger" style={styles.modeTinyBadge}>3 CAN</Badge>
-                    </View>
-                    <Text style={styles.modeSelectDesc}>3 canla başla; yanlış cevap veya süre aşımında can kaybet.</Text>
-                  </View>
+                  <Badge tone="danger" style={styles.modeTinyBadge}>3 CAN</Badge>
+                </View>
+                <View style={styles.modeCardContent}>
+                  <Text style={[styles.modeSelectTitle, gameMode === 'survival' && styles.modeSelectTitleActive]} numberOfLines={1}>
+                    Hayatta Kalma
+                  </Text>
+                  <Text style={styles.modeSelectDesc} numberOfLines={2}>
+                    3 canla başla, hayatta kalan ol.
+                  </Text>
                 </View>
               </Pressable>
 
@@ -327,17 +327,17 @@ export default function CreateRoomScreen() {
                 onPress={() => handleSelectGameMode('suspicious')}
                 style={[styles.modeSelectCard, gameMode === 'suspicious' && styles.modeSelectCardActive]}
               >
-                <View style={styles.modeCardHeader}>
+                <View style={styles.modeCardTopRow}>
                   <Image source={gameModeImages.suspicious} style={styles.modeCardThumb} />
-                  <View style={{ flex: 1 }}>
-                    <View style={styles.modeTitleRow}>
-                      <Text style={[styles.modeSelectTitle, gameMode === 'suspicious' && styles.modeSelectTitleActive]}>
-                        Herkes Şüpheli
-                      </Text>
-                      <Badge tone="purple" style={styles.modeTinyBadge}>YENİ MOD</Badge>
-                    </View>
-                    <Text style={styles.modeSelectDesc}>Tuzak kuranları tahmin et, dedektif puanları topla.</Text>
-                  </View>
+                  <Badge tone="purple" style={styles.modeTinyBadge}>YENİ MOD</Badge>
+                </View>
+                <View style={styles.modeCardContent}>
+                  <Text style={[styles.modeSelectTitle, gameMode === 'suspicious' && styles.modeSelectTitleActive]} numberOfLines={1}>
+                    Herkes Şüpheli
+                  </Text>
+                  <Text style={styles.modeSelectDesc} numberOfLines={2}>
+                    Tuzakçıları bil, dedektif puanı topla.
+                  </Text>
                 </View>
               </Pressable>
 
@@ -348,17 +348,17 @@ export default function CreateRoomScreen() {
                 onPress={() => handleSelectGameMode('blitz')}
                 style={[styles.modeSelectCard, gameMode === 'blitz' && styles.modeSelectCardActive]}
               >
-                <View style={styles.modeCardHeader}>
+                <View style={styles.modeCardTopRow}>
                   <Image source={gameModeImages.blitz} style={styles.modeCardThumb} />
-                  <View style={{ flex: 1 }}>
-                    <View style={styles.modeTitleRow}>
-                      <Text style={[styles.modeSelectTitle, gameMode === 'blitz' && styles.modeSelectTitleActive]}>
-                        Fırtına Turu
-                      </Text>
-                      <Badge tone="yellow" style={styles.modeTinyBadge}>7 SANİYE</Badge>
-                    </View>
-                    <Text style={styles.modeSelectDesc}>Hızlı cevapla, ilk 3 saniyede bilip hız bonusunu kap!</Text>
-                  </View>
+                  <Badge tone="yellow" style={styles.modeTinyBadge}>7 SANİYE</Badge>
+                </View>
+                <View style={styles.modeCardContent}>
+                  <Text style={[styles.modeSelectTitle, gameMode === 'blitz' && styles.modeSelectTitleActive]} numberOfLines={1}>
+                    Fırtına Turu
+                  </Text>
+                  <Text style={styles.modeSelectDesc} numberOfLines={2}>
+                    7 saniyede bilip hız bonusunu kap!
+                  </Text>
                 </View>
               </Pressable>
             </View>
@@ -776,41 +776,45 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 11,
   },
   modesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: spacing.sm,
     marginTop: spacing.xs,
   },
   modeSelectCard: {
+    width: '48.5%',
+    minHeight: 112,
     padding: spacing.sm,
     borderRadius: radii.lg,
     borderWidth: 1.5,
     borderColor: colors.borderStrong,
     backgroundColor: colors.bgSurfaceAlt,
+    justifyContent: 'space-between',
   },
   modeSelectCardActive: {
     borderColor: colors.orange,
     backgroundColor: 'rgba(255, 113, 59, 0.12)',
+    ...shadows.glowOrange,
   },
-  modeCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  modeCardThumb: {
-    width: 44,
-    height: 44,
-    borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
-  },
-  modeTitleRow: {
+  modeCardTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 6,
+    marginBottom: 6,
+  },
+  modeCardThumb: {
+    width: 42,
+    height: 42,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+  },
+  modeCardContent: {
+    gap: 3,
   },
   modeSelectTitle: {
     fontFamily: 'Poppins-Bold',
-    fontSize: 13.5,
+    fontSize: 13,
     color: colors.textPrimary,
   },
   modeSelectTitleActive: {
@@ -819,13 +823,12 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   modeSelectDesc: {
     ...typography.caption,
     color: colors.textSecondary,
-    fontSize: 11,
-    marginTop: 2,
-    lineHeight: 15,
+    fontSize: 10.5,
+    lineHeight: 14,
   },
   modeTinyBadge: {
-    paddingHorizontal: 5,
-    paddingVertical: 1,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
   },
   segmentBtnActiveBlitz: {
     borderColor: colors.yellow,
