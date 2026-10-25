@@ -23,6 +23,7 @@ import { mascotImages } from '@/assets/illustrations';
 import { soundService } from '@/services/soundService';
 import { PlayerProfileSheet } from '@/components/PlayerProfileSheet';
 import type { Player } from '@/types/game';
+import { getFoxTitles } from '@/features/game/foxTitles';
 
 export default function GameOverScreen() {
   const { colors } = useTheme();
@@ -49,6 +50,7 @@ export default function GameOverScreen() {
   const winner = playersList[0];
   const topThree = playersList.slice(0, 3);
   const rest = playersList.slice(3);
+  const foxTitles = roomState ? getFoxTitles(roomState) : [];
 
   const myRankIndex = playersList.findIndex((p) => p.id === currentPlayer?.id);
   const myRank = myRankIndex >= 0 ? myRankIndex + 1 : null;
@@ -194,6 +196,48 @@ export default function GameOverScreen() {
                 </Pressable>
               </PopView>
             )}
+          </View>
+        )}
+
+        {/* Match-specific Fox titles */}
+        {foxTitles.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>MAÇIN TİLKİ ÜNVANLARI</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingHorizontal: spacing.md }}>
+              {foxTitles.map((title) => {
+                const recipients = title.playerIds
+                  .map((id) => roomState?.players[id])
+                  .filter((player): player is Player => Boolean(player));
+                return (
+                  <View
+                    key={title.id}
+                    style={{
+                      width: '48%',
+                      flexGrow: 1,
+                      flexBasis: '42%',
+                      borderWidth: 1,
+                      borderColor: colors.borderSubtle,
+                      backgroundColor: colors.surface,
+                      borderRadius: radii.lg,
+                      padding: spacing.sm,
+                      gap: 6,
+                    }}
+                  >
+                    <Text style={{ fontSize: 23 }}>{title.emoji}</Text>
+                    <Text style={{ color: colors.textPrimary, fontFamily: 'Poppins-Bold', fontSize: 13 }}>{title.name}</Text>
+                    <Text style={{ color: colors.textSecondary, fontSize: 11, lineHeight: 16 }}>{title.description}</Text>
+                    {recipients.map((recipient) => (
+                      <View key={recipient.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 }}>
+                        <Avatar avatarKey={recipient.avatarKey} userId={recipient.id} size={25} />
+                        <Text numberOfLines={1} style={{ color: colors.textPrimary, fontFamily: 'Poppins-SemiBold', fontSize: 11, flexShrink: 1 }}>
+                          {recipient.name}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                );
+              })}
+            </View>
           </View>
         )}
 
