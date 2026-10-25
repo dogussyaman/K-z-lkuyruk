@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ChevronLeft, Clock3, Flame, Gamepad2, Sparkles, Users } from 'lucide-react-native';
 import { gameModeImages } from '../assets/game-modes';
@@ -99,7 +99,7 @@ function ModeCard({ mode }: { mode: GameModeDefinition }) {
   );
 }
 
-function Meta({ icon, text }: { icon: React.ReactNode; text: string }) {
+function Meta({ icon, text }: { icon: ReactNode; text: string }) {
   return <View style={styles.meta}><View>{icon}</View><Text style={styles.metaText}>{text}</Text></View>;
 }
 
