@@ -98,7 +98,9 @@ export default function AbilitySelectScreen() {
 
   const playersList = roomState ? Object.values(roomState.players) : [];
   const me = playersList.find((p) => p.id === currentPlayer?.id) || currentPlayer;
-  const opponents = playersList.filter((p) => p.id !== me?.id);
+  const isEliminated = roomState?.config.gameMode === 'survival' && (me?.livesRemaining ?? 3) <= 0;
+  const opponents = playersList.filter((p) => p.id !== me?.id
+    && (roomState?.config.gameMode !== 'survival' || (p.livesRemaining ?? 3) > 0));
   const defaultTargetId = opponents.find((player) =>
     player.id !== me?.lastBlockedPlayerId
   )?.id;
@@ -196,7 +198,9 @@ export default function AbilitySelectScreen() {
         </View>
         <Text style={styles.screenTitle}>Strateji & Yetenek</Text>
         <Text style={styles.subtitle}>
-          Bu tur 1 krediyle bir hamle satın alabilir ya da kredini sonraki turlar için saklayabilirsin.
+          {isEliminated
+            ? 'Bu maçta elendin. Canlı oyuncular devam ederken sonuçları izleyebilirsin.'
+            : 'Bu tur 1 krediyle bir hamle satın alabilir ya da kredini sonraki turlar için saklayabilirsin.'}
         </Text>
         {roomState?.phaseDeadlineAt ? (
           <View style={styles.timer}>
@@ -230,7 +234,7 @@ export default function AbilitySelectScreen() {
               <StaggerRow key={ab.id} index={idx} delay={70}>
                 <Pressable
                   onPress={() => handleSelectAbility(ab.id)}
-                  disabled={!check.allowed || confirmed || loading}
+                  disabled={isEliminated || !check.allowed || confirmed || loading}
                   style={({ pressed }) => [
                     styles.abilityCard,
                     isSelected && styles.abilityCardSelected,
@@ -306,7 +310,7 @@ export default function AbilitySelectScreen() {
           onPress={selectedAbility ? handleConfirm : handleSkip}
           variant={selectedAbility ? 'orange' : 'secondary'}
           loading={loading}
-          disabled={confirmed}
+          disabled={confirmed || isEliminated}
           fullWidth
           icon={<Sparkles color="#FFF" size={20} />}
         />
