@@ -3,12 +3,13 @@ import type { ThemeColors } from '@/theme/ThemeProvider';
 import { router } from 'expo-router';
 import { Image, ImageBackground, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Plus, LogIn, Zap, Shield, Swords, Sparkles } from 'lucide-react-native';
+import { Plus, LogIn, Zap, Shield, Swords, Sparkles, Flame, ArrowRight } from 'lucide-react-native';
 import { Screen, ScreenHeader, Button, Card, Badge } from '@/components/ui';
 import { colors, spacing, typography, radii, shadows } from '@/theme';
 import { CATEGORY_GROUPS, CATEGORY_OPTIONS } from '@/features/game/categories';
 import { mascotImages } from '@/assets/illustrations';
 import { categoryOptionImages } from '@/assets/categories/options';
+import { gameModeImages } from '@/assets/game-modes';
 
 export default function OynaScreen() {
   const { colors } = useTheme();
@@ -95,6 +96,103 @@ export default function OynaScreen() {
             />
           </Card>
         </View>
+
+        {/* Game Modes Showcase */}
+        <View style={styles.sectionHead}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Flame color={colors.orange} size={18} />
+            <Text style={styles.sectionTitle}>Oyun Modları</Text>
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Tüm modları gör"
+            onPress={() => router.push('/game-modes')}
+          >
+            <Text style={styles.sectionMeta}>Tümü (9) →</Text>
+          </Pressable>
+        </View>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.modesScroll}
+        >
+          {/* Herkes Şüpheli */}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Herkes Şüpheli modunu seç"
+            style={styles.modeShowcaseCard}
+            onPress={() => router.push({ pathname: '/create-room', params: { mode: 'suspicious' } })}
+          >
+            <Image source={gameModeImages.suspicious} style={styles.modeShowcaseImage} />
+            <LinearGradient
+              colors={['transparent', 'rgba(17, 13, 27, 0.92)']}
+              style={StyleSheet.absoluteFill}
+            />
+            <View style={styles.modeShowcaseContent}>
+              <Badge tone="purple" style={styles.modeShowcaseBadge}>YENİ MOD</Badge>
+              <Text style={styles.modeShowcaseTitle}>Herkes Şüpheli</Text>
+              <Text style={styles.modeShowcaseSub}>Dedektif Çıkarımı</Text>
+            </View>
+          </Pressable>
+
+          {/* Fırtına Turu */}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Fırtına Turu modunu seç"
+            style={styles.modeShowcaseCard}
+            onPress={() => router.push({ pathname: '/create-room', params: { mode: 'blitz' } })}
+          >
+            <Image source={gameModeImages.blitz} style={styles.modeShowcaseImage} />
+            <LinearGradient
+              colors={['transparent', 'rgba(17, 13, 27, 0.92)']}
+              style={StyleSheet.absoluteFill}
+            />
+            <View style={styles.modeShowcaseContent}>
+              <Badge tone="yellow" style={styles.modeShowcaseBadge}>7 SANİYE</Badge>
+              <Text style={styles.modeShowcaseTitle}>Fırtına Turu</Text>
+              <Text style={styles.modeShowcaseSub}>Yıldırım Hızlı Yarış</Text>
+            </View>
+          </Pressable>
+
+          {/* Hayatta Kalma */}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Hayatta Kalma modunu seç"
+            style={styles.modeShowcaseCard}
+            onPress={() => router.push({ pathname: '/create-room', params: { mode: 'survival' } })}
+          >
+            <Image source={gameModeImages.survival} style={styles.modeShowcaseImage} />
+            <LinearGradient
+              colors={['transparent', 'rgba(17, 13, 27, 0.92)']}
+              style={StyleSheet.absoluteFill}
+            />
+            <View style={styles.modeShowcaseContent}>
+              <Badge tone="danger" style={styles.modeShowcaseBadge}>3 CAN</Badge>
+              <Text style={styles.modeShowcaseTitle}>Hayatta Kalma</Text>
+              <Text style={styles.modeShowcaseSub}>Son Kalan Tilki</Text>
+            </View>
+          </Pressable>
+
+          {/* Klasik Blöf */}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Klasik Blöf modunu seç"
+            style={styles.modeShowcaseCard}
+            onPress={() => router.push({ pathname: '/create-room', params: { mode: 'classic' } })}
+          >
+            <Image source={gameModeImages.classic} style={styles.modeShowcaseImage} />
+            <LinearGradient
+              colors={['transparent', 'rgba(17, 13, 27, 0.92)']}
+              style={StyleSheet.absoluteFill}
+            />
+            <View style={styles.modeShowcaseContent}>
+              <Badge tone="orange" style={styles.modeShowcaseBadge}>KLASİK</Badge>
+              <Text style={styles.modeShowcaseTitle}>Klasik Blöf</Text>
+              <Text style={styles.modeShowcaseSub}>Tuzak & Puan Avı</Text>
+            </View>
+          </Pressable>
+        </ScrollView>
 
         {/* Categories Grid */}
         <View style={styles.sectionHead}>
@@ -343,4 +441,49 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   tipTitle: { color: colors.textPrimary, fontFamily: 'Poppins-Bold', fontSize: 13 },
   tipCopy: { color: colors.textSecondary, fontFamily: 'Poppins-Regular', fontSize: 11, lineHeight: 16, marginTop: 2 },
+  modesScroll: {
+    gap: 12,
+    paddingRight: 10,
+    marginBottom: spacing.xs,
+  },
+  modeShowcaseCard: {
+    width: 145,
+    height: 165,
+    borderRadius: radii.xl,
+    overflow: 'hidden',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    justifyContent: 'flex-end',
+    ...shadows.card,
+  },
+  modeShowcaseImage: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: '100%',
+    height: '100%',
+  },
+  modeShowcaseContent: {
+    padding: 10,
+    zIndex: 2,
+  },
+  modeShowcaseBadge: {
+    alignSelf: 'flex-start',
+    marginBottom: 4,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+  },
+  modeShowcaseTitle: {
+    fontFamily: 'Poppins-Bold',
+    fontSize: 13,
+    color: '#FFFFFF',
+    lineHeight: 17,
+  },
+  modeShowcaseSub: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    fontSize: 9.5,
+  },
 });

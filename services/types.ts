@@ -141,6 +141,7 @@ export interface GameService {
   getRoundChoices(code: string): Promise<RoundChoice[]>;
   getRoundReveal(code: string): Promise<RoundRevealChoice[]>;
   submitPick(code: string, choiceIndex: number): Promise<void>;
+  submitSuspectPick(code: string, suspectPlayerId: string): Promise<void>;
   useAbility(code: string, action: AbilityAction): Promise<void>;
   confirmAbilitySelection(code: string): Promise<void>;
   advancePhase(code: string): Promise<void>;

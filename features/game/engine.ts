@@ -1,6 +1,7 @@
 import type {
   AbilityAction,
   AnswerSubmission,
+  GameMode,
   Player,
   PlayerId,
   RoundChoice,
@@ -35,6 +36,10 @@ export interface ZartoRoundInput {
   picks: Record<PlayerId, number>; // playerId -> choiceIndex
   fakeAnswers?: Record<PlayerId, string>;
   abilityActions?: AbilityAction[];
+  gameMode?: GameMode;
+  suspectPicks?: Record<PlayerId, PlayerId>;
+  pickTimes?: Record<PlayerId, number>;
+  phaseStartedAt?: number;
 }
 
 export interface ZartoRoundResolution {
@@ -169,7 +174,18 @@ export function blendChoices(
  * Authoritative ZARTO Round Resolution
  */
 export function resolveZartoRound(input: ZartoRoundInput): ZartoRoundResolution {
-  const { question, players, choices, picks, fakeAnswers = {}, abilityActions = [] } = input;
+  const {
+    question,
+    players,
+    choices,
+    picks,
+    fakeAnswers = {},
+    abilityActions = [],
+    gameMode,
+    suspectPicks = {},
+    pickTimes = {},
+    phaseStartedAt,
+  } = input;
 
   const choicesByIndex = new Map<number, RoundChoice>();
   for (const c of choices) {
@@ -231,7 +247,30 @@ export function resolveZartoRound(input: ZartoRoundInput): ZartoRoundResolution 
       choseRivalFake,
     });
 
-    const pointsDelta = outcome.pointsEarned;
+    let suspectBonus = 0;
+    let suspectId: PlayerId | null = null;
+    if (gameMode === 'suspicious' && suspectPicks[p.id]) {
+      const accusedId = suspectPicks[p.id];
+      if (accusedId && accusedId !== p.id) {
+        suspectId = accusedId;
+        const accusedVictims = victimCountsByAuthor.get(accusedId) ?? 0;
+        if (accusedVictims > 0) {
+          suspectBonus = 1;
+        }
+      }
+    }
+
+    let speedBonus = 0;
+    let isFastAnswer = false;
+    if (gameMode === 'blitz' && answeredCorrectly && phaseStartedAt && pickTimes[p.id]) {
+      const durationMs = pickTimes[p.id] - phaseStartedAt;
+      if (durationMs >= 0 && durationMs <= 3000) {
+        speedBonus = 1;
+        isFastAnswer = true;
+      }
+    }
+
+    const pointsDelta = outcome.pointsEarned + suspectBonus + speedBonus;
     const penaltyDelta = 0;
 
     const row: RoundResultRow = {
@@ -245,6 +284,10 @@ export function resolveZartoRound(input: ZartoRoundInput): ZartoRoundResolution 
       ownFakeText: fakeAnswers[p.id],
       isBlocked,
       penaltyDelta,
+      suspectId,
+      suspectBonus: suspectBonus > 0 ? suspectBonus : undefined,
+      speedBonus: speedBonus > 0 ? speedBonus : undefined,
+      isFastAnswer: isFastAnswer || undefined,
     };
 
     rows[p.id] = row;

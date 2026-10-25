@@ -14,8 +14,8 @@ import {
   Image,
   ImageBackground,
 } from 'react-native';
-import { router } from 'expo-router';
-import { ChevronLeft, Sparkles, Check, Clock, Layers, Flame, Eye, EyeOff, Edit2 } from 'lucide-react-native';
+import { router, useLocalSearchParams } from 'expo-router';
+import { ChevronLeft, Sparkles, Check, Clock, Layers, Flame, Eye, EyeOff, Edit2, Shield, Zap, Search, Compass } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Screen, Button, Card, Avatar, Badge, StickyActionBar, Input } from '@/components/ui';
 import { spacing, typography, radii, shadows } from '@/theme';
@@ -31,9 +31,13 @@ import { mascotImages } from '@/assets/illustrations';
 import { soundService } from '@/services/soundService';
 import { categoryOptionImages } from '@/assets/categories/options';
 import { QUESTIONS } from '@/features/game/questions';
+import type { GameMode } from '@/types/game';
+import { BLITZ_ROUND_SECONDS } from '@/features/game/modes';
+import { gameModeImages } from '@/assets/game-modes';
 
 const ROUND_OPTIONS = [3, 5, 7, 10];
 const TIME_OPTIONS = [10, 15, 20, 30];
+const BLITZ_TIME_OPTIONS = [5, 7, 10];
 
 export default function CreateRoomScreen() {
   const { colors } = useTheme();
@@ -41,14 +45,19 @@ export default function CreateRoomScreen() {
   const { service, currentPlayer, setCurrentPlayer, setRoomCode, setRoomState } = useGameStore();
   const { trigger } = useHaptics();
 
+  const params = useLocalSearchParams<{ mode?: string }>();
+  const initialMode: GameMode = (params.mode === 'survival' || params.mode === 'suspicious' || params.mode === 'blitz')
+    ? params.mode
+    : 'classic';
+
   const [hostName, setHostName] = useState(currentPlayer?.name ?? 'Ev Sahibi');
   const [nameDraft, setNameDraft] = useState(currentPlayer?.name ?? 'Ev Sahibi');
   const [showNameModal, setShowNameModal] = useState(false);
   const [avatarKey, setAvatarKey] = useState(currentPlayer?.avatarKey ?? 'fox');
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const [rounds, setRounds] = useState(5);
-  const [roundSeconds, setRoundSeconds] = useState(15);
-  const [gameMode, setGameMode] = useState<'classic' | 'survival'>('classic');
+  const [gameMode, setGameMode] = useState<GameMode>(initialMode);
+  const [roundSeconds, setRoundSeconds] = useState(initialMode === 'blitz' ? BLITZ_ROUND_SECONDS : 15);
   const [selectedCats, setSelectedCats] = useState<CategoryOptionId[]>([]);
   const [isPrivate, setIsPrivate] = useState(false);
   const [roomPassword, setRoomPassword] = useState('');
@@ -56,6 +65,17 @@ export default function CreateRoomScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const submitting = useRef(false);
+
+  const handleSelectGameMode = (selected: GameMode) => {
+    soundService.play('click');
+    trigger('light');
+    setGameMode(selected);
+    if (selected === 'blitz') {
+      setRoundSeconds(BLITZ_ROUND_SECONDS);
+    } else if (roundSeconds < 10) {
+      setRoundSeconds(15);
+    }
+  };
 
   const toggleCategory = (id: CategoryOptionId) => {
     soundService.play('click');
@@ -244,29 +264,102 @@ export default function CreateRoomScreen() {
           </Card>
 
           <Card variant="surface" style={styles.sectionCard}>
-            <Text style={styles.sectionLabel}>Oyun Modu</Text>
-            <View style={styles.roomTypeRow}>
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionLabel}>Oyun Modu</Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Tüm modları incele"
+                onPress={() => router.push('/game-modes')}
+                style={styles.exploreModesLink}
+              >
+                <Compass size={14} color={colors.orange} />
+                <Text style={styles.exploreModesLinkText}>Tüm Modları Keşfet</Text>
+              </Pressable>
+            </View>
+
+            <View style={styles.modesGrid}>
+              {/* Klasik */}
               <Pressable
                 accessibilityRole="radio"
                 accessibilityState={{ checked: gameMode === 'classic' }}
-                onPress={() => setGameMode('classic')}
-                style={[styles.roomTypeButton, gameMode === 'classic' && styles.roomTypeButtonActive]}
+                onPress={() => handleSelectGameMode('classic')}
+                style={[styles.modeSelectCard, gameMode === 'classic' && styles.modeSelectCardActive]}
               >
-                <Text style={[styles.roomTypeTitle, gameMode === 'classic' && styles.roomTypeTitleActive]}>
-                  Klasik
-                </Text>
-                <Text style={styles.roomTypeDescription}>Puan biriktir, tuzak kur ve en yüksek skorla kazan.</Text>
+                <View style={styles.modeCardHeader}>
+                  <Image source={gameModeImages.classic} style={styles.modeCardThumb} />
+                  <View style={{ flex: 1 }}>
+                    <View style={styles.modeTitleRow}>
+                      <Text style={[styles.modeSelectTitle, gameMode === 'classic' && styles.modeSelectTitleActive]}>
+                        Klasik Blöf
+                      </Text>
+                      <Badge tone="orange" style={styles.modeTinyBadge}>VARSAYILAN</Badge>
+                    </View>
+                    <Text style={styles.modeSelectDesc}>Puan biriktir, tuzak kur ve en yüksek skorla kazan.</Text>
+                  </View>
+                </View>
               </Pressable>
+
+              {/* Hayatta Kalma */}
               <Pressable
                 accessibilityRole="radio"
                 accessibilityState={{ checked: gameMode === 'survival' }}
-                onPress={() => setGameMode('survival')}
-                style={[styles.roomTypeButton, gameMode === 'survival' && styles.roomTypeButtonActive]}
+                onPress={() => handleSelectGameMode('survival')}
+                style={[styles.modeSelectCard, gameMode === 'survival' && styles.modeSelectCardActive]}
               >
-                <Text style={[styles.roomTypeTitle, gameMode === 'survival' && styles.roomTypeTitleActive]}>
-                  ❤️ Hayatta Kalma
-                </Text>
-                <Text style={styles.roomTypeDescription}>3 canla başla; yanlış cevap veya süre aşımında can kaybet. Son kalan kazanır.</Text>
+                <View style={styles.modeCardHeader}>
+                  <Image source={gameModeImages.survival} style={styles.modeCardThumb} />
+                  <View style={{ flex: 1 }}>
+                    <View style={styles.modeTitleRow}>
+                      <Text style={[styles.modeSelectTitle, gameMode === 'survival' && styles.modeSelectTitleActive]}>
+                        Hayatta Kalma
+                      </Text>
+                      <Badge tone="danger" style={styles.modeTinyBadge}>3 CAN</Badge>
+                    </View>
+                    <Text style={styles.modeSelectDesc}>3 canla başla; yanlış cevap veya süre aşımında can kaybet.</Text>
+                  </View>
+                </View>
+              </Pressable>
+
+              {/* Herkes Şüpheli */}
+              <Pressable
+                accessibilityRole="radio"
+                accessibilityState={{ checked: gameMode === 'suspicious' }}
+                onPress={() => handleSelectGameMode('suspicious')}
+                style={[styles.modeSelectCard, gameMode === 'suspicious' && styles.modeSelectCardActive]}
+              >
+                <View style={styles.modeCardHeader}>
+                  <Image source={gameModeImages.suspicious} style={styles.modeCardThumb} />
+                  <View style={{ flex: 1 }}>
+                    <View style={styles.modeTitleRow}>
+                      <Text style={[styles.modeSelectTitle, gameMode === 'suspicious' && styles.modeSelectTitleActive]}>
+                        Herkes Şüpheli
+                      </Text>
+                      <Badge tone="purple" style={styles.modeTinyBadge}>YENİ MOD</Badge>
+                    </View>
+                    <Text style={styles.modeSelectDesc}>Tuzak kuranları tahmin et, dedektif puanları topla.</Text>
+                  </View>
+                </View>
+              </Pressable>
+
+              {/* Fırtına Turu */}
+              <Pressable
+                accessibilityRole="radio"
+                accessibilityState={{ checked: gameMode === 'blitz' }}
+                onPress={() => handleSelectGameMode('blitz')}
+                style={[styles.modeSelectCard, gameMode === 'blitz' && styles.modeSelectCardActive]}
+              >
+                <View style={styles.modeCardHeader}>
+                  <Image source={gameModeImages.blitz} style={styles.modeCardThumb} />
+                  <View style={{ flex: 1 }}>
+                    <View style={styles.modeTitleRow}>
+                      <Text style={[styles.modeSelectTitle, gameMode === 'blitz' && styles.modeSelectTitleActive]}>
+                        Fırtına Turu
+                      </Text>
+                      <Badge tone="yellow" style={styles.modeTinyBadge}>7 SANİYE</Badge>
+                    </View>
+                    <Text style={styles.modeSelectDesc}>Hızlı cevapla, ilk 3 saniyede bilip hız bonusunu kap!</Text>
+                  </View>
+                </View>
               </Pressable>
             </View>
           </Card>
@@ -369,12 +462,16 @@ export default function CreateRoomScreen() {
           {/* Time limit selector */}
           <Card variant="surface" style={styles.sectionCard}>
             <View style={styles.labelRow}>
-              <Clock color={colors.orange} size={18} />
-              <Text style={styles.sectionLabel}>Cevap Süresi</Text>
-              <Text style={styles.selectedSettingText}>{roundSeconds} sn</Text>
+              <Clock color={gameMode === 'blitz' ? colors.yellow : colors.orange} size={18} />
+              <Text style={styles.sectionLabel}>
+                {gameMode === 'blitz' ? 'Fırtına Süresi (Hızlı)' : 'Cevap Süresi'}
+              </Text>
+              <Text style={[styles.selectedSettingText, gameMode === 'blitz' && { color: colors.yellow }]}>
+                {roundSeconds} sn
+              </Text>
             </View>
             <View style={styles.optionRow}>
-              {TIME_OPTIONS.map((t) => {
+              {(gameMode === 'blitz' ? BLITZ_TIME_OPTIONS : TIME_OPTIONS).map((t) => {
                 const active = roundSeconds === t;
                 return (
                   <Pressable
@@ -383,7 +480,10 @@ export default function CreateRoomScreen() {
                       trigger('light');
                       setRoundSeconds(t);
                     }}
-                    style={[styles.segmentBtn, active && styles.segmentBtnActiveTime]}
+                    style={[
+                      styles.segmentBtn,
+                      active && (gameMode === 'blitz' ? styles.segmentBtnActiveBlitz : styles.segmentBtnActiveTime),
+                    ]}
                   >
                     <Text
                       style={[
@@ -653,6 +753,83 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     ...typography.caption,
     color: colors.textSecondary,
     marginTop: 3,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.xs,
+  },
+  exploreModesLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(255, 113, 59, 0.12)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: radii.sm,
+  },
+  exploreModesLinkText: {
+    ...typography.caption,
+    fontFamily: 'Poppins-Bold',
+    color: colors.orange,
+    fontSize: 11,
+  },
+  modesGrid: {
+    gap: spacing.sm,
+    marginTop: spacing.xs,
+  },
+  modeSelectCard: {
+    padding: spacing.sm,
+    borderRadius: radii.lg,
+    borderWidth: 1.5,
+    borderColor: colors.borderStrong,
+    backgroundColor: colors.bgSurfaceAlt,
+  },
+  modeSelectCardActive: {
+    borderColor: colors.orange,
+    backgroundColor: 'rgba(255, 113, 59, 0.12)',
+  },
+  modeCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  modeCardThumb: {
+    width: 44,
+    height: 44,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+  },
+  modeTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 6,
+  },
+  modeSelectTitle: {
+    fontFamily: 'Poppins-Bold',
+    fontSize: 13.5,
+    color: colors.textPrimary,
+  },
+  modeSelectTitleActive: {
+    color: colors.orange,
+  },
+  modeSelectDesc: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    fontSize: 11,
+    marginTop: 2,
+    lineHeight: 15,
+  },
+  modeTinyBadge: {
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+  },
+  segmentBtnActiveBlitz: {
+    borderColor: colors.yellow,
+    backgroundColor: 'rgba(255, 209, 102, 0.18)',
   },
   roomPasswordRow: {
     flexDirection: 'row',

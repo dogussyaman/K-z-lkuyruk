@@ -14,11 +14,12 @@ import {
   Modal,
 } from 'react-native';
 import { router } from 'expo-router';
-import { Clock, Send, Sparkles, AlertCircle, CheckCircle2, Lock, Pause, Play, LogOut, Info } from 'lucide-react-native';
+import { Clock, Send, Sparkles, AlertCircle, CheckCircle2, Lock, Pause, Play, LogOut, Info, Search, Zap } from 'lucide-react-native';
 import {
   Screen,
   Button,
   Card,
+  Avatar,
   Badge,
   StaggerRow,
   PopView,
@@ -84,7 +85,20 @@ export default function QuestionScreen() {
   const [showExitConfirmation, setShowExitConfirmation] = useState(false);
   const [leavingGame, setLeavingGame] = useState(false);
   const [loadedQuestion, setLoadedQuestion] = useState<Question | null>(null);
+  const [suspectedRivalId, setSuspectedRivalId] = useState<string | null>(null);
   const isGamePaused = roomState?.pausedAt != null;
+
+  const handleSelectSuspect = async (rivalId: string) => {
+    if (!roomCode || hasSubmittedPick || pickCommitted.current) return;
+    soundService.play('click');
+    trigger('light');
+    setSuspectedRivalId(rivalId);
+    try {
+      await service.submitSuspectPick(roomCode, rivalId);
+    } catch {
+      // safe fallback
+    }
+  };
 
   const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const blockedPrankTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -202,6 +216,7 @@ export default function QuestionScreen() {
     setFakeAnswerText('');
     setBlockedPrankRevealed(false);
     setBlockedPrankSending(false);
+    setSuspectedRivalId(null);
     blockedFeedbackRoundRef.current = null;
     if (blockedPrankTimeoutRef.current) clearTimeout(blockedPrankTimeoutRef.current);
     setChoices([]);
@@ -643,6 +658,20 @@ export default function QuestionScreen() {
                 {playersList.filter((player) => (player.livesRemaining ?? 3) > 0).length} hayatta
               </Text>
             </View>
+          ) : roomState?.config.gameMode === 'blitz' ? (
+            <View style={styles.modeNoticeBarBlitz}>
+              <Zap size={14} color={colors.yellow} />
+              <Text style={styles.modeNoticeTextBlitz}>
+                ⚡ Fırtına Turu: İlk 3 saniyede bil, +1 Hız Bonusu kazan!
+              </Text>
+            </View>
+          ) : roomState?.config.gameMode === 'suspicious' ? (
+            <View style={styles.modeNoticeBarSuspicious}>
+              <Search size={14} color={colors.purpleSoft} />
+              <Text style={styles.modeNoticeTextSuspicious}>
+                🕵️ Herkes Şüpheli: Doğruyu bul, tuzakçıyı tahmin et ve dedektif bonusu kap!
+              </Text>
+            </View>
           ) : null}
           {/* Question Prompt Card */}
           <Card variant="surface" glow="purple" style={styles.promptCard}>
@@ -773,6 +802,52 @@ export default function QuestionScreen() {
                   );
                 })}
               </View>
+
+              {/* Herkes Şüpheli: Suspect Deduction Picker */}
+              {roomState?.config.gameMode === 'suspicious' ? (
+                <View style={styles.suspectSection}>
+                  <View style={styles.suspectHeader}>
+                    <Search size={14} color={colors.purpleSoft} />
+                    <Text style={styles.suspectTitle}>DEDEKTİF TAHMİNİ: KİM TUZAK KURDU?</Text>
+                  </View>
+                  <Text style={styles.suspectSub}>
+                    Kimin blöf yaptığını tahmin et. Seçtiğin rakip bu tur birini kandırırsa +1 Dedektif Bonusu kazanırsın!
+                  </Text>
+                  <View style={styles.suspectList}>
+                    {playersList
+                      .filter((p) => p.id !== me?.id)
+                      .map((rival) => {
+                        const isSuspected = (suspectedRivalId ?? roomState?.suspectPicks?.[me?.id ?? '']) === rival.id;
+                        return (
+                          <Pressable
+                            key={rival.id}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Şüpheli olarak seç: ${rival.name}`}
+                            onPress={() => handleSelectSuspect(rival.id)}
+                            style={[
+                              styles.suspectCard,
+                              isSuspected && styles.suspectCardActive,
+                            ]}
+                          >
+                            <Avatar avatarKey={rival.avatarKey} size={28} />
+                            <Text
+                              numberOfLines={1}
+                              style={[
+                                styles.suspectName,
+                                isSuspected && styles.suspectNameActive,
+                              ]}
+                            >
+                              {rival.name}
+                            </Text>
+                            {isSuspected ? (
+                              <Badge tone="purple" style={styles.suspectBadge}>ŞÜPHELİ</Badge>
+                            ) : null}
+                          </Pressable>
+                        );
+                      })}
+                  </View>
+                </View>
+              ) : null}
 
             </View>
           )}
@@ -1281,5 +1356,103 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     color: colors.textSecondary,
     flex: 1,
     lineHeight: 16,
+  },
+  modeNoticeBarBlitz: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255, 209, 102, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 209, 102, 0.35)',
+    borderRadius: radii.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs + 2,
+    marginHorizontal: 18,
+    marginBottom: spacing.xs,
+  },
+  modeNoticeTextBlitz: {
+    ...typography.caption,
+    fontFamily: 'Poppins-SemiBold',
+    color: colors.yellow,
+    flex: 1,
+  },
+  modeNoticeBarSuspicious: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(161, 107, 255, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(161, 107, 255, 0.35)',
+    borderRadius: radii.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs + 2,
+    marginHorizontal: 18,
+    marginBottom: spacing.xs,
+  },
+  modeNoticeTextSuspicious: {
+    ...typography.caption,
+    fontFamily: 'Poppins-SemiBold',
+    color: colors.purpleSoft,
+    flex: 1,
+  },
+  suspectSection: {
+    marginTop: spacing.md,
+    backgroundColor: colors.bgSurface,
+    borderWidth: 1.5,
+    borderColor: 'rgba(161, 107, 255, 0.3)',
+    borderRadius: radii.lg,
+    padding: spacing.md,
+    gap: spacing.xs,
+  },
+  suspectHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  suspectTitle: {
+    fontFamily: 'Poppins-Bold',
+    fontSize: 11,
+    color: colors.purpleSoft,
+    letterSpacing: 0.5,
+  },
+  suspectSub: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    fontSize: 11,
+    lineHeight: 16,
+    marginBottom: spacing.xs,
+  },
+  suspectList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs + 2,
+  },
+  suspectCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 5,
+    borderRadius: radii.md,
+    backgroundColor: colors.bgDarkest,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  suspectCardActive: {
+    borderColor: colors.purple,
+    backgroundColor: 'rgba(161, 107, 255, 0.18)',
+  },
+  suspectName: {
+    fontFamily: 'Poppins-Medium',
+    fontSize: 11.5,
+    color: colors.textPrimary,
+  },
+  suspectNameActive: {
+    fontFamily: 'Poppins-Bold',
+    color: colors.purpleSoft,
+  },
+  suspectBadge: {
+    paddingHorizontal: 4,
+    paddingVertical: 1,
   },
 });
