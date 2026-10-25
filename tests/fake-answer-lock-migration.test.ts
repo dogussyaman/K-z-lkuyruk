@@ -35,6 +35,6 @@ test('Survival migration defines server-owned lives and restricts room cleanup R
   assert.match(survivalMigration, /apply_survival_life_loss/i);
   assert.match(survivalMigration, /survival_finished/i);
   assert.match(survivalMigration, /create_room_with_mode_secure/i);
-  assert.match(survivalMigration, /REVOKE ALL ON FUNCTION public\\.cleanup_inactive_rooms\\(\\) FROM PUBLIC, anon, authenticated/i);
-  assert.match(survivalMigration, /GRANT EXECUTE ON FUNCTION public\\.cleanup_inactive_rooms\\(\\) TO service_role/i);
+  assert.match(survivalMigration, /REVOKE ALL ON FUNCTION public\.cleanup_inactive_rooms\(\) FROM PUBLIC, anon, authenticated/i);
+  assert.match(survivalMigration, /GRANT EXECUTE ON FUNCTION public\.cleanup_inactive_rooms\(\) TO service_role/i);
 });
