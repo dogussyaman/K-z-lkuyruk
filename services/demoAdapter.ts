@@ -3,6 +3,7 @@ import { pickQuestions, QUESTIONS } from '../features/game/questions';
 import { canUseAbility } from '../features/game/abilities';
 import {
   applyRoundBlockEffects,
+  applySurvivalLives,
   blendChoices,
   validateFakeAnswer,
   clearRoundBlockState,
@@ -19,6 +20,7 @@ import type {
   RoomPhase,
   RoundChoice,
   RoundResultRow,
+  GameMode,
 } from '../types/game';
 import { makeSamplePlayers, pickAvatarKey } from '../features/game/players';
 import type {
@@ -63,6 +65,7 @@ interface DemoRoom {
   pausedAt: number | null;
   abilityReadyRound: Record<string, number>;
   kickedPlayerIds: Set<string>;
+  survivalFinished: boolean;
 }
 
 export class DemoGameService implements GameService {
@@ -192,6 +195,7 @@ export class DemoGameService implements GameService {
     categories: CategoryId[];
     isPrivate?: boolean;
     password?: string;
+    gameMode?: GameMode;
   }): Promise<{ code: string; playerId: string }> {
     if (config.isPrivate && (
       !config.password ||
@@ -210,12 +214,14 @@ export class DemoGameService implements GameService {
       ...me,
       isHost: true,
       isReady: true,
+      livesRemaining: 3,
     };
     const samples = makeSamplePlayers(3, -1).map((p) => ({
       ...p,
       id: `${code}-${p.id}`,
       isHost: false,
       isReady: true,
+      livesRemaining: 3,
     }));
     const players: Record<string, Player> = { [hostId]: hostPlayer };
     for (const s of samples) players[s.id] = s;
@@ -228,6 +234,7 @@ export class DemoGameService implements GameService {
       totalRounds: config.totalRounds,
       roundSeconds: config.roundSeconds,
       selectedCategoryIds: config.categories,
+      gameMode: config.gameMode ?? 'classic',
     };
 
     const room: DemoRoom = {
@@ -251,6 +258,7 @@ export class DemoGameService implements GameService {
       pausedAt: null,
       abilityReadyRound: {},
       kickedPlayerIds: new Set(),
+      survivalFinished: false,
     };
     this.rooms.set(code, room);
     this.currentPlayer = hostPlayer;
@@ -284,7 +292,7 @@ export class DemoGameService implements GameService {
     if (!this.currentPlayer) await this.signInAnonymously(name, key);
     const me = this.currentPlayer!;
     if (!room.players[me.id]) {
-      room.players[me.id] = { ...me, isReady: false };
+      room.players[me.id] = { ...me, isReady: false, livesRemaining: 3 };
     }
     this.emit({ type: 'player_joined', payload: { code, player: room.players[me.id] } });
     this.emit({ type: 'state', payload: this.snapshot(code) });
@@ -484,8 +492,9 @@ export class DemoGameService implements GameService {
 
     room.players = Object.fromEntries(Object.entries(room.players).map(([id, player]) => [
       id,
-      { ...player, score: 0, credits: 0, creditMilestonesAwarded: 0 },
+      { ...player, score: 0, credits: 0, creditMilestonesAwarded: 0, livesRemaining: 3 },
     ]));
+    room.survivalFinished = false;
     if (this.currentPlayer && room.players[this.currentPlayer.id]) this.currentPlayer = room.players[this.currentPlayer.id];
     this.prepareRoundQuestions(room);
     this.setPhase(room, 'ability_select', room.config.roundSeconds);
@@ -541,7 +550,8 @@ export class DemoGameService implements GameService {
     if (!room) throw new ServiceError('ROOM_NOT_FOUND', 'Oda bulunamadı.');
     this.assertRoomActive(room);
     const player = this.currentPlayer;
-    if (!player || !room.players[player.id] || action.playerId !== player.id || room.phase !== 'ability_select') {
+    if (!player || !room.players[player.id] || action.playerId !== player.id || room.phase !== 'ability_select'
+      || (room.config.gameMode === 'survival' && (player.livesRemaining ?? 3) <= 0)) {
       throw new ServiceError('ABILITY_UNAVAILABLE', 'Yetenek bu aşamada kullanılamaz.');
     }
     if (room.phaseDeadlineAt !== null && room.phaseDeadlineAt <= Date.now()) {
@@ -571,8 +581,9 @@ export class DemoGameService implements GameService {
     );
     if (!allowance.allowed) throw new ServiceError('ABILITY_UNAVAILABLE', allowance.reason ?? 'Yetenek kullanılamıyor.');
     if (action.abilityId === 'block' || action.abilityId === 'penalty') {
-      if (!action.targetId || !room.players[action.targetId] || action.targetId === player.id) {
-        throw new ServiceError('ABILITY_TARGET_INVALID', 'Geçerli bir rakip seçmelisin.');
+      if (!action.targetId || !room.players[action.targetId] || action.targetId === player.id
+        || (room.config.gameMode === 'survival' && (room.players[action.targetId].livesRemaining ?? 3) <= 0)) {
+        throw new ServiceError('ABILITY_TARGET_INVALID', 'Geçerli ve hayatta olan bir rakip seçmelisin.');
       }
     } else if (action.targetId) {
       throw new ServiceError('ABILITY_TARGET_INVALID', 'Bu yetenek hedef kabul etmiyor.');
@@ -619,7 +630,8 @@ export class DemoGameService implements GameService {
     if (!room) throw new ServiceError('ROOM_NOT_FOUND', 'Oda bulunamadı.');
     this.assertRoomActive(room);
     const player = this.currentPlayer && room.players[this.currentPlayer.id];
-    if (!player || player.isBlockedCurrentRound) {
+    if (!player || player.isBlockedCurrentRound
+      || (room.config.gameMode === 'survival' && (player.livesRemaining ?? 3) <= 0)) {
       throw new ServiceError('ROOM_ACCESS_DENIED', 'Bu tur cevap gönderemezsiniz.');
     }
     if (room.phase !== 'fake_answer') throw new ServiceError('WRONG_PHASE', 'Sahte cevap aşaması aktif değil.');
@@ -669,7 +681,8 @@ export class DemoGameService implements GameService {
 
     let decoyIdx = 0;
     for (const p of Object.values(room.players)) {
-      if (p.id !== meId && !p.isBlockedCurrentRound && room.fakeAnswers[p.id] === undefined) {
+      if (p.id !== meId && !p.isBlockedCurrentRound && room.fakeAnswers[p.id] === undefined
+        && (room.config.gameMode !== 'survival' || (p.livesRemaining ?? 3) > 0)) {
         room.fakeAnswers[p.id] = `${botAnswers[decoyIdx % botAnswers.length]} (${decoyIdx + 1})`;
         decoyIdx++;
       }
@@ -716,6 +729,9 @@ export class DemoGameService implements GameService {
     if (!player) {
       throw new ServiceError('ROOM_ACCESS_DENIED', 'Oda erişim izniniz yok.');
     }
+    if (room.config.gameMode === 'survival' && (player.livesRemaining ?? 3) <= 0) {
+      throw new ServiceError('PLAYER_ELIMINATED', 'Canların bitti; bu maçta yalnızca izleyebilirsin.');
+    }
     if (room.phase !== 'guess') throw new ServiceError('WRONG_PHASE', 'Tahmin aşaması aktif değil.');
     if (room.phaseDeadlineAt !== null && room.phaseDeadlineAt <= Date.now()) {
       await this.advanceExpiredPhase(code);
@@ -735,7 +751,8 @@ export class DemoGameService implements GameService {
     room.picks[meId] = choiceIndex;
 
     for (const bot of Object.values(room.players)) {
-      if (bot.id === meId || room.picks[bot.id] !== undefined) continue;
+      if (bot.id === meId || room.picks[bot.id] !== undefined
+        || (room.config.gameMode === 'survival' && (bot.livesRemaining ?? 3) <= 0)) continue;
       const validChoices = room.choices.filter((item) => item.authorId !== bot.id);
       const botPick = validChoices[Math.floor(Math.random() * validChoices.length)];
       if (botPick) room.picks[bot.id] = botPick.choiceIndex;
@@ -772,7 +789,13 @@ export class DemoGameService implements GameService {
     });
 
     room.roundResults = rows;
-    room.players = updatedPlayers;
+    room.players = room.config.gameMode === 'survival'
+      ? applySurvivalLives(Object.values(updatedPlayers), rows)
+      : updatedPlayers;
+    if (room.config.gameMode === 'survival') {
+      room.survivalFinished = Object.values(room.players)
+        .filter((player) => (player.livesRemaining ?? 3) > 0).length <= 1;
+    }
     if (this.currentPlayer && room.players[this.currentPlayer.id]) this.currentPlayer = room.players[this.currentPlayer.id];
     this.setPhase(room, 'reveal');
 
@@ -805,7 +828,8 @@ export class DemoGameService implements GameService {
     } else if (room.phase === 'reveal') {
       this.setPhase(room, 'scoreboard');
     } else if (room.phase === 'scoreboard') {
-      if (room.currentRound >= room.config.totalRounds) {
+      if (room.currentRound >= room.config.totalRounds
+        || (room.config.gameMode === 'survival' && room.survivalFinished)) {
         this.setPhase(room, 'game_over');
         this.emit({ type: 'game_over', payload: { code } });
       } else {
@@ -836,6 +860,7 @@ export class DemoGameService implements GameService {
       throw new ServiceError('WRONG_PHASE', 'Oyun henüz tamamlanmadı.');
     }
     this.setPhase(room, 'lobby');
+    room.survivalFinished = false;
     room.currentRound = 1;
     room.fakeAnswers = {};
     room.choices = [];
@@ -849,6 +874,7 @@ export class DemoGameService implements GameService {
         score: 0,
         credits: 0,
         creditMilestonesAwarded: 0,
+        livesRemaining: 3,
         isReady: room.players[id].isHost,
         abilityUsedCounts: { block: 0, shield: 0, penalty: 0, counter: 0 },
         consecutiveCorrect: 0,
@@ -1042,18 +1068,22 @@ export class DemoGameService implements GameService {
     const room = this.rooms.get(code);
     if (!room) return null;
     const participants = Object.values(room.players).filter((player) => player.isOnline);
+    const eligibleParticipants = participants.filter((player) =>
+      room.config.gameMode !== 'survival' || (player.livesRemaining ?? 3) > 0
+    );
     const submissionStatus: Record<string, boolean> = {};
     for (const player of participants) {
-      const done = room.phase === 'lobby'
+      const isEliminated = room.config.gameMode === 'survival' && (player.livesRemaining ?? 3) <= 0;
+      const done = isEliminated || (room.phase === 'lobby'
         ? player.isReady
         : room.phase === 'fake_answer'
           ? player.isBlockedCurrentRound || room.fakeAnswers[player.id] !== undefined
           : room.phase === 'guess'
             ? room.picks[player.id] !== undefined
-            : room.roundResults[player.id] !== undefined;
+            : room.roundResults[player.id] !== undefined);
       submissionStatus[player.id] = done;
     }
-    const submittedCount = Object.values(submissionStatus).filter(Boolean).length;
+    const submittedCount = eligibleParticipants.filter((player) => submissionStatus[player.id]).length;
     return {
       config: room.config,
       players: room.players,
@@ -1072,8 +1102,8 @@ export class DemoGameService implements GameService {
       pausedAt: room.pausedAt,
       progress: {
         submittedCount,
-        totalCount: participants.length,
-        completed: participants.length > 0 && submittedCount >= participants.length,
+        totalCount: eligibleParticipants.length,
+        completed: eligibleParticipants.length > 0 && submittedCount >= eligibleParticipants.length,
         submissionStatus,
       },
     };
