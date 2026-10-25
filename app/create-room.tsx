@@ -48,6 +48,7 @@ export default function CreateRoomScreen() {
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const [rounds, setRounds] = useState(5);
   const [roundSeconds, setRoundSeconds] = useState(15);
+  const [gameMode, setGameMode] = useState<'classic' | 'survival'>('classic');
   const [selectedCats, setSelectedCats] = useState<CategoryOptionId[]>([]);
   const [isPrivate, setIsPrivate] = useState(false);
   const [roomPassword, setRoomPassword] = useState('');
@@ -110,6 +111,7 @@ export default function CreateRoomScreen() {
         avatarKey,
         totalRounds: rounds,
         roundSeconds,
+        gameMode,
         categories: Array.from(
           new Set(
             CATEGORY_OPTIONS
@@ -239,6 +241,34 @@ export default function CreateRoomScreen() {
                 ))}
               </View>
             )}
+          </Card>
+
+          <Card variant="surface" style={styles.sectionCard}>
+            <Text style={styles.sectionLabel}>Oyun Modu</Text>
+            <View style={styles.roomTypeRow}>
+              <Pressable
+                accessibilityRole="radio"
+                accessibilityState={{ checked: gameMode === 'classic' }}
+                onPress={() => setGameMode('classic')}
+                style={[styles.roomTypeButton, gameMode === 'classic' && styles.roomTypeButtonActive]}
+              >
+                <Text style={[styles.roomTypeTitle, gameMode === 'classic' && styles.roomTypeTitleActive]}>
+                  Klasik
+                </Text>
+                <Text style={styles.roomTypeDescription}>Puan biriktir, tuzak kur ve en yüksek skorla kazan.</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="radio"
+                accessibilityState={{ checked: gameMode === 'survival' }}
+                onPress={() => setGameMode('survival')}
+                style={[styles.roomTypeButton, gameMode === 'survival' && styles.roomTypeButtonActive]}
+              >
+                <Text style={[styles.roomTypeTitle, gameMode === 'survival' && styles.roomTypeTitleActive]}>
+                  ❤️ Hayatta Kalma
+                </Text>
+                <Text style={styles.roomTypeDescription}>3 canla başla; yanlış cevap veya süre aşımında can kaybet. Son kalan kazanır.</Text>
+              </Pressable>
+            </View>
           </Card>
 
           <Card variant="surface" style={styles.sectionCard}>
