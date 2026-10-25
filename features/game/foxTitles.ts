@@ -52,12 +52,12 @@ export function getFoxTitles(state: Pick<GameState, 'players' | 'history' | 'con
   const alive = (player: Player) => (player.livesRemaining ?? 0) > 0;
 
   const titles = [
-    award('champion', 'Puan Avcısı', '🏆', 'Maçın en yüksek puanını topladı.', leadersBy(players, (p) => p.score)),
-    award('sharp_mind', 'Keskin Zihin', '🧠', 'En fazla gerçek cevabı bildi.', leadersBy(players, correct)),
-    award('trap_master', 'Tuzak Ustası', '🦊', 'Rakiplerini en çok kendi tuzağına düşürdü.', leadersBy(players, victims)),
-    award('easy_target', 'Kolay Lokma', '🎯', 'En fazla rakibin tuzağına yakalandı.', leadersBy(players, trapped)),
+    award('champion', 'Puan Avcısı', '🏆', 'Maçın en yüksek puanını topladı.', leadersBy(players, (p) => p.score).map((p) => p.id)),
+    award('sharp_mind', 'Keskin Zihin', '🧠', 'En fazla gerçek cevabı bildi.', leadersBy(players, correct).map((p) => p.id)),
+    award('trap_master', 'Tuzak Ustası', '🦊', 'Rakiplerini en çok kendi tuzağına düşürdü.', leadersBy(players, victims).map((p) => p.id)),
+    award('easy_target', 'Kolay Lokma', '🎯', 'En fazla rakibin tuzağına yakalandı.', leadersBy(players, trapped).map((p) => p.id)),
     state.config.gameMode === 'survival'
-      ? award('survivor', 'Son Tilki', '❤️', 'Hayatta kalma modunda canlarını korudu.', players.filter(alive))
+      ? award('survivor', 'Son Tilki', '❤️', 'Hayatta kalma modunda canlarını korudu.', players.filter(alive).map((p) => p.id))
       : null,
   ];
   return titles.filter((title): title is FoxTitle => title !== null);

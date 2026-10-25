@@ -3,7 +3,7 @@ import type { ThemeColors } from '@/theme/ThemeProvider';
 import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View, ScrollView, Image } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { ArrowRight } from 'lucide-react-native';
+import { ArrowRight, Check, Search, Zap } from 'lucide-react-native';
 import {
   Screen,
   Button,
@@ -145,6 +145,32 @@ export default function ResultScreen() {
       : [];
   });
 
+  const correctRevealChoice = revealChoices?.find((choice) => choice.isCorrect);
+  const correctChoice = correctRevealChoice ?? roomState?.choices?.find((choice) => choice.isCorrect);
+  const correctAnswerText = correctChoice?.text || question?.correctAnswer;
+  const pickedCorrectSolvers = (correctRevealChoice?.pickedBy ?? [])
+    .map((id) => playersList.find((player) => player.id === id))
+    .filter((player): player is NonNullable<typeof player> => player !== undefined);
+  const resultCorrectSolvers = playersList.filter((player) => {
+    const res = roundResults[player.id];
+    return res?.outcome?.correct;
+  });
+  const effectiveCorrectSolvers = pickedCorrectSolvers.length > 0
+    ? pickedCorrectSolvers
+    : resultCorrectSolvers;
+  const didMeKnow = effectiveCorrectSolvers.some((p) => p.id === me?.id);
+  const solverCount = effectiveCorrectSolvers.length;
+  let solversSummaryText = '';
+  if (solverCount > 0) {
+    if (didMeKnow) {
+      solversSummaryText = solverCount === 1 ? 'Sen bildin! 🎯' : `${solverCount} kişi bildi (Sen dahil)`;
+    } else {
+      solversSummaryText = solverCount === 1 ? `${effectiveCorrectSolvers[0].name} bildi` : `${solverCount} kişi bildi`;
+    }
+  } else {
+    solversSummaryText = 'Bilen çıkmadı';
+  }
+
   const outcome = myResult?.outcome;
   const pointsDelta = myResult?.pointsDelta ?? 0;
   const victimsCount = myResult?.victimsCount ?? outcome?.victimsCount ?? 0;
@@ -264,6 +290,27 @@ export default function ResultScreen() {
 
         <Text style={styles.sectionTitle}>KİM KİMİ TUZAĞA DÜŞÜRDÜ?</Text>
         <Card variant="surface" style={styles.summaryCard}>
+          {correctAnswerText ? (
+            <View style={styles.correctAnswerBox}>
+              <View style={styles.correctAnswerHeader}>
+                <View style={styles.correctBadge}>
+                  <Check size={11} color={mode === 'light' ? '#15803D' : '#4ADE80'} strokeWidth={3} />
+                  <Text style={styles.correctBadgeText}>DOĞRU SEÇENEK</Text>
+                </View>
+                {revealChoices !== null || effectiveCorrectSolvers.length > 0 ? (
+                  <Text style={styles.correctSolversText}>
+                    {solversSummaryText}
+                  </Text>
+                ) : null}
+              </View>
+              <Text style={styles.correctAnswerText} numberOfLines={2}>
+                {correctAnswerText}
+              </Text>
+            </View>
+          ) : null}
+
+          {correctAnswerText ? <View style={styles.summaryDivider} /> : null}
+
           {revealLoadError ? (
             <Text accessibilityRole="alert" style={styles.summaryMessage}>{revealLoadError}</Text>
           ) : revealChoices === null ? (
@@ -329,6 +376,41 @@ export default function ResultScreen() {
           )}
         </Card>
 
+        {roomState?.config.gameMode === 'suspicious' ? (
+          <>
+            <Text style={styles.sectionTitle}>DEDEKTİF ŞÜPHE RAPORU</Text>
+            <Card variant="surface" style={styles.summaryCard}>
+              {playersList.filter((p) => roundResults[p.id]?.suspectId).length > 0 ? (
+                playersList
+                  .filter((p) => roundResults[p.id]?.suspectId)
+                  .map((player) => {
+                    const row = roundResults[player.id];
+                    const suspected = playersList.find((cand) => cand.id === row?.suspectId);
+                    const wasCorrect = !!row?.suspectBonus;
+                    return (
+                      <View key={player.id} style={styles.deductionRow}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
+                          <Avatar avatarKey={player.avatarUrl ?? player.avatarKey} userId={player.id} size={26} />
+                          <Text style={styles.deductionPlayerName} numberOfLines={1}>{player.name}</Text>
+                          <ArrowRight size={13} color={colors.textSecondary} />
+                          <Avatar avatarKey={suspected?.avatarUrl ?? suspected?.avatarKey ?? 'fox'} userId={suspected?.id} size={26} />
+                          <Text style={styles.deductionSuspectName} numberOfLines={1}>{suspected?.name}</Text>
+                        </View>
+                        <View style={[styles.deductionBadge, wasCorrect ? styles.deductionBadgeCorrect : styles.deductionBadgeWrong]}>
+                          <Text style={[styles.deductionBadgeText, wasCorrect ? styles.deductionBadgeTextCorrect : styles.deductionBadgeTextWrong]}>
+                            {wasCorrect ? '+1 DEDEKTİF' : 'YANILDI'}
+                          </Text>
+                        </View>
+                      </View>
+                    );
+                  })
+              ) : (
+                <Text style={styles.summaryMessage}>Bu tur kimse dedektif şüphesi göndermedi.</Text>
+              )}
+            </Card>
+          </>
+        ) : null}
+
         <Text style={styles.sectionTitle}>TUR PUANLARI</Text>
         <View style={styles.playersListWrap}>
           {playersList
@@ -359,6 +441,16 @@ export default function ResultScreen() {
                       ) : result?.deceivedByAuthorId ? (
                         <Text style={styles.playerPointsHint}>
                           {playersList.find((candidate) => candidate.id === result.deceivedByAuthorId)?.name ?? 'Bir oyuncunun'} tuzağına düştü
+                        </Text>
+                      ) : null}
+                      {result?.suspectBonus ? (
+                        <Text style={[styles.playerPointsHint, { color: colors.purpleSoft }]}>
+                          🕵️ Dedektif: Doğru tuzakçıyı bildi (+1)
+                        </Text>
+                      ) : null}
+                      {result?.speedBonus ? (
+                        <Text style={[styles.playerPointsHint, { color: colors.yellow }]}>
+                          ⚡ Yıldırım Hızı: İlk 3 saniyede bildi (+1)
                         </Text>
                       ) : null}
                     </View>
@@ -469,6 +561,53 @@ const createStyles = (colors: ThemeColors, mode: 'dark' | 'light') => StyleSheet
     marginBottom: spacing.md,
     borderWidth: 1,
     borderColor: colors.borderStrong,
+  },
+  correctAnswerBox: {
+    backgroundColor: mode === 'light' ? 'rgba(34, 197, 94, 0.08)' : 'rgba(34, 197, 94, 0.12)',
+    borderWidth: 1,
+    borderColor: mode === 'light' ? 'rgba(21, 128, 61, 0.35)' : 'rgba(74, 222, 128, 0.35)',
+    borderRadius: radii.md,
+    paddingVertical: spacing.xs + 3,
+    paddingHorizontal: spacing.sm + 2,
+    gap: 4,
+  },
+  correctAnswerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.xs,
+  },
+  correctBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: mode === 'light' ? 'rgba(34, 197, 94, 0.18)' : 'rgba(34, 197, 94, 0.22)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: radii.xs,
+  },
+  correctBadgeText: {
+    fontFamily: 'Poppins-Bold',
+    fontSize: 9.5,
+    color: mode === 'light' ? '#15803D' : '#4ADE80',
+    letterSpacing: 0.5,
+  },
+  correctSolversText: {
+    ...typography.caption,
+    fontFamily: 'Poppins-Medium',
+    fontSize: 10.5,
+    color: mode === 'light' ? '#166534' : '#86EFAC',
+  },
+  correctAnswerText: {
+    fontFamily: 'Poppins-Bold',
+    fontSize: 14,
+    color: colors.textPrimary,
+    lineHeight: 19,
+  },
+  summaryDivider: {
+    height: 1,
+    backgroundColor: colors.borderStrong,
+    marginVertical: spacing.sm,
   },
   summaryMessage: {
     ...typography.small,
@@ -597,5 +736,48 @@ const createStyles = (colors: ThemeColors, mode: 'dark' | 'light') => StyleSheet
     fontFamily: 'Poppins-Bold',
     minWidth: 54,
     textAlign: 'right',
+  },
+  deductionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: spacing.xs + 2,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    gap: spacing.sm,
+  },
+  deductionPlayerName: {
+    fontFamily: 'Poppins-Bold',
+    fontSize: 12,
+    color: colors.textPrimary,
+    maxWidth: 80,
+  },
+  deductionSuspectName: {
+    fontFamily: 'Poppins-Medium',
+    fontSize: 12,
+    color: colors.textSecondary,
+    maxWidth: 80,
+  },
+  deductionBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: radii.xs,
+  },
+  deductionBadgeCorrect: {
+    backgroundColor: mode === 'light' ? 'rgba(34, 197, 94, 0.2)' : 'rgba(34, 197, 94, 0.25)',
+  },
+  deductionBadgeWrong: {
+    backgroundColor: mode === 'light' ? 'rgba(100, 100, 120, 0.12)' : 'rgba(255, 255, 255, 0.08)',
+  },
+  deductionBadgeText: {
+    fontFamily: 'Poppins-Bold',
+    fontSize: 9.5,
+    letterSpacing: 0.5,
+  },
+  deductionBadgeTextCorrect: {
+    color: mode === 'light' ? '#15803D' : '#4ADE80',
+  },
+  deductionBadgeTextWrong: {
+    color: colors.textMuted,
   },
 });

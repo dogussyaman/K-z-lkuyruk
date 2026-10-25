@@ -1,6 +1,7 @@
 import type { CategoryId } from '../features/game/categories';
 import { pickQuestions, QUESTIONS } from '../features/game/questions';
 import { canUseAbility } from '../features/game/abilities';
+import { BLITZ_ROUND_SECONDS } from '../features/game/modes';
 import {
   applyRoundBlockEffects,
   applySurvivalLives,
@@ -66,6 +67,8 @@ interface DemoRoom {
   abilityReadyRound: Record<string, number>;
   kickedPlayerIds: Set<string>;
   survivalFinished: boolean;
+  suspectPicks: Record<string, string>;
+  pickTimes: Record<string, number>;
 }
 
 export class DemoGameService implements GameService {
@@ -226,15 +229,20 @@ export class DemoGameService implements GameService {
     const players: Record<string, Player> = { [hostId]: hostPlayer };
     for (const s of samples) players[s.id] = s;
 
+    const selectedGameMode = config.gameMode ?? 'classic';
+    const effectiveRoundSeconds = selectedGameMode === 'blitz'
+      ? BLITZ_ROUND_SECONDS
+      : config.roundSeconds;
+
     const roomConfig: RoomConfig = {
       code,
       hostId,
       maxPlayers: 10,
       minPlayers: 2,
       totalRounds: config.totalRounds,
-      roundSeconds: config.roundSeconds,
+      roundSeconds: effectiveRoundSeconds,
       selectedCategoryIds: config.categories,
-      gameMode: config.gameMode ?? 'classic',
+      gameMode: selectedGameMode,
     };
 
     const room: DemoRoom = {
@@ -259,6 +267,8 @@ export class DemoGameService implements GameService {
       abilityReadyRound: {},
       kickedPlayerIds: new Set(),
       survivalFinished: false,
+      suspectPicks: {},
+      pickTimes: {},
     };
     this.rooms.set(code, room);
     this.currentPlayer = hostPlayer;
@@ -749,17 +759,54 @@ export class DemoGameService implements GameService {
       return;
     }
     room.picks[meId] = choiceIndex;
+    room.pickTimes[meId] = Date.now();
 
     for (const bot of Object.values(room.players)) {
       if (bot.id === meId || room.picks[bot.id] !== undefined
         || (room.config.gameMode === 'survival' && (bot.livesRemaining ?? 3) <= 0)) continue;
       const validChoices = room.choices.filter((item) => item.authorId !== bot.id);
       const botPick = validChoices[Math.floor(Math.random() * validChoices.length)];
-      if (botPick) room.picks[bot.id] = botPick.choiceIndex;
+      if (botPick) {
+        room.picks[bot.id] = botPick.choiceIndex;
+        room.pickTimes[bot.id] = Date.now();
+      }
+      if (room.config.gameMode === 'suspicious' && !room.suspectPicks[bot.id]) {
+        const potentialSuspects = Object.values(room.players).filter((p) => p.id !== bot.id);
+        const randomSuspect = potentialSuspects[Math.floor(Math.random() * potentialSuspects.length)];
+        if (randomSuspect) room.suspectPicks[bot.id] = randomSuspect.id;
+      }
     }
 
     // Resolve round authoritatively
     this.resolveRoundAuthoritatively(code);
+  }
+
+  async submitSuspectPick(code: string, suspectPlayerId: string): Promise<void> {
+    const room = this.rooms.get(code);
+    if (!room) throw new ServiceError('ROOM_NOT_FOUND', 'Oda bulunamadı.');
+    this.assertRoomActive(room);
+    const player = this.currentPlayer && room.players[this.currentPlayer.id];
+    if (!player) {
+      throw new ServiceError('ROOM_ACCESS_DENIED', 'Oda erişim izniniz yok.');
+    }
+    if (room.phase !== 'guess') {
+      throw new ServiceError('WRONG_PHASE', 'Şüpheli tahmini yalnızca tahmin aşamasında yapılabilir.');
+    }
+    if (room.phaseDeadlineAt !== null && room.phaseDeadlineAt <= Date.now()) {
+      await this.advanceExpiredPhase(code);
+      throw new ServiceError('PHASE_EXPIRED', 'Tahmin süresi doldu.');
+    }
+    if (player.id === suspectPlayerId) {
+      throw new ServiceError('INVALID_SUSPECT', 'Kendini şüpheli olarak seçemezsin.');
+    }
+    if (!room.players[suspectPlayerId]) {
+      throw new ServiceError('INVALID_SUSPECT', 'Geçersiz şüpheli oyuncu.');
+    }
+    if (room.suspectPicks[player.id]) {
+      throw new ServiceError('ALREADY_SUBMITTED', 'Bu tur zaten şüpheli tahmininde bulundun.');
+    }
+    room.suspectPicks[player.id] = suspectPlayerId;
+    this.emit({ type: 'state', payload: this.snapshot(code) });
   }
 
   // Backward-compatible submitAnswer
@@ -786,6 +833,10 @@ export class DemoGameService implements GameService {
       picks: room.picks,
       fakeAnswers: room.fakeAnswers,
       abilityActions: room.abilityActions,
+      gameMode: room.config.gameMode,
+      suspectPicks: room.suspectPicks,
+      pickTimes: room.pickTimes,
+      phaseStartedAt: room.phaseStartedAt,
     });
 
     room.roundResults = rows;
@@ -841,6 +892,8 @@ export class DemoGameService implements GameService {
         room.picks = {};
         room.answers = {};
         room.abilityActions = [];
+        room.suspectPicks = {};
+        room.pickTimes = {};
         room.currentQuestionId = room.questionQueue[room.currentRound - 1] ?? QUESTIONS[0].id;
       }
     }
@@ -1097,6 +1150,8 @@ export class DemoGameService implements GameService {
       abilityActions: room.abilityActions,
       roundResults: room.roundResults,
       history: [],
+      suspectPicks: { ...room.suspectPicks },
+      pickTimes: { ...room.pickTimes },
       phaseStartedAt: room.phaseStartedAt,
       phaseDeadlineAt: room.phaseDeadlineAt,
       pausedAt: room.pausedAt,

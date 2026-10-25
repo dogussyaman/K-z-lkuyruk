@@ -4,7 +4,7 @@ import type { OutcomeLabel, RoundOutcome } from '../features/game/outcomes';
 
 export type PlayerId = string;
 
-export type GameMode = 'classic' | 'survival';
+export type GameMode = 'classic' | 'survival' | 'suspicious' | 'blitz';
 
 export interface Player {
   id: PlayerId;
@@ -76,6 +76,11 @@ export interface PickSubmission {
   choiceIndex: number;
 }
 
+export interface SuspectSubmission {
+  playerId: PlayerId;
+  suspectPlayerId: PlayerId;
+}
+
 // Backward-compatible with previous submission shape
 export interface AnswerSubmission {
   playerId: PlayerId;
@@ -105,6 +110,13 @@ export interface RoundResultRow {
   ownFakeText?: string;
   isBlocked?: boolean;
   penaltyDelta?: number;
+  /** In Herkes Şüpheli mode: the rival player suspected of bluffing. */
+  suspectId?: PlayerId | null;
+  /** In Herkes Şüpheli mode: bonus awarded for correctly identifying a bluffer (+1). */
+  suspectBonus?: number;
+  /** In Fırtına Turu mode: speed bonus for answering correctly within the early window (+1). */
+  speedBonus?: number;
+  isFastAnswer?: boolean;
 }
 
 export interface GameState {
@@ -120,6 +132,8 @@ export interface GameState {
   abilityActions: AbilityAction[];
   roundResults: Record<PlayerId, RoundResultRow>;
   history: RoundResultRow[][];
+  suspectPicks?: Record<PlayerId, PlayerId>;
+  pickTimes?: Record<PlayerId, number>;
   phaseStartedAt?: number;
   phaseDeadlineAt?: number | null;
   pausedAt?: number | null;

@@ -924,6 +924,17 @@ export class SupabaseGameService implements GameService {
     if (error) throw new ServiceError('SUBMIT_PICK_FAILED', error.message);
   }
 
+  async submitSuspectPick(code: string, suspectPlayerId: string): Promise<void> {
+    const sb = ensureSupabase();
+    const { error } = await sb.rpc('submit_suspect_pick_secure', {
+      p_room_code: code.toUpperCase(),
+      p_suspect_id: suspectPlayerId,
+    });
+    if (error) {
+      if (__DEV__) console.warn('[SupabaseAdapter] submit_suspect_pick_secure:', error.message);
+    }
+  }
+
   async useAbility(code: string, action: AbilityAction): Promise<void> {
     const sb = ensureSupabase();
     const { error } = await sb.rpc('use_ability_secure', {
