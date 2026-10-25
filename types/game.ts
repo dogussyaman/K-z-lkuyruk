@@ -3,8 +3,9 @@ import type { CategoryId } from '../features/game/categories';
 import type { OutcomeLabel, RoundOutcome } from '../features/game/outcomes';
 
 export type PlayerId = string;
+export type TeamId = 'A' | 'B';
 
-export type GameMode = 'classic' | 'survival' | 'suspicious' | 'blitz';
+export type GameMode = 'classic' | 'survival' | 'suspicious' | 'blitz' | 'team_battle';
 
 export interface Player {
   id: PlayerId;
@@ -14,6 +15,8 @@ export interface Player {
   isReady: boolean;
   isOnline: boolean;
   score: number;
+  /** Assigned side in Team Battle. Undefined in solo modes. */
+  teamId?: TeamId | null;
   /** Current match lives. Only used by Survival mode. */
   livesRemaining?: number;
   /** Spendable wallet for this match; resets when the next match starts. */
@@ -117,6 +120,8 @@ export interface RoundResultRow {
   /** In Fırtına Turu mode: speed bonus for answering correctly within the early window (+1). */
   speedBonus?: number;
   isFastAnswer?: boolean;
+  /** In Team Battle: team that receives this player's round contribution. */
+  teamId?: TeamId | null;
 }
 
 export interface GameState {
@@ -133,6 +138,8 @@ export interface GameState {
   roundResults: Record<PlayerId, RoundResultRow>;
   history: RoundResultRow[][];
   suspectPicks?: Record<PlayerId, PlayerId>;
+  /** Team totals are server-owned in Team Battle. */
+  teamScores?: Partial<Record<TeamId, number>>;
   pickTimes?: Record<PlayerId, number>;
   phaseStartedAt?: number;
   phaseDeadlineAt?: number | null;
