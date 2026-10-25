@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ChevronLeft, Clock3, Gamepad2, Sparkles, Users } from 'lucide-react-native';
 import { gameModeImages } from '../assets/game-modes';
@@ -120,7 +120,7 @@ export default function ModeCreateRoomScreen() {
   );
 }
 
-function Stat({ icon, label }: { icon: React.ReactNode; label: string }) {
+function Stat({ icon, label }: { icon: ReactNode; label: string }) {
   return <View style={styles.stat}><View>{icon}</View><Text style={styles.statText}>{label}</Text></View>;
 }
 
