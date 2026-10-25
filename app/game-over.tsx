@@ -37,7 +37,13 @@ export default function GameOverScreen() {
   }, [trigger]);
 
   const playersList = roomState
-    ? Object.values(roomState.players).sort((a, b) => b.score - a.score)
+    ? Object.values(roomState.players).sort((a, b) => {
+        if (roomState.config.gameMode === 'survival') {
+          const aliveDifference = Number((b.livesRemaining ?? 3) > 0) - Number((a.livesRemaining ?? 3) > 0);
+          if (aliveDifference !== 0) return aliveDifference;
+        }
+        return b.score - a.score;
+      })
     : [];
 
   const winner = playersList[0];
@@ -103,7 +109,9 @@ export default function GameOverScreen() {
               </View>
 
               <Text style={styles.winnerName}>{winner?.name ?? 'Şampiyon'}</Text>
-              <Text style={styles.winnerScore}>{winner?.score ?? 0} Toplam Puan</Text>
+              <Text style={styles.winnerScore}>{roomState?.config.gameMode === 'survival'
+                ? `❤️ ${winner?.livesRemaining ?? 0} can · ${winner?.score ?? 0} puan`
+                : `${winner?.score ?? 0} Toplam Puan`}</Text>
 
               {isMeWinner ? (
                 <Badge tone="yellow" sticker style={{ marginTop: 6 }}>
