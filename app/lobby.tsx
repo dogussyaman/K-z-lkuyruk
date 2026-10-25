@@ -253,6 +253,7 @@ export default function LobbyScreen() {
             <Badge tone="purple" sticker>{roomState?.config.totalRounds ?? 5} Tur</Badge>
             <Badge tone="yellow" sticker>{roomState?.config.roundSeconds ?? 15} sn Soru</Badge>
             <Badge tone="lime" sticker>{roomState?.config.selectedCategoryIds.length ?? 6} Kategori</Badge>
+            <Badge tone="purple" sticker>{roomState?.config.gameMode === 'survival' ? '❤️ HAYATTA KALMA' : 'KLASİK MOD'}</Badge>
           </View>
         </Card>
 

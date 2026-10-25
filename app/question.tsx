@@ -171,6 +171,7 @@ export default function QuestionScreen() {
   const playersList = roomState ? Object.values(roomState.players) : [];
   const me = playersList.find((p) => p.id === currentPlayer?.id) || currentPlayer;
   const isBlocked = !!me?.isBlockedCurrentRound;
+  const isEliminated = roomState?.config.gameMode === 'survival' && (me?.livesRemaining ?? 3) <= 0;
   const hasSubmittedFake = fakeSubmitted || (
     roomState?.phase === 'fake_answer'
     && currentPlayer !== null
@@ -633,6 +634,16 @@ export default function QuestionScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
+          {roomState?.config.gameMode === 'survival' ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingVertical: 6 }}>
+              <Text style={{ color: colors.textPrimary, fontFamily: 'Poppins-Bold', fontSize: 13 }}>
+                ❤️ Can: {Array.from({ length: 3 }, (_, index) => index < (me?.livesRemaining ?? 3) ? '❤️' : '🖤').join(' ')}
+              </Text>
+              <Text style={{ color: colors.textSecondary, fontFamily: 'Poppins-Medium', fontSize: 12 }}>
+                {playersList.filter((player) => (player.livesRemaining ?? 3) > 0).length} hayatta
+              </Text>
+            </View>
+          ) : null}
           {/* Question Prompt Card */}
           <Card variant="surface" glow="purple" style={styles.promptCard}>
             <View style={styles.questionIconRow}>
@@ -642,7 +653,12 @@ export default function QuestionScreen() {
           </Card>
 
           {/* STAGE 1: ENTER FAKE ANSWER */}
-          {!isGuessPhase ? (
+          {isEliminated ? (
+            <Card variant="surface" glow="orange" style={styles.stageWrap}>
+              <Text style={styles.blockNoticeTitle}>Bu maçta elendin 🦊</Text>
+              <Text style={styles.blockNoticeText}>Canların bitti. Maç tamamlanana kadar sonuçları izleyebilirsin; bu maçta artık cevap gönderemezsin.</Text>
+            </Card>
+          ) : !isGuessPhase ? (
             <View style={styles.stageWrap}>
               {isBlocked ? (
                 <View style={styles.blockedStage}>

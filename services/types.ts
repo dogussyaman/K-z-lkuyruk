@@ -8,6 +8,7 @@ import type {
   RoomPhase,
   RoundChoice,
   RoundProgress,
+  GameMode,
 } from '../types/game';
 import type { CategoryId } from '../features/game/categories';
 import type { Question } from '../features/game/questions';
@@ -108,6 +109,7 @@ export interface GameService {
     totalRounds: number;
     roundSeconds: number;
     categories: CategoryId[];
+    gameMode?: GameMode;
     isPrivate?: boolean;
     password?: string;
   }): Promise<{ code: string; playerId: string }>;

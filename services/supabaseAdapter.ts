@@ -27,6 +27,7 @@ import type {
   RoundChoice,
   RoundProgress,
   RoundResultRow,
+  GameMode,
 } from '../types/game';
 import { isCategoryId, type CategoryId } from '../features/game/categories';
 import { defaultDiceBearAvatarKey } from '../features/game/players';
@@ -553,6 +554,7 @@ export class SupabaseGameService implements GameService {
     categories: CategoryId[];
     isPrivate?: boolean;
     password?: string;
+    gameMode?: GameMode;
   }): Promise<{ code: string; playerId: string }> {
     const sb = ensureSupabase();
     if (!this.cachedPlayer) {
@@ -562,7 +564,7 @@ export class SupabaseGameService implements GameService {
     let code = '';
     for (let i = 0; i < 5; i++) code += chars[Math.floor(Math.random() * chars.length)];
 
-    const { data, error } = await sb.rpc('create_room_secure', {
+    const { data, error } = await sb.rpc('create_room_with_mode_secure', {
       p_code: code,
       p_name: config.hostName.trim() || 'Ev Sahibi',
       p_avatar_key: config.avatarKey,
@@ -571,6 +573,7 @@ export class SupabaseGameService implements GameService {
       p_categories: config.categories,
       p_is_private: config.isPrivate ?? false,
       p_password: config.isPrivate ? config.password : null,
+      p_game_mode: config.gameMode ?? 'classic',
     });
 
     if (error) {

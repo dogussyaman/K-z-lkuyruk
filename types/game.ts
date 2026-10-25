@@ -4,6 +4,8 @@ import type { OutcomeLabel, RoundOutcome } from '../features/game/outcomes';
 
 export type PlayerId = string;
 
+export type GameMode = 'classic' | 'survival';
+
 export interface Player {
   id: PlayerId;
   name: string;
@@ -12,6 +14,8 @@ export interface Player {
   isReady: boolean;
   isOnline: boolean;
   score: number;
+  /** Current match lives. Only used by Survival mode. */
+  livesRemaining?: number;
   /** Spendable wallet for this match; resets when the next match starts. */
   credits?: number;
   creditMilestonesAwarded?: number;
@@ -52,6 +56,8 @@ export interface RoomConfig {
   totalRounds: number;
   roundSeconds: number;
   selectedCategoryIds: CategoryId[];
+  /** Defaults to Classic for older clients and rooms. */
+  gameMode?: GameMode;
 }
 
 export interface AbilityAction {

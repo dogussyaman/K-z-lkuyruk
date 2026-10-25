@@ -141,8 +141,9 @@ have not already run in timestamp order. In particular, migrations newer than
 `20261114000001_restore_fake_answer_room_lock.sql` after the earlier pending
 migrations: it restores the room-row lock in the secure fake-answer RPC while
 preserving its user-friendly validation errors and shared guess-phase deadline
-reset. This is a forward-only migration; do not edit or re-run
-`supabase/schema.sql` on an existing database.
+reset. Then apply `20261115000001_survival_mode_and_cleanup_security.sql` to add Classic/Survival mode metadata,
+server-authoritative life loss and elimination, and safer cleanup-function permissions. These are forward-only
+migrations; do not edit or re-run `supabase/schema.sql` on an existing database.
 
 ## Google OAuth setup
 
