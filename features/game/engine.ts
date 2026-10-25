@@ -9,6 +9,25 @@ import type {
 import { computeOutcome, POINTS } from './outcomes';
 import type { Question } from './questions';
 
+/**
+ * Apply Survival-mode life loss after each authoritative round result.
+ * Incorrect answers and timeouts cost one life; correct answers and eliminated
+ * players remain unchanged. Classic scoring never calls this helper.
+ */
+export function applySurvivalLives(
+  players: Player[],
+  rows: Record<PlayerId, RoundResultRow>
+): Record<PlayerId, Player> {
+  return Object.fromEntries(players.map((player) => {
+    const currentLives = Math.max(0, Math.min(3, player.livesRemaining ?? 3));
+    const result = rows[player.id];
+    const nextLives = currentLives > 0 && result && !result.outcome.correct
+      ? Math.max(0, currentLives - 1)
+      : currentLives;
+    return [player.id, { ...player, livesRemaining: nextLives }];
+  }));
+}
+
 export interface ZartoRoundInput {
   question: Question;
   players: Player[];
