@@ -320,7 +320,7 @@ begin
 end $$;
 
 create or replace function public.gizli_tilki_vote_suspect(p_room_code text,p_suspect_player_id uuid)
-returns jsonb language plpgsql security definer set search_path=pg_catalog,public as $
+returns jsonb language plpgsql security definer set search_path=pg_catalog,public as $gizli$
 declare v_room public.rooms%rowtype; v_state public.gizli_tilki_sessions%rowtype; v_tally jsonb;
 begin
   if auth.uid() is null then raise exception 'AUTH_REQUIRED'; end if;
