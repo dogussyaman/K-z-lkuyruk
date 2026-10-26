@@ -83,17 +83,18 @@ export default function LobbyScreen() {
   // Gizli Tilki uses its own server-side phase machine; all players (not only the host)
   // must leave the standard lobby when the host starts the operation.
   useEffect(() => {
-    if (!roomCode || roomState?.config.gameMode !== 'gizli_tilki') return;
+    if (!roomCode || !['gizli_tilki', 'orman_hazinesi'].includes(roomState?.config.gameMode ?? '')) return;
     let mounted = true;
     const checkModeState = async () => {
       try {
-        const { data, error: rpcError } = await ensureSupabase().rpc('gizli_tilki_get_state', { p_room_code: roomCode });
+        const isForest = roomState?.config.gameMode === 'orman_hazinesi';
+        const { data, error: rpcError } = await ensureSupabase().rpc(isForest ? 'forest_treasure_get_state' : 'gizli_tilki_get_state', { p_room_code: roomCode });
         if (rpcError) throw rpcError;
         if (mounted && data && (data as { phase?: string }).phase && (data as { phase: string }).phase !== 'lobby') {
-          router.replace('/gizli-tilki');
+          router.replace(isForest ? '/orman-hazinesi' : '/gizli-tilki');
         }
       } catch (cause) {
-        if (mounted) setError(cause instanceof Error ? cause.message : 'Gizli Tilki durumu alınamadı.');
+        if (mounted) setError(cause instanceof Error ? cause.message : 'Oyun modu durumu alınamadı.');
       }
     };
     void checkModeState();
@@ -134,7 +135,7 @@ export default function LobbyScreen() {
   const getReady = (player: Player) =>
     prototype.getReady(player.id, testMode && player.id !== me?.id ? false : player.isReady);
   const readyCount = playersList.filter(getReady).length;
-  const canStart = roomState?.config.gameMode === 'gizli_tilki'
+  const canStart = ['gizli_tilki', 'orman_hazinesi'].includes(roomState?.config.gameMode ?? '')
     ? playersList.length >= 4 && readyCount === playersList.length
     : readyCount >= 2;
   const maxPlayers = roomState?.config.maxPlayers ?? 8;
@@ -199,10 +200,11 @@ export default function LobbyScreen() {
     setStarting(true);
     setError(null);
     try {
-      if (roomState?.config.gameMode === 'gizli_tilki') {
-        const { error: startError } = await ensureSupabase().rpc('gizli_tilki_start', { p_room_code: roomCode });
+      if (roomState?.config.gameMode === 'gizli_tilki' || roomState?.config.gameMode === 'orman_hazinesi') {
+        const isForest = roomState.config.gameMode === 'orman_hazinesi';
+        const { error: startError } = await ensureSupabase().rpc(isForest ? 'forest_treasure_start' : 'gizli_tilki_start', { p_room_code: roomCode });
         if (startError) throw startError;
-        router.replace('/gizli-tilki');
+        router.replace(isForest ? '/orman-hazinesi' : '/gizli-tilki');
         return;
       }
       await service.startGame(roomCode);
@@ -444,7 +446,7 @@ export default function LobbyScreen() {
 
         {isHost ? (
           <Button
-            label={canStart ? 'Oyunu Başlat!' : 'En az 2 hazır oyuncu bekleniyor'}
+            label={canStart ? 'Oyunu Başlat!' : (['gizli_tilki', 'orman_hazinesi'].includes(roomState?.config.gameMode ?? '') ? 'En az 4 hazır oyuncu bekleniyor' : 'En az 2 hazır oyuncu bekleniyor')}
             onPress={handleStartGame}
             variant="orange"
             disabled={!canStart || starting}
