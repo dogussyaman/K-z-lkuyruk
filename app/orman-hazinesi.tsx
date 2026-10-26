@@ -22,6 +22,7 @@ const ACTIONS = [
   { id: 'use_rope', title: 'İp köprüsü', detail: '1 ip harca, iki adım ilerle.', icon: Waves, color: '#72C7E8' },
   { id: 'use_torch', title: 'Meşale yak', detail: '1 meşale harca, ilerle ve moral kazan.', icon: Flame, color: '#FF936B' },
   { id: 'camp', title: 'Kamp kur', detail: '1 erzak harca, moralini toparla.', icon: Tent, color: '#B8A1FF' },
+  { id: 'claim_treasure', title: 'Hazineyi aç', detail: '3 harita parçası ve 6 ilerleme ile sandığı aç.', icon: Trophy, color: '#FFD166' },
 ] as const;
 
 export default function OrmanHazinesiScreen() {
@@ -128,7 +129,7 @@ export default function OrmanHazinesiScreen() {
           <View style={styles.actions}>
             {ACTIONS.map((action) => {
               const Icon = action.icon;
-              const disabled = !isMyTurn || busy || (action.id === 'use_rope' && (myStats?.rope ?? 0) < 1) || (action.id === 'use_torch' && (myStats?.torch ?? 0) < 1) || (action.id === 'camp' && (myStats?.food ?? 0) < 1);
+              const disabled = !isMyTurn || busy || (action.id === 'use_rope' && (myStats?.rope ?? 0) < 1) || (action.id === 'use_torch' && (myStats?.torch ?? 0) < 1) || (action.id === 'camp' && (myStats?.food ?? 0) < 1) || (action.id === 'claim_treasure' && ((myStats?.fragments ?? 0) < 3 || (myStats?.progress ?? 0) < 6));
               return <Pressable key={action.id} onPress={() => void perform(action.id)} disabled={disabled} style={({pressed}) => [styles.action, {borderColor: isMyTurn && !disabled ? action.color : 'rgba(255,255,255,0.08)'}, disabled && styles.disabled, pressed && !disabled && styles.pressed]}>
                 <View style={[styles.actionIcon,{backgroundColor: action.color+'22'}]}><Icon color={action.color} size={21}/></View>
                 <View style={styles.actionCopy}><Text style={styles.actionTitle}>{action.title}</Text><Text style={styles.actionDetail}>{action.detail}</Text></View>
@@ -142,7 +143,7 @@ export default function OrmanHazinesiScreen() {
         <View style={styles.sectionHead}><Text style={styles.sectionTitle}>Sefer günlüğü</Text><Text style={styles.muted}>{state?.event_log?.length ?? 0} hamle</Text></View>
         {(state?.event_log ?? []).slice(-5).reverse().map((entry) => <View key={String(entry.turn)} style={styles.logRow}><View style={styles.logDot}/><View style={styles.logCopy}><Text style={styles.logTitle}>#{entry.turn} · Takım {entry.team} · {entry.action === 'timeout' ? 'Süre doldu' : ACTIONS.find((a) => a.id === entry.action)?.title ?? entry.action}</Text><Text style={styles.logText}>{entry.message}</Text></View></View>)}
         {error ? <Text style={styles.error}>{error}</Text> : null}
-        <Text style={styles.footerNote}>İp ve meşale tehlikeli geçitlerde hayat kurtarır. Erzak kampta moral kazandırır. Harita parçalarını toplamak tek başına yetmez; hazineye ulaşmak için ilerlemen gerekir.</Text>
+        <Text style={styles.footerNote}>İp ve meşale tehlikeli geçitlerde hayat kurtarır. Erzak kampta moral kazandırır. Harita parçalarını bulmak tek başına yetmez: 6 adım ilerleyince sıranı kullanıp “Hazineyi aç” hamlesini yap. Rakip takım da haritayı bulursa yarış devam eder.</Text>
       </ScrollView>
     </Screen>
   );
