@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { ChevronLeft, Compass, Flame, Footprints, Leaf, Map, Pickaxe, ShieldCheck, Tent, Timer, Trophy, TreePine, Users, Waves } from 'lucide-react-native';
