@@ -343,7 +343,7 @@ begin
   update public.gizli_tilki_sessions set last_report=coalesce(last_report,'{}'::jsonb)||jsonb_build_object('suspect_votes',v_tally),
     state_version=state_version+1,updated_at=now() where room_id=v_room.id;
   return public.gizli_tilki_get_state(p_room_code);
-end $;
+end $gizli$;
 
 revoke all on function public.gizli_tilki_start(text) from public, anon;
 revoke all on function public.gizli_tilki_get_state(text) from public, anon;
