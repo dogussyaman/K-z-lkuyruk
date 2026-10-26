@@ -19,8 +19,8 @@ const FILTERS: Array<{ id: FilterId; label: string }> = [
 
 const GROUPS: Record<Exclude<FilterId, 'all'>, string[]> = {
   fast: ['blitz', 'golden_question'],
-  competitive: ['survival', 'blitz', 'team_battle', 'golden_question'],
-  social: ['suspicious', 'secret_missions', 'detective_fox', 'team_battle'],
+  competitive: ['survival', 'blitz', 'team_battle', 'golden_question', 'gizli_tilki'],
+  social: ['suspicious', 'secret_missions', 'detective_fox', 'team_battle', 'gizli_tilki'],
   chaos: ['double_trap', 'golden_question', 'suspicious'],
 };
 
