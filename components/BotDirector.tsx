@@ -98,7 +98,7 @@ export function BotDirector() {
         p_personality: null,
       });
       if (error) throw error;
-      const bot = Array.isArray(data) ? data[0] : null;
+      const bot = Array.isArray(data) ? data[0] as { bot_name?: string } | undefined : undefined;
       setMessage(bot?.bot_name ? `${bot.bot_name} odaya katıldı` : 'Bot odaya katıldı');
     } catch (cause) {
       setMessage(cause instanceof Error ? cause.message : 'Bot eklenemedi');
@@ -145,7 +145,11 @@ export function BotDirector() {
 
 const styles = StyleSheet.create({
   layer: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
     zIndex: 999,
   },
   wrap: {
