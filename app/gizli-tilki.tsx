@@ -31,7 +31,7 @@ export default function GizliTilkiScreen() {
   const [now, setNow] = useState(Date.now());
   const [selectedSuspect, setSelectedSuspect] = useState<string | null>(null);
   const [selectedTeamIds, setSelectedTeamIds] = useState<string[]>([]);
-  const isHost = Boolean(currentPlayer?.id && roomState?.players[currentPlayer.id]?.isHost);
+  const isHost = Boolean(currentPlayer?.id && (roomState?.hostId === currentPlayer.id || roomState?.players[currentPlayer.id]?.isHost));
   const deadline = state?.phase_deadline_at ? new Date(state.phase_deadline_at).getTime() : null;
   const remaining = deadline ? Math.max(0, Math.ceil((deadline - now) / 1000)) : null;
 
@@ -123,6 +123,8 @@ export default function GizliTilkiScreen() {
     state.my_role?.role_name === 'engineer' ? 'MÜHENDİS' :
     state.my_role?.role_name === 'scout' ? 'İSTİHBARATÇI' : state.my_role?.role_name === 'operator' ? 'OPERATÖR' : 'ROL BEKLENİYOR';
   const canChoose = isHost || state.my_role?.role_name === 'operator';
+  const teamSizeValid = selectedTeamIds.length >= 2 && selectedTeamIds.length <= 5;
+  const canSubmitOperation = canChoose && teamSizeValid && !busy;
   const alreadyActed = Boolean(state.my_action_submitted);
   const alreadyVoted = Boolean(state.my_team_vote_submitted);
 
@@ -156,9 +158,9 @@ export default function GizliTilkiScreen() {
             <Text style={styles.label}>OPERASYON EKİBİ · {selectedTeamIds.length}/5</Text>
             {state.players.map((player) => {
               const selected = selectedTeamIds.includes(player.player_id);
-              return <Pressable key={player.player_id} disabled={!canChoose || busy || (!selected && selectedTeamIds.length >= 5)} onPress={() => setSelectedTeamIds((previous) => selected ? previous.filter((id) => id !== player.player_id) : [...previous, player.player_id])} style={[styles.playerChoice, selected && styles.playerSelected, (!canChoose || (!selected && selectedTeamIds.length >= 5)) && styles.disabled]}><Text style={styles.playerName}>{player.name}</Text><Text style={styles.muted}>{selected ? '✓ Ekipte' : 'Ekibe ekle'}</Text></Pressable>;
+              return <Pressable key={player.player_id} disabled={!canChoose || busy || (!selected && selectedTeamIds.length >= 5)} onPress={() => setSelectedTeamIds((previous) => selected ? previous.filter((id) => id !== player.player_id) : [...previous, player.player_id])} style={[styles.playerChoice, selected && styles.playerSelected, canChoose && !busy && styles.interactiveChoice, (!canChoose || busy || (!selected && selectedTeamIds.length >= 5)) && styles.disabled]}><Text style={styles.playerName}>{player.name}</Text><Text style={styles.muted}>{selected ? '✓ Ekipte' : 'Ekibe ekle'}</Text></Pressable>;
             })}
-            {OPERATIONS.map((op) => { const Icon = op.icon; return <Pressable key={op.id} disabled={!canChoose || busy || selectedTeamIds.length < 2 || selectedTeamIds.length > 5} onPress={() => chooseOperation(op.id)} style={[styles.operation, (!canChoose || selectedTeamIds.length < 2 || selectedTeamIds.length > 5) && styles.disabled]}><View style={styles.operationIcon}><Icon color="#FF8B67" size={19} /></View><View style={{ flex: 1 }}><Text style={styles.operationTitle}>{op.title}</Text><Text style={styles.muted}>{op.detail}</Text></View><Text style={styles.cost}>{op.cost}</Text></Pressable>; })}
+            {OPERATIONS.map((op) => { const Icon = op.icon; return <Pressable key={op.id} disabled={!canChoose || busy || selectedTeamIds.length < 2 || selectedTeamIds.length > 5} onPress={() => chooseOperation(op.id)} style={[styles.operation, canSubmitOperation && styles.operationReady, (!canChoose || busy || !teamSizeValid) && styles.disabled]}><View style={styles.operationIcon}><Icon color="#FF8B67" size={19} /></View><View style={{ flex: 1 }}><Text style={styles.operationTitle}>{op.title}</Text><Text style={styles.muted}>{op.detail}</Text></View><View style={styles.operationAction}><Text style={styles.cost}>{op.cost}</Text><Text style={[styles.selectLabel, canSubmitOperation && styles.selectLabelReady]}>{canSubmitOperation ? 'SEÇ' : 'GÖREV'}</Text></View></Pressable>; })}
             {!canChoose ? <Text style={styles.hint}>Görev seçimi yalnızca oda sahibi veya Operatör tarafından yapılır.</Text> : null}
           </> : null}
 
@@ -227,10 +229,15 @@ const styles = StyleSheet.create({
   muted: { color: '#A1ACC1', fontSize: 12, lineHeight: 18 },
   operation: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 11, borderRadius: 15, backgroundColor: '#20283A', borderWidth: 1, borderColor: '#303A50' },
   operationIcon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: '#322B3A' },
+  operationReady: { backgroundColor: '#2B3042', borderColor: '#FF8B67', borderWidth: 1.5, shadowColor: '#FF7652', shadowOpacity: 0.16, shadowRadius: 10, elevation: 2 },
+  operationAction: { alignItems: 'flex-end', gap: 6 },
+  selectLabel: { color: '#9AA6BD', fontSize: 9, fontWeight: '900', letterSpacing: 1, paddingHorizontal: 8, paddingVertical: 5, borderRadius: 8, backgroundColor: '#30384B', overflow: 'hidden' },
+  selectLabelReady: { color: '#17101F', backgroundColor: '#FF8B67' },
+  interactiveChoice: { borderColor: '#53627F' },
   operationTitle: { color: '#FFF', fontSize: 13, fontWeight: '900', marginBottom: 2 },
   cost: { color: '#FFB08D', fontSize: 10, fontWeight: '800' },
   actions: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
-  actionButton: { flexGrow: 1, minHeight: 44, borderRadius: 13, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center' },
+  actionButton: { flexGrow: 1, minHeight: 48, borderRadius: 14, paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)', shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 7, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
   actionText: { color: '#FFF', fontSize: 12, fontWeight: '900', textAlign: 'center' },
   disabled: { opacity: 0.45 },
   hint: { color: '#FFB08D', fontSize: 11 },
