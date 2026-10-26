@@ -298,6 +298,18 @@ begin
       phase=case when successful_operations>=3 or failed_operations>=3 or operation_round>=5 or (v_energy=0 and v_parts=0 and v_trust=0) then 'finished' else 'debrief' end,
       phase_deadline_at=case when successful_operations>=3 or failed_operations>=3 or operation_round>=5 or (v_energy=0 and v_parts=0 and v_trust=0) then null else now()+interval '20 seconds' end
       where room_id=v_room.id;
+  elsif v_state.phase='team_vote' then
+    select count(*) into v_total from public.room_players where room_id=v_room.id and is_active and kicked_at is null;
+    select count(*),count(*) filter(where approve) into v_actions,v_support
+      from public.gizli_tilki_votes where room_id=v_room.id and operation_round=v_state.operation_round and vote_kind='team_approve';
+    if v_actions=v_total and v_support>v_total/2 then
+      update public.gizli_tilki_sessions set phase='secret_action',phase_deadline_at=now()+interval '15 seconds',
+        state_version=state_version+1,updated_at=now() where room_id=v_room.id;
+    else
+      update public.gizli_tilki_sessions set phase='operation_select',selected_operation=null,
+        proposed_team='{}'::uuid[],phase_deadline_at=now()+interval '20 seconds',
+        state_version=state_version+1,updated_at=now() where room_id=v_room.id;
+    end if;
   elsif v_state.phase='debrief' then
     update public.gizli_tilki_sessions set phase='operation_select',selected_operation=null,
       proposed_team='{}'::uuid[],phase_deadline_at=now()+interval '20 seconds',
@@ -307,17 +319,45 @@ begin
   return public.gizli_tilki_get_state(p_room_code);
 end $$;
 
+create or replace function public.gizli_tilki_vote_suspect(p_room_code text,p_suspect_player_id uuid)
+returns jsonb language plpgsql security definer set search_path=pg_catalog,public as $
+declare v_room public.rooms%rowtype; v_state public.gizli_tilki_sessions%rowtype; v_tally jsonb;
+begin
+  if auth.uid() is null then raise exception 'AUTH_REQUIRED'; end if;
+  select r.* into v_room from public.rooms r join public.room_players rp on rp.room_id=r.id
+    where r.code=upper(trim(p_room_code)) and rp.player_id=auth.uid() and rp.is_active and rp.kicked_at is null;
+  if not found then raise exception 'ROOM_MEMBERSHIP_REQUIRED'; end if;
+  select * into v_state from public.gizli_tilki_sessions where room_id=v_room.id for update;
+  if v_state.phase<>'debrief' or v_state.phase_deadline_at<now() then raise exception 'INVALID_PHASE_OR_DEADLINE'; end if;
+  if not exists(select 1 from public.room_players where room_id=v_room.id and player_id=p_suspect_player_id and is_active and kicked_at is null) then
+    raise exception 'INVALID_SUSPECT';
+  end if;
+  if p_suspect_player_id=auth.uid() then raise exception 'CANNOT_VOTE_FOR_SELF'; end if;
+  insert into public.gizli_tilki_votes(room_id,operation_round,voter_id,vote_kind,target_player_id)
+    values(v_room.id,v_state.operation_round,auth.uid(),'suspect',p_suspect_player_id)
+    on conflict(room_id,operation_round,voter_id,vote_kind) do update set target_player_id=excluded.target_player_id,created_at=now();
+  select coalesce(jsonb_object_agg(t.target_player_id::text,t.vote_count),'{}'::jsonb) into v_tally
+    from (select target_player_id,count(*)::integer as vote_count from public.gizli_tilki_votes
+      where room_id=v_room.id and operation_round=v_state.operation_round and vote_kind='suspect'
+      group by target_player_id) t;
+  update public.gizli_tilki_sessions set last_report=coalesce(last_report,'{}'::jsonb)||jsonb_build_object('suspect_votes',v_tally),
+    state_version=state_version+1,updated_at=now() where room_id=v_room.id;
+  return public.gizli_tilki_get_state(p_room_code);
+end $;
+
 revoke all on function public.gizli_tilki_start(text) from public, anon;
 revoke all on function public.gizli_tilki_get_state(text) from public, anon;
 revoke all on function public.gizli_tilki_choose_operation(text,text,uuid[]) from public, anon;
 revoke all on function public.gizli_tilki_vote_team(text,boolean) from public, anon;
 revoke all on function public.gizli_tilki_submit_action(text,text) from public, anon;
 revoke all on function public.gizli_tilki_advance(text) from public, anon;
+revoke all on function public.gizli_tilki_vote_suspect(text,uuid) from public, anon;
 grant execute on function public.gizli_tilki_start(text) to authenticated;
 grant execute on function public.gizli_tilki_get_state(text) to authenticated;
 grant execute on function public.gizli_tilki_choose_operation(text,text,uuid[]) to authenticated;
 grant execute on function public.gizli_tilki_vote_team(text,boolean) to authenticated;
 grant execute on function public.gizli_tilki_submit_action(text,text) to authenticated;
 grant execute on function public.gizli_tilki_advance(text) to authenticated;
+grant execute on function public.gizli_tilki_vote_suspect(text,uuid) to authenticated;
 
 commit;
