@@ -276,6 +276,31 @@ export default function HomeScreen() {
           </LinearGradient>
         </View>
 
+        {/* Featured game modes entry point */}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Gizli Tilki ve tüm oyun modlarını keşfet"
+          onPress={() => router.push('/game-modes')}
+          style={({ pressed }) => [styles.modeSpotlight, pressed && styles.modeSpotlightPressed]}
+        >
+          <LinearGradient
+            colors={['#3A1D2D', '#20243A', '#172B3B']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+          <View style={styles.modeSpotlightIcon}>
+            <Gamepad2 color="#FF936B" size={23} />
+          </View>
+          <View style={styles.modeSpotlightCopy}>
+            <Text style={styles.modeSpotlightKicker}>YENİ TAKTİKSEL MOD</Text>
+            <Text style={styles.modeSpotlightTitle}>Gizli Tilki</Text>
+            <Text style={styles.modeSpotlightText}>Ekibini kur, kaynakları yönet ve sabotajcıyı ortaya çıkar.</Text>
+            <View style={styles.modeSpotlightLink}><Text style={styles.modeSpotlightLinkText}>Tüm oyun modlarını keşfet</Text><ChevronRight color="#17101F" size={16} /></View>
+          </View>
+          <Text style={styles.modeSpotlightFox}>🦊</Text>
+        </Pressable>
+
         {/* Quick Bluff Rules / Scoring Highlights Banner */}
         <View style={styles.miniRulesRow}>
           {QUICK_SCORING_RULES.map((rule) => {
@@ -638,6 +663,39 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     flex: 1,
     paddingHorizontal: spacing.sm,
   },
+  modeSpotlight: {
+    marginTop: spacing.md,
+    minHeight: 150,
+    padding: 16,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: 'rgba(255,147,107,0.42)',
+    overflow: 'hidden',
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  modeSpotlightPressed: {
+    opacity: 0.9,
+    transform: [{ scale: 0.99 }],
+  },
+  modeSpotlightIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,147,107,0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,147,107,0.32)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modeSpotlightCopy: { flex: 1, minWidth: 0, paddingRight: 8 },
+  modeSpotlightKicker: { color: '#FFAD88', fontSize: 9, fontWeight: '900', letterSpacing: 1.4 },
+  modeSpotlightTitle: { color: '#FFFFFF', fontFamily: 'Poppins-Bold', fontSize: 22, marginTop: 3 },
+  modeSpotlightText: { color: 'rgba(255,255,255,0.72)', fontSize: 12, lineHeight: 18, marginTop: 4 },
+  modeSpotlightLink: { alignSelf: 'flex-start', marginTop: 12, minHeight: 34, borderRadius: 11, backgroundColor: '#FF936B', paddingHorizontal: 11, flexDirection: 'row', alignItems: 'center', gap: 4 },
+  modeSpotlightLinkText: { color: '#17101F', fontSize: 10, fontWeight: '900' },
+  modeSpotlightFox: { position: 'absolute', right: 11, top: 10, fontSize: 28, opacity: 0.82 },
   miniRulesRow: {
     flexDirection: 'row',
     gap: 8,
