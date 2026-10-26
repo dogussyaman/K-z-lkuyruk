@@ -151,7 +151,7 @@ export default function OrmanHazinesiScreen() {
 function TeamCard({team, stats, active, progress, members}: {team:string;stats?:TeamStats;active:boolean;progress:number;members:PlayerRow[]}) {
   return <View style={[styles.teamCard, active && styles.teamActive]}>
     <View style={styles.teamCardTop}><Text style={styles.teamName}>TAKIM {team}</Text>{active ? <View style={styles.activeDot}/> : null}</View>
-    <Text style={styles.teamProgress}>{stats?.progress ?? 0}<Text style={styles.teamProgressUnit}>/7</Text></Text>
+    <Text style={styles.teamProgress}>{Math.min(7, stats?.progress ?? 0)}<Text style={styles.teamProgressUnit}>/7</Text></Text>
     <View style={styles.progressTrack}><View style={[styles.progressFill,{width:progress+'%',backgroundColor:team==='A'?'#7BC96F':'#D9AD62'}]}/></View>
     <View style={styles.fragments}><Map color="#D9AD62" size={14}/><Text style={styles.fragmentText}>{stats?.fragments ?? 0}/3 harita parçası</Text></View>
     <Text style={styles.memberNames} numberOfLines={2}>{members.map((member) => member.name).join(' · ') || 'Oyuncular bekleniyor'}</Text>
