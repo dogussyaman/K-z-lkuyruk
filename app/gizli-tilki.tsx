@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { ChevronLeft, Clock3, ShieldAlert, Wrench, RadioTower, Zap, Users, RefreshCw } from 'lucide-react-native';
@@ -32,7 +32,6 @@ export default function GizliTilkiScreen() {
   const [selectedSuspect, setSelectedSuspect] = useState<string | null>(null);
   const [selectedTeamIds, setSelectedTeamIds] = useState<string[]>([]);
   const isHost = Boolean(currentPlayer?.id && roomState?.players[currentPlayer.id]?.isHost);
-  const me = useMemo(() => state?.players.find((p) => p.player_id === currentPlayer?.id), [state?.players, currentPlayer?.id]);
   const deadline = state?.phase_deadline_at ? new Date(state.phase_deadline_at).getTime() : null;
   const remaining = deadline ? Math.max(0, Math.ceil((deadline - now) / 1000)) : null;
 
