@@ -25,7 +25,7 @@ const ACTIONS = [
 ] as const;
 
 export default function OrmanHazinesiScreen() {
-  const { roomCode, currentPlayer } = useGameStore();
+  const { roomCode } = useGameStore();
   const [state, setState] = useState<ForestState | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -82,7 +82,7 @@ export default function OrmanHazinesiScreen() {
     } finally { setBusy(false); }
   };
 
-  const myStats = state?.team_state?.[state.my_team ?? 'A'];
+  const myStats = state ? state.team_state?.[state.my_team ?? 'A'] : undefined;
   const teamA = state?.team_state?.A;
   const teamB = state?.team_state?.B;
   const progress = (stats?: TeamStats) => Math.min(100, Math.round(((stats?.progress ?? 0) / 7) * 100));
@@ -158,7 +158,7 @@ function TeamCard({team, stats, active, progress}: {team:string;stats?:TeamStats
   </View>;
 }
 
-function Resource({icon,label,value}:{icon:React.ReactNode;label:string;value:number}) {
+function Resource({icon,label,value}:{icon:ReactNode;label:string;value:number}) {
   return <View style={styles.resource}><View>{icon}</View><Text style={styles.resourceValue}>{value}</Text><Text style={styles.resourceLabel}>{label}</Text></View>;
 }
 
