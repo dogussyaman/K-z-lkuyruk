@@ -15,7 +15,8 @@ export type GameMode =
   | 'double_trap'
   | 'golden_question'
   | 'detective_fox'
-  | 'gizli_tilki';
+  | 'gizli_tilki'
+  | 'orman_hazinesi';
 
 export interface Player {
   id: PlayerId;
