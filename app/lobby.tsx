@@ -427,7 +427,6 @@ export default function LobbyScreen() {
             })}
           </Card>
         ) : null}
-
       </ScrollView>
       <StickyActionBar>
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
@@ -595,8 +594,6 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     justifyContent: 'space-between',
     marginTop: spacing.xl,
     marginBottom: spacing.md,
-    gap: spacing.sm,
-    flexWrap: 'wrap',
   },
   sectionTitle: {
     ...typography.h4,
