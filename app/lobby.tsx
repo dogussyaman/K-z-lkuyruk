@@ -48,6 +48,7 @@ import { usePrototype } from '@/features/prototype/PrototypeProvider';
 import { PlayerProfileSheet } from '@/components/PlayerProfileSheet';
 import type { Player } from '@/types/game';
 import { getWebAppUrl } from '@/lib/webAppUrl';
+import { ensureSupabase } from '@/lib/supabase/client';
 
 export default function LobbyScreen() {
   const { colors } = useTheme();
@@ -175,6 +176,12 @@ export default function LobbyScreen() {
     setStarting(true);
     setError(null);
     try {
+      if (roomState?.config.gameMode === 'gizli_tilki') {
+        const { error: startError } = await ensureSupabase().rpc('gizli_tilki_start', { p_room_code: roomCode });
+        if (startError) throw startError;
+        router.replace('/gizli-tilki');
+        return;
+      }
       await service.startGame(roomCode);
     } catch (e) {
       setError((e as Error).message);
