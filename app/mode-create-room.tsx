@@ -66,7 +66,11 @@ export default function ModeCreateRoomScreen() {
     <View style={[styles.root, { backgroundColor: theme.background }]}>
       <LinearGradient colors={[theme.background, theme.surface, theme.background]} style={StyleSheet.absoluteFill} />
       <View style={[styles.glow, { backgroundColor: theme.glow }]} />
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={[styles.scrollView, { backgroundColor: theme.background }]}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.topBar}>
           <Pressable onPress={() => router.back()} style={styles.iconButton}><ChevronLeft color="#FFF" size={22} /></Pressable>
           <Text style={styles.topTitle}>Oyun Modu</Text>
@@ -128,7 +132,8 @@ function Stat({ icon, label }: { icon: ReactNode; label: string }) {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  content: { padding: 18, paddingTop: 54, paddingBottom: 42, gap: 16 },
+  scrollView: { flex: 1 },
+  content: { flexGrow: 1, padding: 18, paddingTop: 54, paddingBottom: 42, gap: 16 },
   glow: { position: 'absolute', width: 340, height: 340, borderRadius: 999, top: -150, right: -130 },
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   iconButton: { width: 42, height: 42, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.08)' },
