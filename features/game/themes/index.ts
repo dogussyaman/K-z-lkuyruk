@@ -45,6 +45,9 @@ export const GAME_MODE_THEMES: Record<GameMode, GameModeTheme> = {
   gizli_tilki: {
     id: 'gizli_tilki', accent: '#FF654D', accentSecondary: '#35B8FF', background: '#080E18', surface: '#121D2C', glow: 'rgba(53,184,255,0.25)', heroEmoji: '🦊', atmosphere: 'versus', lobbyTitle: 'Gizli Operasyon Merkezi', roundTitle: 'Operasyon Kararı', victoryTitle: 'Operasyon Tamamlandı',
   },
+  orman_hazinesi: {
+    id: 'orman_hazinesi', accent: '#7BC96F', accentSecondary: '#D9AD62', background: '#091812', surface: '#142A20', glow: 'rgba(123,201,111,0.27)', heroEmoji: '🗺️', atmosphere: 'survival', lobbyTitle: 'Kayıp Orman Seferi', roundTitle: 'Bir Sonraki Adım', victoryTitle: 'Hazineyi Bulan Ekip',
+  },
 };
 
 export function getGameModeTheme(mode?: GameMode | null): GameModeTheme {
