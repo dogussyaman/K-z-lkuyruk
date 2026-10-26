@@ -75,7 +75,7 @@ function ModeCard({ mode }: { mode: GameModeDefinition }) {
   const theme = getGameModeTheme(mode.id);
   return (
     <Pressable
-      onPress={() => router.push({ pathname: '/mode-create-room', params: { mode: mode.id } })}
+      onPress={() => { if (mode.status === 'active') router.push({ pathname: '/mode-create-room', params: { mode: mode.id } }); }}
       style={({ pressed }) => [styles.card, { borderColor: theme.glow }, pressed && styles.cardPressed]}
     >
       <View style={styles.imageWrap}>
@@ -93,7 +93,7 @@ function ModeCard({ mode }: { mode: GameModeDefinition }) {
           <Meta icon={<Clock3 color="rgba(255,255,255,0.62)" size={14} />} text={mode.estimatedDurationLabel} />
           <Meta icon={<Sparkles color="rgba(255,255,255,0.62)" size={14} />} text={mode.difficultyLabel} />
         </View>
-        <View style={[styles.playButton, { backgroundColor: theme.accent }]}><Text style={styles.playButtonText}>Bu Modu Oyna</Text></View>
+        <View style={[styles.playButton, { backgroundColor: mode.status === 'active' ? theme.accent : 'rgba(255,255,255,0.10)' }]}><Text style={styles.playButtonText}>{mode.status === 'active' ? 'Bu Modu Oyna' : 'Operasyon sistemi hazırlanıyor'}</Text></View>
       </View>
     </Pressable>
   );
