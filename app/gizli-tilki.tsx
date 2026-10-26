@@ -169,7 +169,8 @@ export default function GizliTilkiScreen() {
 
           {state.phase === 'secret_action' ? <>
             <Text style={styles.muted}>Hamlen diğer oyunculara gösterilmez. Her tur yalnızca bir hamle kaydedebilirsin.</Text>
-            {state.my_role?.loyalty === 'saboteurs' ? <View style={styles.actions}><ActionButton label={alreadyActed ? 'Hamle kaydedildi' : 'Sabotaj yap'} color="#B84747" disabled={alreadyActed || busy} onPress={() => submitAction('sabotage')} /><ActionButton label="İstihbarat" color="#4E83B8" disabled={alreadyActed || busy} onPress={() => submitAction('intel')} /></View> :
+            {!state.proposed_team?.includes(currentPlayer?.id ?? '') ? <Text style={styles.hint}>Bu operasyonun ekibinde değilsin. Hamleler yalnızca seçilen ekipten kabul edilir.</Text> :
+              state.my_role?.loyalty === 'saboteurs' ? <View style={styles.actions}><ActionButton label={alreadyActed ? 'Hamle kaydedildi' : 'Sabotaj yap'} color="#B84747" disabled={alreadyActed || busy} onPress={() => submitAction('sabotage')} /><ActionButton label="İstihbarat" color="#4E83B8" disabled={alreadyActed || busy} onPress={() => submitAction('intel')} /></View> :
               <View style={styles.actions}><ActionButton label={alreadyActed ? 'Hamle kaydedildi' : 'Destek ver'} color="#1C9C78" disabled={alreadyActed || busy} onPress={() => submitAction('support')} /><ActionButton label="Tamir et" color="#D18B37" disabled={alreadyActed || busy} onPress={() => submitAction('repair')} /><ActionButton label="İstihbarat" color="#4E83B8" disabled={alreadyActed || busy} onPress={() => submitAction('intel')} /></View>}
           </> : null}
 
