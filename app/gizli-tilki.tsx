@@ -67,7 +67,7 @@ export default function GizliTilkiScreen() {
 
   useEffect(() => {
     if (!roomCode || !isHost || !state || !deadline || deadline > now || busy) return;
-    if (!['briefing', 'secret_action', 'debrief', 'team_vote'].includes(state.phase)) return;
+    if (!['briefing', 'operation_select', 'secret_action', 'debrief', 'team_vote'].includes(state.phase)) return;
     let cancelled = false;
     setBusy(true);
     ensureSupabase().rpc('gizli_tilki_advance', { p_room_code: roomCode })
