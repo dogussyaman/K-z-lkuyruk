@@ -16,6 +16,7 @@ import { colors } from '@/theme';
 import { ActivityIndicator, Platform, View } from 'react-native';
 import { GameStoreProvider, useGameStore } from '@/store/gameStore';
 import { KizilkuyrukLoading } from '@/components/loading/KizilkuyrukLoading';
+import { BotDirector } from '@/components/BotDirector';
 import { soundService } from '@/services/soundService';
 import { PrototypeProvider } from '@/features/prototype/PrototypeProvider';
 import { ThemeProvider, useTheme } from '@/theme/ThemeProvider';
@@ -131,6 +132,7 @@ function RootNavigator() {
         <Stack.Screen name="game-over" options={{ animation: 'fade' }} />
         <Stack.Screen name="+not-found" />
       </Stack>
+      <BotDirector />
       <StatusBar style={mode === 'light' ? 'dark' : 'light'} />
     </>
   );
