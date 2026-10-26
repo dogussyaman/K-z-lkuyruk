@@ -293,9 +293,9 @@ export default function HomeScreen() {
             <Gamepad2 color="#FF936B" size={23} />
           </View>
           <View style={styles.modeSpotlightCopy}>
-            <Text style={styles.modeSpotlightKicker}>YENİ TAKTİKSEL MOD</Text>
-            <Text style={styles.modeSpotlightTitle}>Gizli Tilki</Text>
-            <Text style={styles.modeSpotlightText}>Ekibini kur, kaynakları yönet ve sabotajcıyı ortaya çıkar.</Text>
+            <Text style={styles.modeSpotlightKicker}>YENİ OYUN TARZLARI</Text>
+            <Text style={styles.modeSpotlightTitle}>Orman Hazinesi</Text>
+            <Text style={styles.modeSpotlightText}>Soru-cevap yok: takımını yönet, ormanda keşfe çık ve rakipten önce hazineyi bul. Gizli Tilki ve daha fazlasını da keşfet.</Text>
             <View style={styles.modeSpotlightLink}><Text style={styles.modeSpotlightLinkText}>Tüm oyun modlarını keşfet</Text><ChevronRight color="#17101F" size={16} /></View>
           </View>
           <Text style={styles.modeSpotlightFox}>🦊</Text>
