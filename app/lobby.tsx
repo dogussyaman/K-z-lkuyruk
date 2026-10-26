@@ -80,6 +80,27 @@ export default function LobbyScreen() {
     prototype.clearReadyOverrides();
   }, [prototype.clearReadyOverrides]);
 
+  // Gizli Tilki uses its own server-side phase machine; all players (not only the host)
+  // must leave the standard lobby when the host starts the operation.
+  useEffect(() => {
+    if (!roomCode || roomState?.config.gameMode !== 'gizli_tilki') return;
+    let mounted = true;
+    const checkModeState = async () => {
+      try {
+        const { data, error: rpcError } = await ensureSupabase().rpc('gizli_tilki_get_state', { p_room_code: roomCode });
+        if (rpcError) throw rpcError;
+        if (mounted && data && (data as { phase?: string }).phase && (data as { phase: string }).phase !== 'lobby') {
+          router.replace('/gizli-tilki');
+        }
+      } catch (cause) {
+        if (mounted) setError(cause instanceof Error ? cause.message : 'Gizli Tilki durumu alınamadı.');
+      }
+    };
+    void checkModeState();
+    const timer = setInterval(() => { void checkModeState(); }, 2200);
+    return () => { mounted = false; clearInterval(timer); };
+  }, [roomCode, roomState?.config.gameMode]);
+
   // Auto navigate when phase changes
   useEffect(() => {
     if (roomState?.phase === 'ability_select') {
