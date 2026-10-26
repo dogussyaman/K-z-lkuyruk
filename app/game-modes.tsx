@@ -37,15 +37,15 @@ export default function GameModesScreen() {
         <View style={styles.topBar}>
           <Pressable onPress={() => router.back()} style={styles.iconButton}><ChevronLeft color="#FFF" size={22} /></Pressable>
           <View style={styles.topCenter}><Text style={styles.eyebrow}>KIZILKUYRUK EVRENİ</Text><Text style={styles.headerTitle}>Oyun Modları</Text></View>
-          <View style={styles.playablePill}><Flame color="#FF7A45" size={14} /><Text style={styles.playableText}>9 OYNANABİLİR</Text></View>
+          <View style={styles.playablePill}><Flame color="#FF7A45" size={14} /><Text style={styles.playableText}>10 OYNANABİLİR</Text></View>
         </View>
 
         <View style={styles.hero}>
           <LinearGradient colors={['rgba(255,101,77,0.32)', 'rgba(53,184,255,0.20)', 'rgba(16,11,24,0.86)']} style={StyleSheet.absoluteFill} />
           <View style={styles.heroCopy}>
-            <Text style={styles.heroKicker}>9 FARKLI OYUN STİLİ</Text>
+            <Text style={styles.heroKicker}>10 FARKLI OYUN STİLİ</Text>
             <Text style={styles.heroTitle}>Her gece başka bir oyun.</Text>
-            <Text style={styles.heroText}>Blöf, hayatta kalma, takım savaşı, gizli görev, dedektiflik, hız ve kaos aynı parti evreninde.</Text>
+            <Text style={styles.heroText}>Blöf, hayatta kalma, takım savaşı, gizli görev, dedektiflik, hız, kaos ve taktiksel sabotaj aynı parti evreninde.</Text>
           </View>
           <Text style={styles.heroFox}>🦊</Text>
         </View>
