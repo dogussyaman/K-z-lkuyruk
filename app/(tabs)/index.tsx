@@ -279,7 +279,7 @@ export default function HomeScreen() {
         {/* Featured game modes entry point */}
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Gizli Tilki ve tüm oyun modlarını keşfet"
+          accessibilityLabel="Orman Hazinesi, Gizli Tilki ve tüm oyun modlarını keşfet"
           onPress={() => router.push('/game-modes')}
           style={({ pressed }) => [styles.modeSpotlight, pressed && styles.modeSpotlightPressed]}
         >
