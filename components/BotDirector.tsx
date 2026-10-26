@@ -34,17 +34,19 @@ export function BotDirector() {
   const automationSupported = !UNSUPPORTED_AUTOMATION_MODES.has(mode);
   const isHost = !!me?.isHost;
   const isLiveSupabase = service.kind === 'supabase';
+  const currentRound = roomState?.currentRound;
+  const phase = roomState?.phase;
 
   useEffect(() => {
     timersRef.current.forEach(clearTimeout);
     timersRef.current = [];
 
-    if (!roomCode || !roomState || !isHost || !isLiveSupabase || !automationSupported || !BOT_PHASES.has(roomState.phase)) {
+    if (!roomCode || !currentRound || !phase || !isHost || !isLiveSupabase || !automationSupported || !BOT_PHASES.has(phase)) {
       scheduledKeyRef.current = null;
       return;
     }
 
-    const phaseKey = `${roomCode}:${roomState.currentRound}:${roomState.phase}`;
+    const phaseKey = `${roomCode}:${currentRound}:${phase}`;
     if (scheduledKeyRef.current === phaseKey) return;
     scheduledKeyRef.current = phaseKey;
 
@@ -60,7 +62,7 @@ export function BotDirector() {
             p_room_code: roomCode,
             p_bot_id: row.player_id,
           });
-        }, delayFor(row.personality ?? 'balanced', roomState.phase));
+        }, delayFor(row.personality ?? 'balanced', phase));
         timersRef.current.push(timer);
       }
     };
@@ -71,7 +73,7 @@ export function BotDirector() {
       timersRef.current.forEach(clearTimeout);
       timersRef.current = [];
     };
-  }, [roomCode, roomState, roomState?.currentRound, roomState?.phase, isHost, isLiveSupabase, automationSupported]);
+  }, [roomCode, currentRound, phase, isHost, isLiveSupabase, automationSupported]);
 
   return null;
 }
