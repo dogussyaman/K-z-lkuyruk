@@ -105,9 +105,9 @@ export default function OrmanHazinesiScreen() {
         </View>
 
         {state ? <View style={styles.scoreRow}>
-          <TeamCard team="A" stats={teamA} active={state.current_team === 'A'} progress={progress(teamA)} />
+          <TeamCard team="A" stats={teamA} active={state.current_team === 'A'} progress={progress(teamA)} members={state.players.filter((p) => p.team_id === 'A')} />
           <View style={styles.vs}><Text style={styles.vsText}>VS</Text><Text style={styles.turnNumber}>{Math.min(state.turn_number + 1,16)}/16</Text></View>
-          <TeamCard team="B" stats={teamB} active={state.current_team === 'B'} progress={progress(teamB)} />
+          <TeamCard team="B" stats={teamB} active={state.current_team === 'B'} progress={progress(teamB)} members={state.players.filter((p) => p.team_id === 'B')} />
         </View> : <View style={styles.loading}><ActivityIndicator color="#7BC96F" /><Text style={styles.muted}>Orman haritası hazırlanıyor…</Text></View>}
 
         <View style={styles.sectionHead}><View><Text style={styles.sectionTitle}>Sefer çantası</Text><Text style={styles.muted}>Takımının ortak kaynakları</Text></View><View style={styles.teamPill}><Users color="#7BC96F" size={14}/><Text style={styles.teamPillText}>{state?.my_team ? 'TAKIM ' + state.my_team : 'TAKIM BEKLENİYOR'}</Text></View></View>
@@ -148,12 +148,13 @@ export default function OrmanHazinesiScreen() {
   );
 }
 
-function TeamCard({team, stats, active, progress}: {team:string;stats?:TeamStats;active:boolean;progress:number}) {
+function TeamCard({team, stats, active, progress, members}: {team:string;stats?:TeamStats;active:boolean;progress:number;members:PlayerRow[]}) {
   return <View style={[styles.teamCard, active && styles.teamActive]}>
     <View style={styles.teamCardTop}><Text style={styles.teamName}>TAKIM {team}</Text>{active ? <View style={styles.activeDot}/> : null}</View>
     <Text style={styles.teamProgress}>{stats?.progress ?? 0}<Text style={styles.teamProgressUnit}>/7</Text></Text>
     <View style={styles.progressTrack}><View style={[styles.progressFill,{width:progress+'%',backgroundColor:team==='A'?'#7BC96F':'#D9AD62'}]}/></View>
     <View style={styles.fragments}><Map color="#D9AD62" size={14}/><Text style={styles.fragmentText}>{stats?.fragments ?? 0}/3 harita parçası</Text></View>
+    <Text style={styles.memberNames} numberOfLines={2}>{members.map((member) => member.name).join(' · ') || 'Oyuncular bekleniyor'}</Text>
     <Text style={styles.teamMeta}>🍃 {stats?.food ?? 0}  ·  🪢 {stats?.rope ?? 0}  ·  🔥 {stats?.torch ?? 0}</Text>
   </View>;
 }
@@ -196,6 +197,7 @@ const styles = StyleSheet.create({
   fragments:{flexDirection:'row',alignItems:'center',gap:5,marginTop:10},
   fragmentText:{fontSize:10,color:'#D9AD62',fontWeight:'800'},
   teamMeta:{fontSize:10,color:'rgba(255,255,255,0.55)',marginTop:8},
+  memberNames:{fontSize:9,lineHeight:13,color:'rgba(255,255,255,0.55)',marginTop:7,minHeight:24},
   vs:{alignItems:'center',justifyContent:'center',width:28},
   vsText:{fontSize:10,fontWeight:'900',color:'rgba(255,255,255,0.45)'},
   turnNumber:{fontSize:9,color:'rgba(255,255,255,0.45)',marginTop:4},
