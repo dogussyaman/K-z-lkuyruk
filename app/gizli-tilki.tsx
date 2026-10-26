@@ -71,7 +71,10 @@ export default function GizliTilkiScreen() {
     let cancelled = false;
     setBusy(true);
     ensureSupabase().rpc('gizli_tilki_advance', { p_room_code: roomCode })
-      .then(({ error: rpcError }) => { if (rpcError && !cancelled) setError(rpcError.message); })
+      .then(({ error: rpcError }) => {
+        if (rpcError) throw rpcError;
+      })
+      .catch((cause) => { if (!cancelled) setError(cause instanceof Error ? cause.message : 'Aşama ilerletilemedi.'); })
       .finally(() => { if (!cancelled) { setBusy(false); void refresh().catch(() => undefined); } });
     return () => { cancelled = true; };
   }, [roomCode, isHost, state?.phase, deadline, now, busy, refresh]);
