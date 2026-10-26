@@ -9,6 +9,7 @@ export const gameModeImages = {
   golden_question: require('./golden_question.jpg'),
   detective_fox: require('./detective_fox.jpg'),
   gizli_tilki: require('./detective_fox.jpg'),
+  orman_hazinesi: require('./survival.jpg'),
 } as const;
 
 export type GameModeImageKey = keyof typeof gameModeImages;
