@@ -31,7 +31,7 @@ export default function GizliTilkiScreen() {
   const [now, setNow] = useState(Date.now());
   const [selectedSuspect, setSelectedSuspect] = useState<string | null>(null);
   const [selectedTeamIds, setSelectedTeamIds] = useState<string[]>([]);
-  const isHost = Boolean(currentPlayer?.id && (roomState?.hostId === currentPlayer.id || roomState?.players[currentPlayer.id]?.isHost));
+  const isHost = Boolean(currentPlayer?.id && roomState?.players[currentPlayer.id]?.isHost);
   const deadline = state?.phase_deadline_at ? new Date(state.phase_deadline_at).getTime() : null;
   const remaining = deadline ? Math.max(0, Math.ceil((deadline - now) / 1000)) : null;
 
@@ -70,12 +70,19 @@ export default function GizliTilkiScreen() {
     if (!['briefing', 'operation_select', 'secret_action', 'debrief', 'team_vote'].includes(state.phase)) return;
     let cancelled = false;
     setBusy(true);
-    ensureSupabase().rpc('gizli_tilki_advance', { p_room_code: roomCode })
-      .then(({ error: rpcError }) => {
+    void (async () => {
+      try {
+        const { error: rpcError } = await ensureSupabase().rpc('gizli_tilki_advance', { p_room_code: roomCode });
         if (rpcError) throw rpcError;
-      })
-      .catch((cause) => { if (!cancelled) setError(cause instanceof Error ? cause.message : 'Aşama ilerletilemedi.'); })
-      .finally(() => { if (!cancelled) { setBusy(false); void refresh().catch(() => undefined); } });
+      } catch (cause) {
+        if (!cancelled) setError(cause instanceof Error ? cause.message : 'Aşama ilerletilemedi.');
+      } finally {
+        if (!cancelled) {
+          setBusy(false);
+          try { await refresh(); } catch { /* polling will retry */ }
+        }
+      }
+    })();
     return () => { cancelled = true; };
   }, [roomCode, isHost, state?.phase, deadline, now, busy, refresh]);
 
@@ -188,7 +195,7 @@ export default function GizliTilkiScreen() {
           {error ? <Text style={styles.error}>{error}</Text> : null}
         </View>
 
-        <View style={styles.roster}><View style={styles.rosterHeader}><Users color="#35B8FF" size={17} /><Text style={styles.rosterTitle}>Operasyondaki oyuncular</Text><Pressable onPress={() => void refresh().catch((e) => setError(e.message))}><RefreshCw color="#9AA6BD" size={16} /></Pressable></View>
+        <View style={styles.roster}><View style={styles.rosterHeader}><Users color="#35B8FF" size={17} /><Text style={styles.rosterTitle}>Operasyondaki oyuncular</Text><Pressable onPress={() => { void (async () => { try { await refresh(); } catch (cause) { setError(cause instanceof Error ? cause.message : 'Durum yenilenemedi.'); } })(); }}><RefreshCw color="#9AA6BD" size={16} /></Pressable></View>
           {state.players.map((p) => <View key={p.player_id} style={styles.rosterRow}><View style={styles.avatar}><Text style={styles.avatarText}>{p.name.slice(0,1).toUpperCase()}</Text></View><Text style={styles.playerName}>{p.name}{p.player_id === currentPlayer?.id ? ' (sen)' : ''}</Text><Text style={styles.ready}>{p.is_ready ? 'HAZIR' : 'BEKLİYOR'}</Text></View>)}
         </View>
         <Text style={styles.footer}>GİZLİ ROLLER SUNUCUDA SAKLANIR · SÜRE SUNUCU TARAFINDAN DENETLENİR</Text>
