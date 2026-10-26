@@ -30,10 +30,17 @@ export default function GizliTilkiScreen() {
   const [error, setError] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now());
   const [selectedSuspect, setSelectedSuspect] = useState<string | null>(null);
+  const [selectedTeamIds, setSelectedTeamIds] = useState<string[]>([]);
   const isHost = Boolean(currentPlayer?.id && roomState?.players[currentPlayer.id]?.isHost);
   const me = useMemo(() => state?.players.find((p) => p.player_id === currentPlayer?.id), [state?.players, currentPlayer?.id]);
   const deadline = state?.phase_deadline_at ? new Date(state.phase_deadline_at).getTime() : null;
   const remaining = deadline ? Math.max(0, Math.ceil((deadline - now) / 1000)) : null;
+
+  useEffect(() => {
+    if (state?.players?.length && selectedTeamIds.length === 0) {
+      setSelectedTeamIds(state.players.slice(0, Math.min(3, state.players.length)).map((p) => p.player_id));
+    }
+  }, [state?.players, selectedTeamIds.length]);
 
   const refresh = useCallback(async () => {
     if (!roomCode) return;
@@ -80,8 +87,9 @@ export default function GizliTilkiScreen() {
 
   const chooseOperation = (operation: string) => {
     if (!roomCode || !state) return;
-    const team = state.players.slice(0, Math.min(3, state.players.length)).map((p) => p.player_id);
+    const team = selectedTeamIds;
     void act(async () => {
+      if (team.length < 2 || team.length > 5) throw new Error('Operasyon ekibi 2–5 oyuncu olmalı.');
       const { error: rpcError } = await ensureSupabase().rpc('gizli_tilki_choose_operation', {
         p_room_code: roomCode, p_operation: operation, p_team_player_ids: team,
       });
@@ -142,8 +150,13 @@ export default function GizliTilkiScreen() {
           {state.phase === 'lobby' ? <Text style={styles.muted}>4–10 oyuncu hazır olduğunda oda sahibi oyunu başlatmalı.</Text> : null}
 
           {state.phase === 'operation_select' ? <>
-            <Text style={styles.muted}>Oda sahibi veya Operatör bir görev ve üç kişilik ekip seçer. Herkes gizlice onaylar.</Text>
-            {OPERATIONS.map((op) => { const Icon = op.icon; return <Pressable key={op.id} disabled={!canChoose || busy} onPress={() => chooseOperation(op.id)} style={[styles.operation, !canChoose && styles.disabled]}><View style={styles.operationIcon}><Icon color="#FF8B67" size={19} /></View><View style={{ flex: 1 }}><Text style={styles.operationTitle}>{op.title}</Text><Text style={styles.muted}>{op.detail}</Text></View><Text style={styles.cost}>{op.cost}</Text></Pressable>; })}
+            <Text style={styles.muted}>Oda sahibi veya Operatör 2–5 kişilik ekip seçer, ardından görevi belirler. Herkes gizlice onaylar.</Text>
+            <Text style={styles.label}>OPERASYON EKİBİ · {selectedTeamIds.length}/5</Text>
+            {state.players.map((player) => {
+              const selected = selectedTeamIds.includes(player.player_id);
+              return <Pressable key={player.player_id} disabled={!canChoose || busy || (!selected && selectedTeamIds.length >= 5)} onPress={() => setSelectedTeamIds((previous) => selected ? previous.filter((id) => id !== player.player_id) : [...previous, player.player_id])} style={[styles.playerChoice, selected && styles.playerSelected, (!canChoose || (!selected && selectedTeamIds.length >= 5)) && styles.disabled]}><Text style={styles.playerName}>{player.name}</Text><Text style={styles.muted}>{selected ? '✓ Ekipte' : 'Ekibe ekle'}</Text></Pressable>;
+            })}
+            {OPERATIONS.map((op) => { const Icon = op.icon; return <Pressable key={op.id} disabled={!canChoose || busy || selectedTeamIds.length < 2 || selectedTeamIds.length > 5} onPress={() => chooseOperation(op.id)} style={[styles.operation, (!canChoose || selectedTeamIds.length < 2 || selectedTeamIds.length > 5) && styles.disabled]}><View style={styles.operationIcon}><Icon color="#FF8B67" size={19} /></View><View style={{ flex: 1 }}><Text style={styles.operationTitle}>{op.title}</Text><Text style={styles.muted}>{op.detail}</Text></View><Text style={styles.cost}>{op.cost}</Text></Pressable>; })}
             {!canChoose ? <Text style={styles.hint}>Görev seçimi yalnızca oda sahibi veya Operatör tarafından yapılır.</Text> : null}
           </> : null}
 
