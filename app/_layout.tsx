@@ -27,6 +27,22 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
     const style = document.createElement('style');
     style.id = styleId;
     style.textContent = `
+      html, body, #root {
+        min-height: 100%;
+        height: 100%;
+        margin: 0;
+        background: #0B1712;
+        overscroll-behavior-y: none;
+      }
+
+      body {
+        overflow: hidden;
+      }
+
+      #root {
+        overflow: hidden;
+      }
+
       input, textarea, select, [contenteditable="true"] {
         outline: none !important;
         box-shadow: none !important;
