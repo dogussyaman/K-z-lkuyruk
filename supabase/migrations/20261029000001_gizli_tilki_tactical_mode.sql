@@ -7,7 +7,7 @@ alter table public.rooms add constraint rooms_game_mode_check
   check (game_mode = any (array[
     'classic','survival','suspicious','blitz','team_battle','secret_missions',
     'double_trap','golden_question','detective_fox','gizli_tilki'
-  ]::text[]);
+  ]::text[]));
 
 create table if not exists public.gizli_tilki_sessions (
   room_id uuid primary key references public.rooms(id) on delete cascade,
