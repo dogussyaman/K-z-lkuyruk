@@ -11,7 +11,7 @@ interface BotRow {
 }
 
 const BOT_PHASES = new Set(['ability_select', 'fake_answer', 'guess']);
-const UNSUPPORTED_MODES = new Set(['gizli_tilki', 'orman_hazinesi']);
+const UNSUPPORTED_MODES = new Set(['gizli_tilki', 'orman_hazinesi', 'double_trap']);
 
 function delayFor(personality: BotRow['personality'], phase: string) {
   const ranges = personality === 'scholar'
