@@ -11,6 +11,7 @@ import { useGameStore } from '../store/gameStore';
 import type { GameMode } from '../types/game';
 
 const CALLOUTS: Partial<Record<GameMode, string>> = {
+  gizli_tilki: '4–10 oyuncu gerekir. Gizli roller, ortak operasyon ekibi ve kaynak yönetimiyle sabotajcıları bulmaya çalış; oda açıldıktan sonra herkes hazır olunca ev sahibi başlatır.',
   team_battle: 'Takımlar maç başlarken güvenli biçimde otomatik dengelenir. Dost tuzakları puan kazandırmaz.',
   secret_missions: 'Gizli görev yalnız sana gösterilir; maç boyunca davranışına göre ekstra bonus kazanırsın.',
   double_trap: 'Her oyuncunun normal blöfüne ek olarak sunucu ikinci bir gölge tuzak üretir.',
