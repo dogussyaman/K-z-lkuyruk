@@ -4,10 +4,12 @@ import { Bot, Plus, Sparkles } from 'lucide-react-native';
 import { useGameStore } from '@/store/gameStore';
 import { ensureSupabase } from '@/lib/supabase/client';
 
+const UNSUPPORTED_BOT_MODES = new Set(['gizli_tilki', 'orman_hazinesi', 'double_trap']);
+
 export function LobbyBotControls() {
   const { roomCode, roomState, currentPlayer, service, setRoomState } = useGameStore();
   const [adding, setAdding] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<{ message: string; isError?: boolean } | null>(null);
 
   if (!roomCode || !roomState || roomState.phase !== 'lobby' || service.kind !== 'supabase') return null;
 
@@ -16,24 +18,34 @@ export function LobbyBotControls() {
 
   const activePlayers = Object.values(roomState.players).filter((player) => player.isOnline);
   const roomFull = activePlayers.length >= roomState.config.maxPlayers;
+  const isModeUnsupported = roomState.config.gameMode
+    ? UNSUPPORTED_BOT_MODES.has(roomState.config.gameMode)
+    : false;
 
   const addBot = async () => {
-    if (adding || roomFull) return;
+    if (adding || roomFull || isModeUnsupported) return;
     setAdding(true);
-    setMessage(null);
+    setFeedback(null);
     try {
       const { data, error } = await ensureSupabase().rpc('add_test_bot_secure', {
         p_room_code: roomCode,
         p_personality: null,
       });
-      if (error) throw error;
+      if (error) {
+        setFeedback({ message: error.message || 'Bot eklenemedi', isError: true });
+        return;
+      }
 
       const bot = Array.isArray(data) ? data[0] as { bot_name?: string } | undefined : undefined;
       const freshState = await service.getRoomState(roomCode);
       setRoomState(freshState);
-      setMessage(bot?.bot_name ? `${bot.bot_name} hazır olarak katıldı` : 'Bot hazır olarak katıldı');
-    } catch (cause) {
-      setMessage(cause instanceof Error ? cause.message : 'Bot eklenemedi');
+      setFeedback({
+        message: bot?.bot_name ? `${bot.bot_name} hazır olarak katıldı` : 'Bot hazır olarak katıldı',
+        isError: false,
+      });
+    } catch (cause: any) {
+      const errMsg = cause?.message || (cause instanceof Error ? cause.message : null) || 'Bot eklenemedi';
+      setFeedback({ message: errMsg, isError: true });
     } finally {
       setAdding(false);
     }
@@ -48,21 +60,29 @@ export function LobbyBotControls() {
           </View>
           <View style={styles.textWrap}>
             <Text style={styles.title}>Test Botları</Text>
-            <Text style={styles.subtitle}>Tek başına test etmek için hazır oyuncu ekle.</Text>
+            <Text style={styles.subtitle}>
+              {isModeUnsupported
+                ? 'Bu oyun modu test botlarını henüz desteklemiyor.'
+                : 'Tek başına test etmek için hazır oyuncu ekle.'}
+            </Text>
           </View>
         </View>
-        {message ? <Text style={styles.message}>{message}</Text> : null}
+        {feedback?.message ? (
+          <Text style={[styles.message, feedback.isError && styles.errorMessage]}>
+            {feedback.message}
+          </Text>
+        ) : null}
       </View>
 
       <Pressable
         onPress={() => void addBot()}
-        disabled={adding || roomFull}
+        disabled={adding || roomFull || isModeUnsupported}
         accessibilityRole="button"
         accessibilityLabel="Hazır test botu ekle"
         style={({ pressed }) => [
           styles.button,
-          pressed && !adding && !roomFull && styles.pressed,
-          roomFull && styles.disabled,
+          pressed && !adding && !roomFull && !isModeUnsupported && styles.pressed,
+          (roomFull || isModeUnsupported) && styles.disabled,
         ]}
       >
         {adding ? (
@@ -70,12 +90,14 @@ export function LobbyBotControls() {
         ) : (
           <>
             <Plus size={16} color="#102016" strokeWidth={3} />
-            <Text style={styles.buttonText}>{roomFull ? 'Oda Dolu' : 'Bot Ekle'}</Text>
+            <Text style={styles.buttonText}>
+              {roomFull ? 'Oda Dolu' : isModeUnsupported ? 'Mod Desteklenmiyor' : 'Bot Ekle'}
+            </Text>
           </>
         )}
       </Pressable>
 
-      {!roomFull ? (
+      {!roomFull && !isModeUnsupported ? (
         <View style={styles.readyHint}>
           <Sparkles size={11} color="#A9FFB6" />
           <Text style={styles.readyHintText}>Eklenen bot doğrudan HAZIR olur</Text>
@@ -108,7 +130,8 @@ const styles = StyleSheet.create({
   textWrap: { flex: 1 },
   title: { color: '#FFF', fontFamily: 'Poppins-Bold', fontSize: 14 },
   subtitle: { color: 'rgba(255,255,255,0.58)', fontFamily: 'Poppins-Regular', fontSize: 10, lineHeight: 15 },
-  message: { color: '#A9FFB6', fontFamily: 'Poppins-SemiBold', fontSize: 10, marginLeft: 48 },
+  message: { color: '#A9FFB6', fontFamily: 'Poppins-SemiBold', fontSize: 11, marginLeft: 48 },
+  errorMessage: { color: '#FFAAA6' },
   button: {
     minHeight: 46,
     borderRadius: 15,

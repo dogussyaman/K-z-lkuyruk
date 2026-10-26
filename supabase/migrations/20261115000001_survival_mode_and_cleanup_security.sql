@@ -198,198 +198,370 @@ DECLARE
   v_before TEXT;
 BEGIN
   v_definition := pg_get_functiondef('public.get_room_state_secure(character varying)'::regprocedure);
-  v_before := v_definition;
-  v_definition := replace(
-    v_definition,
-    '''selectedCategoryIds'', v_room.selected_categories',
-    '''selectedCategoryIds'', v_room.selected_categories, ''gameMode'', v_room.game_mode'
-  );
-  IF v_definition = v_before THEN
-    RAISE EXCEPTION 'Could not add gameMode to get_room_state_secure; function body has drifted';
+  
+  IF position('''gameMode'', v_room.game_mode' IN v_definition) = 0 THEN
+    v_before := v_definition;
+    v_definition := replace(
+      v_definition,
+      '''selectedCategoryIds'', v_room.selected_categories',
+      '''selectedCategoryIds'', v_room.selected_categories, ''gameMode'', v_room.game_mode'
+    );
+    IF v_definition = v_before THEN
+      RAISE EXCEPTION 'Could not add gameMode to get_room_state_secure; function body has drifted';
+    END IF;
   END IF;
 
-  v_before := v_definition;
-  v_definition := replace(
-    v_definition,
-    '''score'', rp.score,',
-    '''score'', rp.score, ''livesRemaining'', rp.lives_remaining,'
-  );
-  IF v_definition = v_before THEN
-    RAISE EXCEPTION 'Could not add livesRemaining to get_room_state_secure; function body has drifted';
+  IF position('''livesRemaining'', rp.lives_remaining' IN v_definition) = 0 THEN
+    v_before := v_definition;
+    v_definition := replace(
+      v_definition,
+      '''score'', rp.score,',
+      '''score'', rp.score, ''livesRemaining'', rp.lives_remaining,'
+    );
+    IF v_definition = v_before THEN
+      RAISE EXCEPTION 'Could not add livesRemaining to get_room_state_secure; function body has drifted';
+    END IF;
   END IF;
 
   -- The following anchors are progress counters only. Keep the player JSON
   -- and submission-status map complete so eliminated players remain visible.
-  v_before := v_definition;
-  v_definition := replace(
-    v_definition,
-    'AND (v_room.phase <> ''fake_answer'' OR NOT rp.is_blocked_current_round);',
-    'AND (v_room.phase <> ''fake_answer'' OR NOT rp.is_blocked_current_round) AND (v_room.game_mode <> ''survival'' OR rp.lives_remaining > 0);'
-  );
-  IF v_definition = v_before THEN
-    RAISE EXCEPTION 'Could not scope room-state total count to living players';
+  IF position('(v_room.game_mode <> ''survival'' OR rp.lives_remaining > 0);' IN v_definition) = 0 THEN
+    v_before := v_definition;
+    v_definition := replace(
+      v_definition,
+      'AND (v_room.phase <> ''fake_answer'' OR NOT rp.is_blocked_current_round);',
+      'AND (v_room.phase <> ''fake_answer'' OR NOT rp.is_blocked_current_round) AND (v_room.game_mode <> ''survival'' OR rp.lives_remaining > 0);'
+    );
+    IF v_definition = v_before THEN
+      v_definition := replace(
+        v_definition,
+        'AND (v_room.phase NOT IN (''fake_answer'', ''guess'') OR NOT rp.is_blocked_current_round);',
+        'AND (v_room.phase <> ''fake_answer'' OR NOT rp.is_blocked_current_round) AND (v_room.game_mode <> ''survival'' OR rp.lives_remaining > 0);'
+      );
+    END IF;
+    IF v_definition = v_before THEN
+      v_definition := regexp_replace(
+        v_definition,
+        'AND\s*\(\s*v_room\.phase\s*(?:<>\s*''fake_answer''|NOT\s+IN\s*\(\s*''fake_answer''\s*,\s*''guess''\s*\))\s+OR\s+NOT\s+rp\.is_blocked_current_round\s*\)\s*;',
+        'AND (v_room.phase <> ''fake_answer'' OR NOT rp.is_blocked_current_round) AND (v_room.game_mode <> ''survival'' OR rp.lives_remaining > 0);'
+      );
+    END IF;
+    IF v_definition = v_before THEN
+      RAISE EXCEPTION 'Could not scope room-state total count to living players';
+    END IF;
   END IF;
 
-  v_before := v_definition;
-  v_definition := replace(
-    v_definition,
-    'WHERE rp.room_id = v_room.id AND rp.is_active AND rp.is_ready;',
-    'WHERE rp.room_id = v_room.id AND rp.is_active AND rp.is_ready AND (v_room.game_mode <> ''survival'' OR rp.lives_remaining > 0);'
-  );
-  IF v_definition = v_before THEN
-    RAISE EXCEPTION 'Could not scope lobby progress to living players';
+  IF position('WHERE rp.room_id = v_room.id AND rp.is_active AND rp.is_ready AND (v_room.game_mode <> ''survival'' OR rp.lives_remaining > 0);' IN v_definition) = 0 THEN
+    v_before := v_definition;
+    v_definition := replace(
+      v_definition,
+      'WHERE rp.room_id = v_room.id AND rp.is_active AND rp.is_ready;',
+      'WHERE rp.room_id = v_room.id AND rp.is_active AND rp.is_ready AND (v_room.game_mode <> ''survival'' OR rp.lives_remaining > 0);'
+    );
+    IF v_definition = v_before THEN
+      v_definition := regexp_replace(
+        v_definition,
+        'WHERE\s+rp\.room_id\s*=\s*v_room\.id\s+AND\s+rp\.is_active\s+AND\s+rp\.is_ready\s*;',
+        'WHERE rp.room_id = v_room.id AND rp.is_active AND rp.is_ready AND (v_room.game_mode <> ''survival'' OR rp.lives_remaining > 0);'
+      );
+    END IF;
+    IF v_definition = v_before THEN
+      RAISE EXCEPTION 'Could not scope lobby progress to living players';
+    END IF;
   END IF;
 
-  v_before := v_definition;
-  v_definition := replace(
-    v_definition,
-    'AND rp.is_active AND NOT rp.is_blocked_current_round;',
-    'AND rp.is_active AND NOT rp.is_blocked_current_round AND (v_room.game_mode <> ''survival'' OR rp.lives_remaining > 0);'
-  );
-  IF v_definition = v_before THEN
-    RAISE EXCEPTION 'Could not scope fake-answer progress to living players';
+  IF position('AND rp.is_active AND NOT rp.is_blocked_current_round AND (v_room.game_mode <> ''survival'' OR rp.lives_remaining > 0);' IN v_definition) = 0 THEN
+    v_before := v_definition;
+    v_definition := replace(
+      v_definition,
+      'AND rp.is_active AND NOT rp.is_blocked_current_round;',
+      'AND rp.is_active AND NOT rp.is_blocked_current_round AND (v_room.game_mode <> ''survival'' OR rp.lives_remaining > 0);'
+    );
+    IF v_definition = v_before THEN
+      v_definition := regexp_replace(
+        v_definition,
+        'AND\s+rp\.is_active\s+AND\s+NOT\s+rp\.is_blocked_current_round\s*;',
+        'AND rp.is_active AND NOT rp.is_blocked_current_round AND (v_room.game_mode <> ''survival'' OR rp.lives_remaining > 0);'
+      );
+    END IF;
+    IF v_definition = v_before THEN
+      RAISE EXCEPTION 'Could not scope fake-answer progress to living players';
+    END IF;
   END IF;
 
-  v_before := v_definition;
-  v_definition := replace(
-    v_definition,
-    'AND rp.is_active;',
-    'AND rp.is_active AND (v_room.game_mode <> ''survival'' OR rp.lives_remaining > 0);'
-  );
-  IF v_definition = v_before THEN
-    RAISE EXCEPTION 'Could not scope guess progress to living players';
+  IF position('AND rp.is_active AND (v_room.game_mode <> ''survival'' OR rp.lives_remaining > 0);' IN v_definition) = 0 THEN
+    v_before := v_definition;
+    v_definition := replace(
+      v_definition,
+      'AND rp.is_active;',
+      'AND rp.is_active AND (v_room.game_mode <> ''survival'' OR rp.lives_remaining > 0);'
+    );
+    IF v_definition = v_before THEN
+      v_definition := replace(
+        v_definition,
+        'AND rp.is_active AND NOT rp.is_blocked_current_round;',
+        'AND rp.is_active AND (v_room.game_mode <> ''survival'' OR rp.lives_remaining > 0);'
+      );
+    END IF;
+    IF v_definition = v_before THEN
+      v_definition := regexp_replace(
+        v_definition,
+        'AND\s+rp\.is_active\s*;',
+        'AND rp.is_active AND (v_room.game_mode <> ''survival'' OR rp.lives_remaining > 0);'
+      );
+    END IF;
+    IF v_definition = v_before THEN
+      RAISE EXCEPTION 'Could not scope guess progress to living players';
+    END IF;
   END IF;
 
-  v_before := v_definition;
-  v_definition := replace(
-    v_definition,
-    'WHEN v_room.phase = ''lobby'' THEN rp.is_ready',
-    'WHEN v_room.game_mode = ''survival'' AND rp.lives_remaining <= 0 THEN TRUE
+  IF position('WHEN v_room.game_mode = ''survival'' AND rp.lives_remaining <= 0 THEN TRUE' IN v_definition) = 0 THEN
+    v_before := v_definition;
+    v_definition := replace(
+      v_definition,
+      'WHEN v_room.phase = ''lobby'' THEN rp.is_ready',
+      'WHEN v_room.game_mode = ''survival'' AND rp.lives_remaining <= 0 THEN TRUE
                         WHEN v_room.phase = ''lobby'' THEN rp.is_ready'
-  );
-  IF v_definition = v_before THEN
-    RAISE EXCEPTION 'Could not mark eliminated players complete in progress status';
+    );
+    IF v_definition = v_before THEN
+      v_definition := regexp_replace(
+        v_definition,
+        'WHEN\s+v_room\.phase\s*=\s*''lobby''\s+THEN\s+rp\.is_ready',
+        'WHEN v_room.game_mode = ''survival'' AND rp.lives_remaining <= 0 THEN TRUE
+                        WHEN v_room.phase = ''lobby'' THEN rp.is_ready'
+      );
+    END IF;
+    IF v_definition = v_before THEN
+      RAISE EXCEPTION 'Could not mark eliminated players complete in progress status';
+    END IF;
   END IF;
   EXECUTE v_definition;
 
   v_definition := pg_get_functiondef('public.submit_pick_secure(character varying, integer)'::regprocedure);
-  v_before := v_definition;
-  v_definition := replace(
-    v_definition,
-    'AND player_id = v_user_id AND is_active',
-    'AND player_id = v_user_id AND is_active AND (v_room.game_mode <> ''survival'' OR lives_remaining > 0)'
-  );
-  IF v_definition = v_before THEN
-    RAISE EXCEPTION 'Could not prevent eliminated players from submitting picks';
+  IF position('(v_room.game_mode <> ''survival'' OR lives_remaining > 0)' IN v_definition) = 0 THEN
+    v_before := v_definition;
+    v_definition := replace(
+      v_definition,
+      'AND player_id = v_user_id AND is_active',
+      'AND player_id = v_user_id AND is_active AND (v_room.game_mode <> ''survival'' OR lives_remaining > 0)'
+    );
+    IF v_definition = v_before THEN
+      v_definition := regexp_replace(
+        v_definition,
+        'AND\s+player_id\s*=\s*v_user_id\s+AND\s+is_active',
+        'AND player_id = v_user_id AND is_active AND (v_room.game_mode <> ''survival'' OR lives_remaining > 0)'
+      );
+    END IF;
+    IF v_definition = v_before THEN
+      RAISE EXCEPTION 'Could not prevent eliminated players from submitting picks';
+    END IF;
   END IF;
-  v_before := v_definition;
-  v_definition := replace(
-    v_definition,
-    'WHERE rp.room_id = v_room.id AND rp.is_active',
-    'WHERE rp.room_id = v_room.id AND rp.is_active AND (v_room.game_mode <> ''survival'' OR rp.lives_remaining > 0)'
-  );
-  IF v_definition = v_before THEN
-    RAISE EXCEPTION 'Could not scope remaining picks to living players';
+
+  IF position('(v_room.game_mode <> ''survival'' OR rp.lives_remaining > 0)' IN v_definition) = 0 THEN
+    v_before := v_definition;
+    v_definition := replace(
+      v_definition,
+      'WHERE rp.room_id = v_room.id AND rp.is_active',
+      'WHERE rp.room_id = v_room.id AND rp.is_active AND (v_room.game_mode <> ''survival'' OR rp.lives_remaining > 0)'
+    );
+    IF v_definition = v_before THEN
+      v_definition := regexp_replace(
+        v_definition,
+        'WHERE\s+rp\.room_id\s*=\s*v_room\.id\s+AND\s+rp\.is_active',
+        'WHERE rp.room_id = v_room.id AND rp.is_active AND (v_room.game_mode <> ''survival'' OR rp.lives_remaining > 0)'
+      );
+    END IF;
+    IF v_definition = v_before THEN
+      RAISE EXCEPTION 'Could not scope remaining picks to living players';
+    END IF;
   END IF;
   EXECUTE v_definition;
 
   v_definition := pg_get_functiondef('public.submit_fake_answer_secure(character varying, text)'::regprocedure);
-  v_before := v_definition;
-  v_definition := replace(
-    v_definition,
-    'AND is_online = TRUE',
-    'AND is_online = TRUE AND (v_room.game_mode <> ''survival'' OR lives_remaining > 0)'
-  );
-  IF v_definition = v_before THEN
-    RAISE EXCEPTION 'Could not prevent eliminated players from submitting fake answers';
+  IF position('(v_room.game_mode <> ''survival'' OR lives_remaining > 0)' IN v_definition) = 0 THEN
+    v_before := v_definition;
+    v_definition := replace(
+      v_definition,
+      'AND is_online = TRUE',
+      'AND is_online = TRUE AND (v_room.game_mode <> ''survival'' OR lives_remaining > 0)'
+    );
+    IF v_definition = v_before THEN
+      v_definition := regexp_replace(
+        v_definition,
+        'AND\s+is_online\s*=\s*TRUE',
+        'AND is_online = TRUE AND (v_room.game_mode <> ''survival'' OR lives_remaining > 0)'
+      );
+    END IF;
+    IF v_definition = v_before THEN
+      RAISE EXCEPTION 'Could not prevent eliminated players from submitting fake answers';
+    END IF;
   END IF;
-  v_before := v_definition;
-  v_definition := replace(
-    v_definition,
-    'AND rp.is_online = TRUE',
-    'AND rp.is_online = TRUE AND (v_room.game_mode <> ''survival'' OR rp.lives_remaining > 0)'
-  );
-  IF v_definition = v_before THEN
-    RAISE EXCEPTION 'Could not scope submitted fake answers to living players';
+
+  IF position('(v_room.game_mode <> ''survival'' OR rp.lives_remaining > 0)' IN v_definition) = 0 THEN
+    v_before := v_definition;
+    v_definition := replace(
+      v_definition,
+      'AND rp.is_online = TRUE',
+      'AND rp.is_online = TRUE AND (v_room.game_mode <> ''survival'' OR rp.lives_remaining > 0)'
+    );
+    IF v_definition = v_before THEN
+      v_definition := regexp_replace(
+        v_definition,
+        'AND\s+rp\.is_online\s*=\s*TRUE',
+        'AND rp.is_online = TRUE AND (v_room.game_mode <> ''survival'' OR rp.lives_remaining > 0)'
+      );
+    END IF;
+    IF v_definition = v_before THEN
+      RAISE EXCEPTION 'Could not scope submitted fake answers to living players';
+    END IF;
   END IF;
   v_definition := replace(v_definition, 'SET search_path TO ''public''', 'SET search_path TO ''pg_catalog'', ''public''');
   EXECUTE v_definition;
 
   v_definition := pg_get_functiondef('public.advance_expired_room_phase_secure(character varying)'::regprocedure);
-  v_before := v_definition;
-  v_definition := replace(
-    v_definition,
-    'AND NOT rp.is_blocked_current_round',
-    'AND NOT rp.is_blocked_current_round AND (v_room.game_mode <> ''survival'' OR rp.lives_remaining > 0)'
-  );
-  IF v_definition = v_before THEN
-    RAISE EXCEPTION 'Could not scope expired fake-answer inserts to living players';
+  IF position('(v_room.game_mode <> ''survival'' OR rp.lives_remaining > 0)' IN v_definition) = 0 THEN
+    v_before := v_definition;
+    v_definition := replace(
+      v_definition,
+      'AND NOT rp.is_blocked_current_round',
+      'AND NOT rp.is_blocked_current_round AND (v_room.game_mode <> ''survival'' OR rp.lives_remaining > 0)'
+    );
+    IF v_definition = v_before THEN
+      v_definition := regexp_replace(
+        v_definition,
+        'AND\s+NOT\s+rp\.is_blocked_current_round',
+        'AND NOT rp.is_blocked_current_round AND (v_room.game_mode <> ''survival'' OR rp.lives_remaining > 0)'
+      );
+    END IF;
+    IF v_definition = v_before THEN
+      RAISE EXCEPTION 'Could not scope expired fake-answer inserts to living players';
+    END IF;
   END IF;
   EXECUTE v_definition;
 
   v_definition := pg_get_functiondef('public.confirm_ability_selection_secure(character varying)'::regprocedure);
-  v_before := v_definition;
-  v_definition := replace(
-    v_definition,
-    'AND player_id = v_user_id AND is_active',
-    'AND player_id = v_user_id AND is_active AND (v_room.game_mode <> ''survival'' OR lives_remaining > 0)'
-  );
-  IF v_definition = v_before THEN
-    RAISE EXCEPTION 'Could not prevent eliminated players from confirming abilities';
+  IF position('(v_room.game_mode <> ''survival'' OR lives_remaining > 0)' IN v_definition) = 0 THEN
+    v_before := v_definition;
+    v_definition := replace(
+      v_definition,
+      'AND player_id = v_user_id AND is_active',
+      'AND player_id = v_user_id AND is_active AND (v_room.game_mode <> ''survival'' OR lives_remaining > 0)'
+    );
+    IF v_definition = v_before THEN
+      v_definition := regexp_replace(
+        v_definition,
+        'AND\s+player_id\s*=\s*v_user_id\s+AND\s+is_active',
+        'AND player_id = v_user_id AND is_active AND (v_room.game_mode <> ''survival'' OR lives_remaining > 0)'
+      );
+    END IF;
+    IF v_definition = v_before THEN
+      RAISE EXCEPTION 'Could not prevent eliminated players from confirming abilities';
+    END IF;
   END IF;
-  v_before := v_definition;
-  v_definition := replace(
-    v_definition,
-    'AND ability_ready_round <> v_room.current_round;',
-    'AND ability_ready_round <> v_room.current_round AND (v_room.game_mode <> ''survival'' OR lives_remaining > 0);'
-  );
-  IF v_definition = v_before THEN
-    RAISE EXCEPTION 'Could not exclude eliminated players from the ability-selection barrier';
+
+  IF position('(v_room.game_mode <> ''survival'' OR lives_remaining > 0);' IN v_definition) = 0 THEN
+    v_before := v_definition;
+    v_definition := replace(
+      v_definition,
+      'AND ability_ready_round <> v_room.current_round;',
+      'AND ability_ready_round <> v_room.current_round AND (v_room.game_mode <> ''survival'' OR lives_remaining > 0);'
+    );
+    IF v_definition = v_before THEN
+      v_definition := regexp_replace(
+        v_definition,
+        'AND\s+ability_ready_round\s*<>\s*v_room\.current_round\s*;',
+        'AND ability_ready_round <> v_room.current_round AND (v_room.game_mode <> ''survival'' OR lives_remaining > 0);'
+      );
+    END IF;
+    IF v_definition = v_before THEN
+      RAISE EXCEPTION 'Could not exclude eliminated players from the ability-selection barrier';
+    END IF;
   END IF;
   EXECUTE v_definition;
 
   v_definition := pg_get_functiondef('public.use_ability_secure(character varying, public.ability_type, uuid)'::regprocedure);
-  v_before := v_definition;
-  v_definition := replace(
-    v_definition,
-    'AND is_active FOR UPDATE;',
-    'AND is_active AND (v_room.game_mode <> ''survival'' OR lives_remaining > 0) FOR UPDATE;'
-  );
-  IF v_definition = v_before THEN
-    RAISE EXCEPTION 'Could not prevent eliminated players from using abilities';
+  IF position('(v_room.game_mode <> ''survival'' OR lives_remaining > 0)' IN v_definition) = 0 THEN
+    v_before := v_definition;
+    v_definition := replace(
+      v_definition,
+      'AND is_active FOR UPDATE;',
+      'AND is_active AND (v_room.game_mode <> ''survival'' OR lives_remaining > 0) FOR UPDATE;'
+    );
+    IF v_definition = v_before THEN
+      v_definition := regexp_replace(
+        v_definition,
+        'AND\s+is_active\s+FOR\s+UPDATE\s*;',
+        'AND is_active AND (v_room.game_mode <> ''survival'' OR lives_remaining > 0) FOR UPDATE;'
+      );
+    END IF;
+    IF v_definition = v_before THEN
+      RAISE EXCEPTION 'Could not prevent eliminated players from using abilities';
+    END IF;
   END IF;
-  v_before := v_definition;
-  v_definition := replace(
-    v_definition,
-    'IF NOT FOUND THEN RAISE EXCEPTION ''Hedef bu oyunda aktif değil''; END IF;',
-    'IF NOT FOUND THEN RAISE EXCEPTION ''Hedef bu oyunda aktif değil''; END IF;
-        IF v_room.game_mode = ''survival'' AND coalesce(v_target.lives_remaining, 0) <= 0 THEN
-            RAISE EXCEPTION ''Bu oyuncu elendiği için hedef seçilemez'';
-        END IF;'
-  );
-  IF v_definition = v_before THEN
-    RAISE EXCEPTION 'Could not prevent targeting eliminated players';
+
+  IF position('coalesce(v_target.lives_remaining, 0) <= 0' IN v_definition) = 0 THEN
+    v_before := v_definition;
+    v_definition := replace(
+      v_definition,
+      'IF NOT FOUND THEN RAISE EXCEPTION ''Hedef bu oyunda aktif değil''; END IF;',
+      'IF NOT FOUND THEN RAISE EXCEPTION ''Hedef bu oyunda aktif değil''; END IF;
+          IF v_room.game_mode = ''survival'' AND coalesce(v_target.lives_remaining, 0) <= 0 THEN
+              RAISE EXCEPTION ''Bu oyuncu elendiği için hedef seçilemez'';
+          END IF;'
+    );
+    IF v_definition = v_before THEN
+      v_definition := regexp_replace(
+        v_definition,
+        'IF\s+NOT\s+FOUND\s+THEN\s+RAISE\s+EXCEPTION\s+''Hedef bu oyunda aktif değil''\s*;\s*END\s+IF\s*;',
+        'IF NOT FOUND THEN RAISE EXCEPTION ''Hedef bu oyunda aktif değil''; END IF;
+          IF v_room.game_mode = ''survival'' AND coalesce(v_target.lives_remaining, 0) <= 0 THEN
+              RAISE EXCEPTION ''Bu oyuncu elendiği için hedef seçilemez'';
+          END IF;'
+      );
+    END IF;
+    IF v_definition = v_before THEN
+      RAISE EXCEPTION 'Could not prevent targeting eliminated players';
+    END IF;
   END IF;
   EXECUTE v_definition;
 
   v_definition := pg_get_functiondef('public.advance_round_secure(character varying)'::regprocedure);
-  v_before := v_definition;
-  v_definition := replace(
-    v_definition,
-    'IF v_room.current_round >= v_room.total_rounds THEN',
-    'IF v_room.current_round >= v_room.total_rounds OR (v_room.game_mode = ''survival'' AND v_room.survival_finished) THEN'
-  );
-  IF v_definition = v_before THEN
-    RAISE EXCEPTION 'Could not add Survival match-end condition';
+  IF position('v_room.survival_finished' IN v_definition) = 0 THEN
+    v_before := v_definition;
+    v_definition := replace(
+      v_definition,
+      'IF v_room.current_round >= v_room.total_rounds THEN',
+      'IF v_room.current_round >= v_room.total_rounds OR (v_room.game_mode = ''survival'' AND v_room.survival_finished) THEN'
+    );
+    IF v_definition = v_before THEN
+      v_definition := regexp_replace(
+        v_definition,
+        'IF\s+v_room\.current_round\s*>=\s*v_room\.total_rounds\s+THEN',
+        'IF v_room.current_round >= v_room.total_rounds OR (v_room.game_mode = ''survival'' AND v_room.survival_finished) THEN'
+      );
+    END IF;
+    IF v_definition = v_before THEN
+      RAISE EXCEPTION 'Could not add Survival match-end condition';
+    END IF;
   END IF;
-  v_before := v_definition;
-  v_definition := replace(
-    v_definition,
-    'row_number() OVER (ORDER BY rp.score DESC, rp.joined_at ASC)::INTEGER AS rank,',
-    'row_number() OVER (ORDER BY CASE WHEN v_room.game_mode = ''survival'' AND rp.lives_remaining > 0 THEN 0 ELSE 1 END, rp.lives_remaining DESC, rp.score DESC, rp.joined_at ASC)::INTEGER AS rank,'
-  );
-  IF v_definition = v_before THEN
-    RAISE EXCEPTION 'Could not rank living Survival players ahead of eliminated players';
+
+  IF position('v_room.game_mode = ''survival'' AND rp.lives_remaining > 0' IN v_definition) = 0 THEN
+    v_before := v_definition;
+    v_definition := replace(
+      v_definition,
+      'row_number() OVER (ORDER BY rp.score DESC, rp.joined_at ASC)::INTEGER AS rank,',
+      'row_number() OVER (ORDER BY CASE WHEN v_room.game_mode = ''survival'' AND rp.lives_remaining > 0 THEN 0 ELSE 1 END, rp.lives_remaining DESC, rp.score DESC, rp.joined_at ASC)::INTEGER AS rank,'
+    );
+    IF v_definition = v_before THEN
+      v_definition := regexp_replace(
+        v_definition,
+        'row_number\(\)\s+OVER\s*\(\s*ORDER\s+BY\s+rp\.score\s+DESC\s*,\s*rp\.joined_at\s+ASC\s*\)::INTEGER\s+AS\s+rank\s*,',
+        'row_number() OVER (ORDER BY CASE WHEN v_room.game_mode = ''survival'' AND rp.lives_remaining > 0 THEN 0 ELSE 1 END, rp.lives_remaining DESC, rp.score DESC, rp.joined_at ASC)::INTEGER AS rank,'
+      );
+    END IF;
+    IF v_definition = v_before THEN
+      RAISE EXCEPTION 'Could not rank living Survival players ahead of eliminated players';
+    END IF;
   END IF;
   EXECUTE v_definition;
 END
