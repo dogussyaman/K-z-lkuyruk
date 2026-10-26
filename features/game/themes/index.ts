@@ -42,6 +42,9 @@ export const GAME_MODE_THEMES: Record<GameMode, GameModeTheme> = {
   detective_fox: {
     id: 'detective_fox', accent: '#8B5CF6', accentSecondary: '#38BDF8', background: '#080C16', surface: '#11192A', glow: 'rgba(139,92,246,0.25)', heroEmoji: '🔎', atmosphere: 'noir', lobbyTitle: 'Dedektif Bürosu', roundTitle: 'İpuçlarını Birleştir', victoryTitle: 'Dosya Çözüldü',
   },
+  gizli_tilki: {
+    id: 'gizli_tilki', accent: '#FF654D', accentSecondary: '#35B8FF', background: '#080E18', surface: '#121D2C', glow: 'rgba(53,184,255,0.25)', heroEmoji: '🦊', atmosphere: 'versus', lobbyTitle: 'Gizli Operasyon Merkezi', roundTitle: 'Operasyon Kararı', victoryTitle: 'Operasyon Tamamlandı',
+  },
 };
 
 export function getGameModeTheme(mode?: GameMode | null): GameModeTheme {
