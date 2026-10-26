@@ -42,11 +42,12 @@ const choices: RoundChoice[] = [
 ];
 
 describe('complete game mode registry', () => {
-  it('exposes all ten modes as active with a theme and local illustration', () => {
-    assert.equal(GAME_MODES.length, 10);
-    assert.equal(getActiveGameModes().length, 10);
+  it('exposes all eleven modes as active with a theme and local illustration', () => {
+    assert.equal(GAME_MODES.length, 11);
+    assert.equal(getActiveGameModes().length, 11);
     assert.equal(getComingSoonGameModes().length, 0);
     assert.equal(isGameModeActive('gizli_tilki'), true);
+    assert.equal(isGameModeActive('orman_hazinesi'), true);
 
     for (const mode of GAME_MODES) {
       assert.equal(isGameModeActive(mode.id), true);
