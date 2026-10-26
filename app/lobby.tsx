@@ -48,6 +48,7 @@ import { usePrototype } from '@/features/prototype/PrototypeProvider';
 import { PlayerProfileSheet } from '@/components/PlayerProfileSheet';
 import type { Player } from '@/types/game';
 import { getWebAppUrl } from '@/lib/webAppUrl';
+import { ensureSupabase } from '@/lib/supabase/client';
 
 export default function LobbyScreen() {
   const { colors } = useTheme();
@@ -78,6 +79,27 @@ export default function LobbyScreen() {
   useEffect(() => {
     prototype.clearReadyOverrides();
   }, [prototype.clearReadyOverrides]);
+
+  // Gizli Tilki uses its own server-side phase machine; all players (not only the host)
+  // must leave the standard lobby when the host starts the operation.
+  useEffect(() => {
+    if (!roomCode || roomState?.config.gameMode !== 'gizli_tilki') return;
+    let mounted = true;
+    const checkModeState = async () => {
+      try {
+        const { data, error: rpcError } = await ensureSupabase().rpc('gizli_tilki_get_state', { p_room_code: roomCode });
+        if (rpcError) throw rpcError;
+        if (mounted && data && (data as { phase?: string }).phase && (data as { phase: string }).phase !== 'lobby') {
+          router.replace('/gizli-tilki');
+        }
+      } catch (cause) {
+        if (mounted) setError(cause instanceof Error ? cause.message : 'Gizli Tilki durumu alınamadı.');
+      }
+    };
+    void checkModeState();
+    const timer = setInterval(() => { void checkModeState(); }, 2200);
+    return () => { mounted = false; clearInterval(timer); };
+  }, [roomCode, roomState?.config.gameMode]);
 
   // Auto navigate when phase changes
   useEffect(() => {
@@ -112,7 +134,9 @@ export default function LobbyScreen() {
   const getReady = (player: Player) =>
     prototype.getReady(player.id, testMode && player.id !== me?.id ? false : player.isReady);
   const readyCount = playersList.filter(getReady).length;
-  const canStart = readyCount >= 2;
+  const canStart = roomState?.config.gameMode === 'gizli_tilki'
+    ? playersList.length >= 4 && readyCount === playersList.length
+    : readyCount >= 2;
   const maxPlayers = roomState?.config.maxPlayers ?? 8;
   const emptySlotsCount = Math.max(0, Math.min(4, maxPlayers - playersList.length));
 
@@ -175,6 +199,12 @@ export default function LobbyScreen() {
     setStarting(true);
     setError(null);
     try {
+      if (roomState?.config.gameMode === 'gizli_tilki') {
+        const { error: startError } = await ensureSupabase().rpc('gizli_tilki_start', { p_room_code: roomCode });
+        if (startError) throw startError;
+        router.replace('/gizli-tilki');
+        return;
+      }
       await service.startGame(roomCode);
     } catch (e) {
       setError((e as Error).message);
