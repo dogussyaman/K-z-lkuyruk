@@ -12,7 +12,7 @@ import type { GameMode } from '../types/game';
 
 const CALLOUTS: Partial<Record<GameMode, string>> = {
   gizli_tilki: '4–10 oyuncu gerekir. Gizli roller, ortak operasyon ekibi ve kaynak yönetimiyle sabotajcıları bulmaya çalış; oda açıldıktan sonra herkes hazır olunca ev sahibi başlatır.',
-  orman_hazinesi: '4–10 oyuncu. Soru-cevap yok: iki takım sırayla keşif hamlesi yapar, erzak toplar, harita parçalarını bulur ve ekipman kullanarak engelleri aşar. İlk hazineyi bulan kazanır; rakip takım da son ana kadar yarışta kalır.'
+  orman_hazinesi: '4–10 oyuncu. Soru-cevap yok: iki takım sırayla keşif hamlesi yapar, erzak toplar, harita parçalarını bulur ve ekipman kullanarak engelleri aşar. İlk hazineyi bulan kazanır; rakip takım da son ana kadar yarışta kalır.',
   team_battle: 'Takımlar maç başlarken güvenli biçimde otomatik dengelenir. Dost tuzakları puan kazandırmaz.',
   secret_missions: 'Gizli görev yalnız sana gösterilir; maç boyunca davranışına göre ekstra bonus kazanırsın.',
   double_trap: 'Her oyuncunun normal blöfüne ek olarak sunucu ikinci bir gölge tuzak üretir.',
