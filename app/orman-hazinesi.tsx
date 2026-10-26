@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View, type DimensionValue } from 'react-native';
 import { router } from 'expo-router';
 import { ChevronLeft, Compass, Flame, Footprints, Leaf, Map, Pickaxe, ShieldCheck, Tent, Timer, Trophy, TreePine, Users, Waves } from 'lucide-react-native';
 import { Screen } from '@/components/ui';
@@ -64,10 +64,19 @@ export default function OrmanHazinesiScreen() {
     if (!roomCode || !state?.is_host || !deadline || deadline > now || state.phase !== 'expedition' || busy) return;
     let cancelled = false;
     setBusy(true);
-    ensureSupabase().rpc('forest_treasure_advance', { p_room_code: roomCode })
-      .then(({ error: rpcError }) => { if (rpcError) throw rpcError; })
-      .catch((cause) => { if (!cancelled) setError(cause instanceof Error ? cause.message : 'Süre aşımı işlenemedi.'); })
-      .finally(() => { if (!cancelled) { setBusy(false); void refresh().catch(() => undefined); } });
+    void (async () => {
+      try {
+        const { error: rpcError } = await ensureSupabase().rpc('forest_treasure_advance', { p_room_code: roomCode });
+        if (rpcError) throw rpcError;
+      } catch (cause) {
+        if (!cancelled) setError(cause instanceof Error ? cause.message : 'Süre aşımı işlenemedi.');
+      } finally {
+        if (!cancelled) {
+          setBusy(false);
+          try { await refresh(); } catch { /* polling will retry */ }
+        }
+      }
+    })();
     return () => { cancelled = true; };
   }, [roomCode, state?.is_host, state?.phase, deadline, now, busy, refresh]);
 
@@ -150,10 +159,11 @@ export default function OrmanHazinesiScreen() {
 }
 
 function TeamCard({team, stats, active, progress, members}: {team:string;stats?:TeamStats;active:boolean;progress:number;members:PlayerRow[]}) {
+  const progressWidth = `${progress}%` as DimensionValue;
   return <View style={[styles.teamCard, active && styles.teamActive]}>
     <View style={styles.teamCardTop}><Text style={styles.teamName}>TAKIM {team}</Text>{active ? <View style={styles.activeDot}/> : null}</View>
     <Text style={styles.teamProgress}>{Math.min(7, stats?.progress ?? 0)}<Text style={styles.teamProgressUnit}>/7</Text></Text>
-    <View style={styles.progressTrack}><View style={[styles.progressFill,{width:progress+'%',backgroundColor:team==='A'?'#7BC96F':'#D9AD62'}]}/></View>
+    <View style={styles.progressTrack}><View style={[styles.progressFill,{width:progressWidth,backgroundColor:team==='A'?'#7BC96F':'#D9AD62'}]}/></View>
     <View style={styles.fragments}><Map color="#D9AD62" size={14}/><Text style={styles.fragmentText}>{stats?.fragments ?? 0}/3 harita parçası</Text></View>
     <Text style={styles.memberNames} numberOfLines={2}>{members.map((member) => member.name).join(' · ') || 'Oyuncular bekleniyor'}</Text>
     <Text style={styles.teamMeta}>🍃 {stats?.food ?? 0}  ·  🪢 {stats?.rope ?? 0}  ·  🔥 {stats?.torch ?? 0}</Text>
@@ -169,71 +179,11 @@ const styles = StyleSheet.create({
   glowTop:{position:'absolute',top:-160,left:-120,width:340,height:340,borderRadius:200,backgroundColor:'rgba(123,201,111,0.10)'},
   content:{paddingHorizontal:16,paddingTop:24,paddingBottom:42,gap:14},
   header:{flexDirection:'row',alignItems:'center',gap:10},
-  back:{width:42,height:42,borderRadius:14,backgroundColor:'rgba(255,255,255,0.08)',alignItems:'center',justifyContent:'center'},
-  headerCopy:{flex:1},
-  eyebrow:{fontSize:9,fontWeight:'900',letterSpacing:1.3,color:'#7BC96F'},
-  title:{fontSize:21,fontWeight:'900',color:'#FFF',marginTop:3},
-  turnBadge:{flexDirection:'row',alignItems:'center',gap:5,paddingHorizontal:10,height:34,borderRadius:12,backgroundColor:'rgba(217,173,98,0.12)'},
-  turnText:{fontSize:11,fontWeight:'900',color:'#D9AD62'},
-  hero:{borderRadius:24,borderWidth:1,borderColor:'rgba(123,201,111,0.24)',backgroundColor:'#142A20',overflow:'hidden',padding:18,minHeight:205},
-  heroGlow:{position:'absolute',right:-50,top:-60,width:180,height:180,borderRadius:100,backgroundColor:'rgba(217,173,98,0.12)'},
-  heroText:{paddingRight:55},
-  heroKicker:{fontSize:9,fontWeight:'900',letterSpacing:1.5,color:'#D9AD62'},
-  heroTitle:{fontSize:23,fontWeight:'900',lineHeight:29,color:'#FFF',marginTop:7},
-  heroSub:{fontSize:12,lineHeight:18,color:'rgba(255,255,255,0.68)',marginTop:6},
-  heroEmoji:{position:'absolute',right:15,top:18,fontSize:45},
-  route:{flexDirection:'row',alignItems:'center',marginTop:15,gap:6},
-  routeNode:{width:30,height:30,borderRadius:10,alignItems:'center',justifyContent:'center',backgroundColor:'rgba(255,255,255,0.06)',borderWidth:1,borderColor:'rgba(255,255,255,0.1)'},
-  routeLine:{flex:1,height:2,backgroundColor:'rgba(123,201,111,0.35)'},
-  scoreRow:{flexDirection:'row',alignItems:'stretch',gap:8},
-  teamCard:{flex:1,minWidth:0,borderRadius:18,padding:11,backgroundColor:'rgba(255,255,255,0.045)',borderWidth:1,borderColor:'rgba(255,255,255,0.08)'},
-  teamActive:{borderColor:'#7BC96F',backgroundColor:'rgba(123,201,111,0.10)'},
-  teamCardTop:{flexDirection:'row',alignItems:'center',justifyContent:'space-between'},
-  teamName:{fontSize:10,fontWeight:'900',letterSpacing:1,color:'#D7E2D9'},
-  activeDot:{width:7,height:7,borderRadius:4,backgroundColor:'#7BC96F'},
-  teamProgress:{fontSize:25,fontWeight:'900',color:'#FFF',marginTop:8},
-  teamProgressUnit:{fontSize:12,color:'rgba(255,255,255,0.45)'},
-  progressTrack:{height:5,backgroundColor:'rgba(255,255,255,0.09)',borderRadius:9,overflow:'hidden',marginTop:9},
-  progressFill:{height:5,borderRadius:9},
-  fragments:{flexDirection:'row',alignItems:'center',gap:5,marginTop:10},
-  fragmentText:{fontSize:10,color:'#D9AD62',fontWeight:'800'},
-  teamMeta:{fontSize:10,color:'rgba(255,255,255,0.55)',marginTop:8},
-  memberNames:{fontSize:9,lineHeight:13,color:'rgba(255,255,255,0.55)',marginTop:7,minHeight:24},
-  vs:{alignItems:'center',justifyContent:'center',width:28},
-  vsText:{fontSize:10,fontWeight:'900',color:'rgba(255,255,255,0.45)'},
-  turnNumber:{fontSize:9,color:'rgba(255,255,255,0.45)',marginTop:4},
-  loading:{padding:24,alignItems:'center',gap:10},
-  muted:{fontSize:11,color:'rgba(255,255,255,0.52)',lineHeight:16},
-  sectionHead:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:8,marginTop:4},
-  sectionTitle:{fontSize:16,fontWeight:'900',color:'#FFF'},
-  teamPill:{flexDirection:'row',alignItems:'center',gap:5,borderRadius:12,paddingHorizontal:9,paddingVertical:7,backgroundColor:'rgba(123,201,111,0.1)'},
-  teamPillText:{fontSize:9,fontWeight:'900',color:'#7BC96F'},
-  resources:{flexDirection:'row',gap:8},
-  resource:{flex:1,alignItems:'center',gap:4,paddingVertical:12,borderRadius:16,backgroundColor:'rgba(255,255,255,0.05)',borderWidth:1,borderColor:'rgba(255,255,255,0.07)'},
-  resourceValue:{fontSize:20,fontWeight:'900',color:'#FFF'},
-  resourceLabel:{fontSize:10,fontWeight:'700',color:'rgba(255,255,255,0.58)'},
-  actions:{gap:9},
-  action:{minHeight:72,flexDirection:'row',alignItems:'center',gap:12,padding:13,borderRadius:18,backgroundColor:'rgba(255,255,255,0.045)',borderWidth:1.3},
-  actionIcon:{width:42,height:42,borderRadius:14,alignItems:'center',justifyContent:'center'},
-  actionCopy:{flex:1},
-  actionTitle:{fontSize:13,fontWeight:'900',color:'#FFF'},
-  actionDetail:{fontSize:10,color:'rgba(255,255,255,0.57)',lineHeight:15,marginTop:3},
-  actionArrow:{fontSize:10,fontWeight:'900',letterSpacing:0.8},
-  disabled:{opacity:0.35},
-  pressed:{transform:[{scale:0.99}],opacity:0.82},
-  finishCard:{alignItems:'center',gap:10,padding:22,borderRadius:22,backgroundColor:'rgba(217,173,98,0.10)',borderWidth:1,borderColor:'rgba(217,173,98,0.25)'},
-  finishTitle:{fontSize:21,fontWeight:'900',color:'#FFF',textAlign:'center'},
-  finishButton:{marginTop:5,paddingHorizontal:18,paddingVertical:12,borderRadius:13,backgroundColor:'#7BC96F'},
-  finishButtonText:{fontSize:12,fontWeight:'900',color:'#091812'},
-  report:{padding:14,borderRadius:17,backgroundColor:'rgba(217,173,98,0.09)',borderWidth:1,borderColor:'rgba(217,173,98,0.18)',gap:7},
-  reportHeader:{flexDirection:'row',alignItems:'center',gap:7},
-  reportTitle:{fontSize:11,fontWeight:'900',color:'#D9AD62'},
-  reportText:{fontSize:12,lineHeight:18,color:'#F1F4F0'},
-  logRow:{flexDirection:'row',gap:10,paddingVertical:9,borderBottomWidth:1,borderBottomColor:'rgba(255,255,255,0.06)'},
-  logDot:{width:7,height:7,borderRadius:5,backgroundColor:'#7BC96F',marginTop:5},
-  logCopy:{flex:1},
-  logTitle:{fontSize:11,fontWeight:'800',color:'#FFF'},
-  logText:{fontSize:10,lineHeight:15,color:'rgba(255,255,255,0.55)',marginTop:3},
-  error:{fontSize:12,color:'#FF9C9C',padding:10,borderRadius:12,backgroundColor:'rgba(255,0,0,0.08)'},
-  footerNote:{fontSize:10,lineHeight:16,color:'rgba(255,255,255,0.42)',marginTop:6},
+  back:{width:42,height:42,borderRadius:14,backgroundColor:'rgba(255,255,255,0.07)',alignItems:'center',justifyContent:'center'},
+  headerCopy:{flex:1},eyebrow:{color:'#7BC96F',fontSize:9,fontWeight:'900',letterSpacing:1.4},title:{color:'#FFF',fontSize:23,fontWeight:'900',marginTop:2},turnBadge:{flexDirection:'row',alignItems:'center',gap:5,backgroundColor:'rgba(217,173,98,0.12)',borderColor:'rgba(217,173,98,0.25)',borderWidth:1,paddingHorizontal:10,paddingVertical:8,borderRadius:12},turnText:{color:'#F3D297',fontSize:11,fontWeight:'900'},
+  hero:{minHeight:185,borderRadius:24,backgroundColor:'#132C20',borderWidth:1,borderColor:'rgba(123,201,111,0.22)',padding:19,overflow:'hidden',justifyContent:'space-between'},heroGlow:{position:'absolute',right:-80,top:-80,width:210,height:210,borderRadius:150,backgroundColor:'rgba(123,201,111,0.10)'},heroText:{maxWidth:'75%',gap:5},heroKicker:{color:'#D9AD62',fontSize:9,fontWeight:'900',letterSpacing:1.4},heroTitle:{color:'#FFF',fontSize:21,fontWeight:'900',lineHeight:26},heroSub:{color:'#9DB1A4',fontSize:11,lineHeight:17},heroEmoji:{position:'absolute',right:18,top:28,fontSize:46},route:{flexDirection:'row',alignItems:'center',marginTop:16},routeNode:{width:34,height:34,borderRadius:14,backgroundColor:'#0C2117',borderWidth:1,borderColor:'rgba(255,255,255,0.08)',alignItems:'center',justifyContent:'center'},routeLine:{height:2,flex:1,backgroundColor:'rgba(123,201,111,0.26)'},
+  scoreRow:{flexDirection:'row',alignItems:'stretch',gap:7},teamCard:{flex:1,borderRadius:19,padding:12,backgroundColor:'#10251A',borderWidth:1,borderColor:'rgba(255,255,255,0.08)'},teamActive:{borderColor:'#7BC96F',backgroundColor:'#153322'},teamCardTop:{flexDirection:'row',alignItems:'center',justifyContent:'space-between'},teamName:{color:'#A9B8AE',fontSize:9,fontWeight:'900',letterSpacing:1},activeDot:{width:7,height:7,borderRadius:7,backgroundColor:'#7BC96F'},teamProgress:{color:'#FFF',fontSize:27,fontWeight:'900',marginTop:4},teamProgressUnit:{color:'#6E8276',fontSize:12},progressTrack:{height:5,borderRadius:8,backgroundColor:'#07120D',overflow:'hidden',marginTop:4},progressFill:{height:'100%',borderRadius:8},fragments:{flexDirection:'row',alignItems:'center',gap:5,marginTop:8},fragmentText:{color:'#D6C18B',fontSize:9,fontWeight:'800'},memberNames:{color:'#82958A',fontSize:9,lineHeight:13,marginTop:6},teamMeta:{color:'#84988D',fontSize:9,marginTop:6},vs:{alignItems:'center',justifyContent:'center',width:34},vsText:{color:'#D9AD62',fontWeight:'900',fontSize:12},turnNumber:{color:'#617168',fontSize:8,marginTop:4},
+  sectionHead:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:10,marginTop:2},sectionTitle:{color:'#FFF',fontSize:15,fontWeight:'900'},muted:{color:'#809188',fontSize:10,lineHeight:15},teamPill:{flexDirection:'row',alignItems:'center',gap:5,paddingHorizontal:9,paddingVertical:6,borderRadius:12,backgroundColor:'rgba(123,201,111,0.09)'},teamPillText:{color:'#9DD394',fontSize:8,fontWeight:'900'},resources:{flexDirection:'row',gap:7},resource:{flex:1,minHeight:76,borderRadius:16,backgroundColor:'#10251A',borderWidth:1,borderColor:'rgba(255,255,255,0.07)',alignItems:'center',justifyContent:'center',gap:2},resourceValue:{color:'#FFF',fontSize:18,fontWeight:'900'},resourceLabel:{color:'#83968A',fontSize:8,fontWeight:'800'},
+  actions:{gap:8},action:{minHeight:72,borderRadius:18,borderWidth:1,padding:11,backgroundColor:'#10251A',flexDirection:'row',alignItems:'center',gap:10},actionIcon:{width:42,height:42,borderRadius:14,alignItems:'center',justifyContent:'center'},actionCopy:{flex:1},actionTitle:{color:'#FFF',fontSize:13,fontWeight:'900'},actionDetail:{color:'#7D8F85',fontSize:9,lineHeight:14,marginTop:2},actionArrow:{fontSize:9,fontWeight:'900',letterSpacing:.8},disabled:{opacity:.42},pressed:{transform:[{scale:.985}]},finishCard:{borderRadius:22,padding:20,backgroundColor:'#173322',borderColor:'#FFD166',borderWidth:1,alignItems:'center',gap:9},finishTitle:{color:'#FFF',fontSize:21,fontWeight:'900',textAlign:'center'},finishButton:{marginTop:7,backgroundColor:'#7BC96F',paddingHorizontal:18,paddingVertical:10,borderRadius:13},finishButtonText:{color:'#0A190F',fontWeight:'900',fontSize:11},
+  report:{borderRadius:18,padding:14,backgroundColor:'#10251A',borderWidth:1,borderColor:'rgba(217,173,98,0.16)'},reportHeader:{flexDirection:'row',alignItems:'center',gap:7},reportTitle:{color:'#D9AD62',fontSize:10,fontWeight:'900'},reportText:{color:'#B5C1BA',fontSize:11,lineHeight:17,marginTop:6},logRow:{flexDirection:'row',gap:9,paddingVertical:8,borderBottomWidth:1,borderBottomColor:'rgba(255,255,255,0.05)'},logDot:{width:7,height:7,borderRadius:7,backgroundColor:'#7BC96F',marginTop:5},logCopy:{flex:1},logTitle:{color:'#CFD8D2',fontSize:9,fontWeight:'900'},logText:{color:'#75877C',fontSize:9,lineHeight:14,marginTop:2},footerNote:{color:'#64766B',fontSize:9,lineHeight:14,textAlign:'center',marginTop:6},error:{color:'#FF9E91',fontSize:11,fontWeight:'800',textAlign:'center'},loading:{alignItems:'center',padding:22,gap:8},
 });
