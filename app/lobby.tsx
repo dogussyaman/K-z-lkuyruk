@@ -46,6 +46,7 @@ import { useHaptics } from '@/hooks/useHaptics';
 import { mascotImages } from '@/assets/illustrations';
 import { usePrototype } from '@/features/prototype/PrototypeProvider';
 import { PlayerProfileSheet } from '@/components/PlayerProfileSheet';
+import { LobbyBotControls } from '@/components/LobbyBotControls';
 import type { Player } from '@/types/game';
 import { getWebAppUrl } from '@/lib/webAppUrl';
 import { ensureSupabase } from '@/lib/supabase/client';
@@ -80,8 +81,6 @@ export default function LobbyScreen() {
     prototype.clearReadyOverrides();
   }, [prototype.clearReadyOverrides]);
 
-  // Gizli Tilki uses its own server-side phase machine; all players (not only the host)
-  // must leave the standard lobby when the host starts the operation.
   useEffect(() => {
     if (!roomCode || !['gizli_tilki', 'orman_hazinesi'].includes(roomState?.config.gameMode ?? '')) return;
     let mounted = true;
@@ -102,7 +101,6 @@ export default function LobbyScreen() {
     return () => { mounted = false; clearInterval(timer); };
   }, [roomCode, roomState?.config.gameMode]);
 
-  // Auto navigate when phase changes
   useEffect(() => {
     if (roomState?.phase === 'ability_select') {
       router.replace('/ability-select');
@@ -120,7 +118,6 @@ export default function LobbyScreen() {
     ? 'Biri seni dürttü! Lütfen hazır ol!'
     : null;
 
-  // Handle incoming nudges
   useEffect(() => {
     if (!isIncomingNudge || !lastNudge) return;
     trigger('heavy');
@@ -265,7 +262,6 @@ export default function LobbyScreen() {
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
       >
-        {/* Room Code Showcase Card */}
         <Card variant="surface" glow="orange" style={styles.codeCard}>
           <View style={styles.codeTopRow}>
             <View style={styles.kickerWrap}>
@@ -297,10 +293,9 @@ export default function LobbyScreen() {
           </View>
         </Card>
 
-        {/* Players List Header */}
         <View style={styles.playersHeader}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <Text style={styles.sectionTitle}>Oyuncular</Text>
+            <Text style={styles.sectionTitle}>Oyuncu Bekleme Alanı</Text>
             <Badge tone="purple">{playersList.length} / {maxPlayers}</Badge>
           </View>
           <Badge tone={canStart ? 'lime' : 'yellow'} sticker>
@@ -308,7 +303,8 @@ export default function LobbyScreen() {
           </Badge>
         </View>
 
-        {/* Players Cards */}
+        <LobbyBotControls />
+
         <View style={styles.playersListWrap}>
           {playersList.map((player, idx) => {
             const isSelf = player.id === me?.id;
@@ -386,14 +382,13 @@ export default function LobbyScreen() {
             );
           })}
 
-          {/* Empty Placeholder Slots */}
           {Array.from({ length: emptySlotsCount }).map((_, idx) => (
             <PulseView key={`empty-${idx}`} minScale={0.98} maxScale={1.01} duration={2400}>
               <View style={styles.emptySlotCard}>
                 <View style={styles.emptySlotIcon}>
                   <UserPlus color={colors.textMuted} size={18} />
                 </View>
-                <Text style={styles.emptySlotText}>Arkadaşını Bekliyor…</Text>
+                <Text style={styles.emptySlotText}>Arkadaşını veya botunu bekliyor…</Text>
               </View>
             </PulseView>
           ))}
@@ -600,6 +595,8 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     justifyContent: 'space-between',
     marginTop: spacing.xl,
     marginBottom: spacing.md,
+    gap: spacing.sm,
+    flexWrap: 'wrap',
   },
   sectionTitle: {
     ...typography.h4,
