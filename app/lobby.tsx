@@ -113,7 +113,9 @@ export default function LobbyScreen() {
   const getReady = (player: Player) =>
     prototype.getReady(player.id, testMode && player.id !== me?.id ? false : player.isReady);
   const readyCount = playersList.filter(getReady).length;
-  const canStart = readyCount >= 2;
+  const canStart = roomState?.config.gameMode === 'gizli_tilki'
+    ? playersList.length >= 4 && readyCount === playersList.length
+    : readyCount >= 2;
   const maxPlayers = roomState?.config.maxPlayers ?? 8;
   const emptySlotsCount = Math.max(0, Math.min(4, maxPlayers - playersList.length));
 
