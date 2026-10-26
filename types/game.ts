@@ -14,7 +14,8 @@ export type GameMode =
   | 'secret_missions'
   | 'double_trap'
   | 'golden_question'
-  | 'detective_fox';
+  | 'detective_fox'
+  | 'gizli_tilki';
 
 export interface Player {
   id: PlayerId;
