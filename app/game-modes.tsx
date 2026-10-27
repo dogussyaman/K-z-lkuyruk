@@ -26,7 +26,10 @@ const GROUPS: Record<Exclude<FilterId, 'all'>, string[]> = {
 
 export default function GameModesScreen() {
   const [filter, setFilter] = useState<FilterId>('all');
-  const visible = useMemo(() => filter === 'all' ? GAME_MODES : GAME_MODES.filter((mode) => GROUPS[filter].includes(mode.id)), [filter]);
+  const visible = useMemo(() => {
+    const modes = GAME_MODES.map(mode => mode.id === 'suspicious' ? { ...mode, name: 'Tilki Aramızda', tagline: 'Farklı soruyu gören tilkiyi bul!', description: 'Tek telefonu sırayla paylaşın, cevapları dinleyin ve aranızdaki tilkiyi gizli oylamayla bulun.', badge: 'TEK TELEFON', playerCountLabel: '4–10 Oyuncu', estimatedDurationLabel: '5–10 dk', difficultyLabel: 'Kolay' as const } : mode);
+    return filter === 'all' ? modes : modes.filter(mode => GROUPS[filter].includes(mode.id));
+  }, [filter]);
 
   return (
     <View style={styles.root}>
@@ -75,7 +78,7 @@ function ModeCard({ mode }: { mode: GameModeDefinition }) {
   const theme = getGameModeTheme(mode.id);
   return (
     <Pressable
-      onPress={() => { if (mode.status === 'active') router.push({ pathname: '/mode-create-room', params: { mode: mode.id } }); }}
+      onPress={() => { if (mode.id === 'suspicious') router.push('/tilki-aramizda'); else if (mode.status === 'active') router.push({ pathname: '/mode-create-room', params: { mode: mode.id } }); }}
       style={({ pressed }) => [styles.card, { borderColor: theme.glow }, pressed && styles.cardPressed]}
     >
       <View style={styles.imageWrap}>
