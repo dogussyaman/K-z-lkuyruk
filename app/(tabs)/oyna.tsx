@@ -108,7 +108,7 @@ export default function OynaScreen() {
             accessibilityLabel="Tüm modları gör"
             onPress={() => router.push('/game-modes')}
           >
-            <Text style={styles.sectionMeta}>Tümü (9) →</Text>
+            <Text style={styles.sectionMeta}>Tümü (11) →</Text>
           </Pressable>
         </View>
 
@@ -120,9 +120,9 @@ export default function OynaScreen() {
           {/* Herkes Şüpheli */}
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Herkes Şüpheli modunu seç"
+            accessibilityLabel="Tilki Aramızda modunu seç"
             style={styles.modeShowcaseCard}
-            onPress={() => router.push({ pathname: '/create-room', params: { mode: 'suspicious' } })}
+            onPress={() => router.push('/tilki-aramizda')}
           >
             <Image source={gameModeImages.suspicious} style={styles.modeShowcaseImage} />
             <LinearGradient
@@ -131,8 +131,8 @@ export default function OynaScreen() {
             />
             <View style={styles.modeShowcaseContent}>
               <Badge tone="purple" style={styles.modeShowcaseBadge}>YENİ MOD</Badge>
-              <Text style={styles.modeShowcaseTitle}>Herkes Şüpheli</Text>
-              <Text style={styles.modeShowcaseSub}>Dedektif Çıkarımı</Text>
+              <Text style={styles.modeShowcaseTitle}>Tilki Aramızda</Text>
+              <Text style={styles.modeShowcaseSub}>Tek Telefon · Gizli Soru</Text>
             </View>
           </Pressable>
 

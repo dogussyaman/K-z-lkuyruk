@@ -320,23 +320,23 @@ export default function CreateRoomScreen() {
                 </View>
               </Pressable>
 
-              {/* Herkes Şüpheli */}
+              {/* Tilki Aramızda */}
               <Pressable
                 accessibilityRole="radio"
-                accessibilityState={{ checked: gameMode === 'suspicious' }}
-                onPress={() => handleSelectGameMode('suspicious')}
-                style={[styles.modeSelectCard, gameMode === 'suspicious' && styles.modeSelectCardActive]}
+                accessibilityHint="Tek telefonlu oyuna geçer"
+                onPress={() => router.push('/tilki-aramizda')}
+                style={styles.modeSelectCard}
               >
                 <View style={styles.modeCardHeader}>
                   <Image source={gameModeImages.suspicious} style={styles.modeCardThumb} />
                   <View style={{ flex: 1 }}>
                     <View style={styles.modeTitleRow}>
-                      <Text style={[styles.modeSelectTitle, gameMode === 'suspicious' && styles.modeSelectTitleActive]}>
-                        Herkes Şüpheli
+                      <Text style={styles.modeSelectTitle}>
+                        Tilki Aramızda
                       </Text>
                       <Badge tone="purple" style={styles.modeTinyBadge}>YENİ MOD</Badge>
                     </View>
-                    <Text style={styles.modeSelectDesc}>Tuzak kuranları tahmin et, dedektif puanları topla.</Text>
+                    <Text style={styles.modeSelectDesc}>Tek telefonla oynayın; farklı soruyu gören tilkiyi bulun.</Text>
                   </View>
                 </View>
               </Pressable>
