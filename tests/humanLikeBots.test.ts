@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { describe, test } from 'node:test';
 import { resolve } from 'node:path';
+
+const botControls = readFileSync(resolve(process.cwd(), 'components/LobbyBotControls.tsx'), 'utf8');
 
 const migration = readFileSync(
   resolve(process.cwd(), 'supabase/migrations/20261026100000_human_like_test_bots.sql'),
@@ -33,5 +35,23 @@ describe('human-like test bot migration', () => {
     assert.match(migration, /CREATE OR REPLACE FUNCTION public\._skip_bot_room_game_stats/i);
     assert.match(migration, /rp\.is_bot/i);
     assert.match(migration, /CREATE TRIGGER skip_bot_room_game_stats/i);
+  });
+  test('keeps bot availability aligned with supported mode engines', () => {
+    assert.match(migration, /v_room\.game_mode IN \('gizli_tilki', 'double_trap'\)/i);
+    assert.match(migration, /v_room\.game_mode IN \('team_battle', 'orman_hazinesi'\)/i);
+    assert.ok(botControls.includes("UNSUPPORTED_BOT_MODES = new Set(['gizli_tilki', 'double_trap'])"));
+  });
+
+  test('does not assign duplicate migration version identifiers', () => {
+    const dir = resolve(process.cwd(), 'supabase/migrations');
+    const files = readdirSync(dir).filter((name) => name.endsWith('.sql'));
+    const versions = new Map<string, string[]>();
+    for (const file of files) {
+      const version = file.split('_', 1)[0];
+      if (!version || !Number.isFinite(Number(version))) continue;
+      versions.set(version, [...(versions.get(version) ?? []), file]);
+    }
+    const duplicates = [...versions.entries()].filter(([, names]) => names.length > 1);
+    assert.deepEqual(duplicates, [], `Migration versions must be unique: ${JSON.stringify(duplicates)}`);
   });
 });

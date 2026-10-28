@@ -5,7 +5,7 @@ import { describe, it } from 'node:test';
 import { GAME_MODES, getActiveGameModes, getComingSoonGameModes, isGameModeActive } from '../features/game/modes';
 import { GAME_MODE_THEMES } from '../features/game/themes';
 import { resolveZartoRound } from '../features/game/engine';
-import { detectiveForRound, isGoldenRound } from '../features/game/modeRules';
+import { detectiveForRound, isGoldenRound, missionBonusForRound } from '../features/game/modeRules';
 import type { Player, RoundChoice } from '../types/game';
 import type { Question } from '../features/game/questions';
 
@@ -85,6 +85,35 @@ describe('mode-specific scoring', () => {
     const result = resolveZartoRound({ question: sampleQuestion, players, choices, picks: { p1: 0, p2: 0, p3: 1 }, gameMode: 'detective_fox', currentRound: 1, suspectPicks: { p1: 'p2' } });
     assert.equal(result.rows.p1.detectiveBonus, 2);
     assert.equal(result.rows.p1.pointsDelta, 4);
+  });
+
+  it('awards the Herkes Şüpheli deduction bonus for identifying a successful bluffer', () => {
+    const players = [createPlayer('p1'), createPlayer('p2'), createPlayer('p3')];
+    const result = resolveZartoRound({
+      question: sampleQuestion,
+      players,
+      choices,
+      picks: { p1: 1, p2: 0, p3: 0 },
+      gameMode: 'suspicious',
+      suspectPicks: { p1: 'p2' },
+    });
+    assert.equal(result.rows.p1.suspectBonus, 1);
+    assert.equal(result.rows.p1.pointsDelta, 1);
+  });
+
+  it('awards Secret Missions bonus when the player completes the assigned trap objective', () => {
+    const players = [createPlayer('p1'), createPlayer('p2'), createPlayer('p3')];
+    const result = resolveZartoRound({
+      question: sampleQuestion,
+      players,
+      choices,
+      picks: { p1: 1, p2: 0, p3: 1 },
+      gameMode: 'secret_missions',
+      currentRound: 2,
+    });
+    assert.equal(missionBonusForRound({ mode: 'secret_missions', player: players[1], chosen: choices[0], victimsCount: 2, round: 2 }), 2);
+    assert.equal(result.rows.p2.missionBonus, 2);
+    assert.equal(result.rows.p2.pointsDelta, 6);
   });
 
   it('keeps Blitz speed bonus intact', () => {

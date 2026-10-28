@@ -132,7 +132,7 @@ export default function LobbyScreen() {
   const getReady = (player: Player) =>
     prototype.getReady(player.id, testMode && player.id !== me?.id ? false : player.isReady);
   const readyCount = playersList.filter(getReady).length;
-  const canStart = ['gizli_tilki', 'orman_hazinesi'].includes(roomState?.config.gameMode ?? '')
+  const canStart = ['gizli_tilki', 'orman_hazinesi', 'team_battle'].includes(roomState?.config.gameMode ?? '')
     ? playersList.length >= 4 && readyCount === playersList.length
     : readyCount >= 2;
   const maxPlayers = roomState?.config.maxPlayers ?? 8;
@@ -440,7 +440,7 @@ export default function LobbyScreen() {
 
         {isHost ? (
           <Button
-            label={canStart ? 'Oyunu Başlat!' : (['gizli_tilki', 'orman_hazinesi'].includes(roomState?.config.gameMode ?? '') ? 'En az 4 hazır oyuncu bekleniyor' : 'En az 2 hazır oyuncu bekleniyor')}
+            label={canStart ? 'Oyunu Başlat!' : (['gizli_tilki', 'orman_hazinesi', 'team_battle'].includes(roomState?.config.gameMode ?? '') ? 'En az 4 hazır oyuncu bekleniyor' : 'En az 2 hazır oyuncu bekleniyor')}
             onPress={handleStartGame}
             variant="orange"
             disabled={!canStart || starting}

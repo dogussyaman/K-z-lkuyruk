@@ -7,6 +7,9 @@ const completePath = resolve(process.cwd(), 'supabase/migrations/20261118000001_
 const statePath = resolve(process.cwd(), 'supabase/migrations/20261118000002_mode_state_and_double_trap.sql');
 const completeSql = readFileSync(completePath, 'utf8');
 const stateSql = readFileSync(statePath, 'utf8');
+const gizliSql = readFileSync(resolve(process.cwd(), 'supabase/migrations/20261029000001_gizli_tilki_tactical_mode.sql'), 'utf8');
+const forestSql = readFileSync(resolve(process.cwd(), 'supabase/migrations/20261029000005_orman_hazinesi_expedition.sql'), 'utf8');
+const lobbySource = readFileSync(resolve(process.cwd(), 'app/lobby.tsx'), 'utf8');
 
 const modeIds = [
   'classic', 'survival', 'suspicious', 'blitz', 'team_battle',
@@ -16,6 +19,17 @@ const modeIds = [
 describe('complete game mode migrations', () => {
   it('keeps every playable mode in the final rooms constraint', () => {
     for (const mode of modeIds) assert.match(completeSql, new RegExp(`'${mode}'`));
+  });
+
+  it('keeps all eleven client modes represented in the final server mode constraint', () => {
+    const allModes = ['classic', 'survival', 'suspicious', 'blitz', 'team_battle', 'secret_missions', 'double_trap', 'golden_question', 'detective_fox', 'gizli_tilki', 'orman_hazinesi'];
+    for (const mode of allModes) assert.match(forestSql, new RegExp(`'${mode}'`), `${mode} must be accepted by the final create-room migration`);
+  });
+
+  it('keeps dedicated state machines wired for both non-question modes', () => {
+    for (const rpc of ['gizli_tilki_start', 'gizli_tilki_get_state', 'gizli_tilki_submit_action', 'gizli_tilki_vote_team']) assert.match(gizliSql, new RegExp(rpc));
+    for (const rpc of ['forest_treasure_start', 'forest_treasure_get_state', 'forest_treasure_move', 'forest_treasure_advance']) assert.match(forestSql, new RegExp(rpc));
+    assert.match(lobbySource, /isForest \? 'forest_treasure_start' : 'gizli_tilki_start'/);
   });
 
   it('keeps privileged functions locked down with explicit search_path', () => {

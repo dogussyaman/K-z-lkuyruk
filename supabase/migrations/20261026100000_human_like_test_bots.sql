@@ -42,7 +42,7 @@ BEGIN
   IF NOT FOUND THEN RAISE EXCEPTION 'Oda bulunamadı'; END IF;
   IF v_room.host_id <> auth.uid() THEN RAISE EXCEPTION 'Yalnızca oda sahibi bot ekleyebilir'; END IF;
   IF v_room.phase <> 'lobby' THEN RAISE EXCEPTION 'Botlar yalnızca lobide eklenebilir'; END IF;
-  IF v_room.game_mode IN ('gizli_tilki', 'orman_hazinesi') THEN
+  IF v_room.game_mode IN ('gizli_tilki', 'double_trap') THEN
     RAISE EXCEPTION 'Bu özel oyun modu için bot desteği henüz etkin değil';
   END IF;
 
@@ -72,7 +72,7 @@ BEGIN
     v_name := '🤖 ' || v_base_name || ' ' || v_suffix::TEXT;
   END LOOP;
 
-  IF v_room.game_mode = 'team_battle' THEN
+  IF v_room.game_mode IN ('team_battle', 'orman_hazinesi') THEN
     SELECT
       count(*) FILTER (WHERE team_id = 'A')::INTEGER,
       count(*) FILTER (WHERE team_id = 'B')::INTEGER

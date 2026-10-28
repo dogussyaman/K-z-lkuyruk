@@ -4,7 +4,7 @@ import { Bot, Plus, Sparkles } from 'lucide-react-native';
 import { useGameStore } from '@/store/gameStore';
 import { ensureSupabase } from '@/lib/supabase/client';
 
-const UNSUPPORTED_BOT_MODES = new Set(['gizli_tilki', 'orman_hazinesi', 'double_trap']);
+const UNSUPPORTED_BOT_MODES = new Set(['gizli_tilki', 'double_trap']);
 
 export function LobbyBotControls() {
   const { roomCode, roomState, currentPlayer, service, setRoomState } = useGameStore();
