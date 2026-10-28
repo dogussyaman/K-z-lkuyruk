@@ -3,6 +3,8 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { describe, test } from 'node:test';
 import { resolve } from 'node:path';
 
+const botControls = readFileSync(resolve(process.cwd(), 'components/LobbyBotControls.tsx'), 'utf8');
+
 const migration = readFileSync(
   resolve(process.cwd(), 'supabase/migrations/20261026100000_human_like_test_bots.sql'),
   'utf8'
@@ -37,7 +39,7 @@ describe('human-like test bot migration', () => {
   test('keeps bot availability aligned with supported mode engines', () => {
     assert.match(migration, /v_room\.game_mode IN \('gizli_tilki', 'double_trap'\)/i);
     assert.match(migration, /v_room\.game_mode IN \('team_battle', 'orman_hazinesi'\)/i);
-    assert.match(migration, /bot_forest_move_secure/i);
+    assert.match(botControls, /UNSUPPORTED_BOT_MODES = new Set\(\['gizli_tilki', 'double_trap'\]\)/i);
   });
 
   test('does not assign duplicate migration version identifiers', () => {
