@@ -34,12 +34,13 @@ export function Screen({
     <View style={[styles.root, { backgroundColor: background }]}>
       {gradient ? (
         <LinearGradient
+          pointerEvents="none"
           colors={[background, middle, background]}
           locations={[0, 0.55, 1]}
           style={StyleSheet.absoluteFill}
         />
       ) : (
-        <View style={[StyleSheet.absoluteFill, { backgroundColor: background }]} />
+        <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: background }]} />
       )}
 
       {modeTheme ? (

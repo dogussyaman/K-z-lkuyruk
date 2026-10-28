@@ -1,3 +1,4 @@
+import { goBackOrReplace } from '@/lib/backNavigation';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState, type ReactNode } from 'react';
@@ -64,15 +65,15 @@ export default function ModeCreateRoomScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: theme.background }]}>
-      <LinearGradient colors={[theme.background, theme.surface, theme.background]} style={StyleSheet.absoluteFill} />
-      <View style={[styles.glow, { backgroundColor: theme.glow }]} />
+      <LinearGradient pointerEvents="none" colors={[theme.background, theme.surface, theme.background]} style={StyleSheet.absoluteFill} />
+      <View pointerEvents="none" style={[styles.glow, { backgroundColor: theme.glow }]} />
       <ScrollView
         style={[styles.scrollView, { backgroundColor: theme.background }]}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.topBar}>
-          <Pressable onPress={() => router.back()} style={styles.iconButton}><ChevronLeft color="#FFF" size={22} /></Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel="Geri dön" hitSlop={12} onPress={() => goBackOrReplace(router, '/game-modes')} style={styles.iconButton}><ChevronLeft color="#FFF" size={22} /></Pressable>
           <Text style={styles.topTitle}>Oyun Modu</Text>
           <View style={styles.iconButton}><Gamepad2 color={theme.accent} size={20} /></View>
         </View>

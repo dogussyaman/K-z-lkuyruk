@@ -1,16 +1,14 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { ensureSupabase } from '@/lib/supabase/client';
 
-interface BotRow {
-  player_id: string;
-  personality: 'scholar' | 'balanced' | 'trickster';
-}
+import { startBotPhase, type TestBot } from '@/services/botAutomation';
+import { getServerNowMs } from '@/services/serverClock';
 
 const BOT_PHASES = new Set(['ability_select', 'fake_answer', 'guess']);
 const UNSUPPORTED_AUTOMATION_MODES = new Set(['gizli_tilki', 'orman_hazinesi', 'double_trap']);
 
-function delayFor(personality: BotRow['personality'], phase: string) {
+function delayFor(personality: TestBot['personality'], phase: string) {
   const ranges = personality === 'scholar'
     ? [1700, 4300]
     : personality === 'trickster'
@@ -22,9 +20,6 @@ function delayFor(personality: BotRow['personality'], phase: string) {
 
 export function BotDirector() {
   const { roomCode, roomState, currentPlayer, service } = useGameStore();
-  const scheduledKeyRef = useRef<string | null>(null);
-  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
-
   const me = useMemo(() => {
     if (!currentPlayer || !roomState) return null;
     return roomState.players[currentPlayer.id] ?? currentPlayer;
@@ -37,43 +32,36 @@ export function BotDirector() {
   const currentRound = roomState?.currentRound;
   const phase = roomState?.phase;
 
+  const phaseStartedAt = roomState?.phaseStartedAt;
+  const deadline = roomState?.phaseDeadlineAt;
+  const paused = roomState?.pausedAt != null;
+
   useEffect(() => {
-    timersRef.current.forEach(clearTimeout);
-    timersRef.current = [];
-
-    if (!roomCode || !currentRound || !phase || !isHost || !isLiveSupabase || !automationSupported || !BOT_PHASES.has(phase)) {
-      scheduledKeyRef.current = null;
-      return;
-    }
-
-    const phaseKey = `${roomCode}:${currentRound}:${phase}`;
-    if (scheduledKeyRef.current === phaseKey) return;
-    scheduledKeyRef.current = phaseKey;
-
-    let cancelled = false;
-    const scheduleBots = async () => {
-      const { data, error } = await ensureSupabase().rpc('list_test_bots_secure', { p_room_code: roomCode });
-      if (cancelled || error || !Array.isArray(data)) return;
-
-      for (const row of data as BotRow[]) {
-        const timer = setTimeout(() => {
-          if (cancelled) return;
-          void ensureSupabase().rpc('bot_take_turn_secure', {
-            p_room_code: roomCode,
-            p_bot_id: row.player_id,
-          });
-        }, delayFor(row.personality ?? 'balanced', phase));
-        timersRef.current.push(timer);
-      }
-    };
-
-    void scheduleBots();
-    return () => {
-      cancelled = true;
-      timersRef.current.forEach(clearTimeout);
-      timersRef.current = [];
-    };
-  }, [roomCode, currentRound, phase, isHost, isLiveSupabase, automationSupported]);
+    if (!roomCode || !currentRound || !phase || !isHost || !isLiveSupabase || !automationSupported || paused || !BOT_PHASES.has(phase)) return;
+    const sb = ensureSupabase();
+    return startBotPhase({
+      loadBots: async () => {
+        const { data, error } = await sb.rpc('list_test_bots_secure', { p_room_code: roomCode });
+        if (error) throw error;
+        if (!Array.isArray(data)) throw new Error('Bot listesi alınamadı.');
+        return data as TestBot[];
+      },
+      takeTurn: async (botId) => {
+        const { error } = await sb.rpc('bot_take_turn_secure', {
+          p_room_code: roomCode,
+          p_bot_id: botId,
+        });
+        if (error) throw error;
+      },
+      delayFor: (bot) => {
+        const preferred = delayFor(bot.personality ?? 'balanced', phase);
+        // Leave room for a retry, especially in seven-second Blitz rounds.
+        return deadline == null ? preferred : Math.min(preferred, Math.max(0, (deadline - getServerNowMs() - 300) / 2));
+      },
+      isExpired: () => deadline != null && getServerNowMs() >= deadline,
+      onError: (error) => console.warn('[BotDirector] Bot hamlesi tamamlanamadı:', error),
+    });
+  }, [roomCode, currentRound, phase, phaseStartedAt, deadline, paused, isHost, isLiveSupabase, automationSupported]);
 
   return null;
 }

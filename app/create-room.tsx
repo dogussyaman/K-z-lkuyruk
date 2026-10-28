@@ -1,3 +1,4 @@
+import { goBackOrReplace } from '@/lib/backNavigation';
 import { useTheme, useThemeStyles } from '@/theme/ThemeProvider';
 import type { ThemeColors } from '@/theme/ThemeProvider';
 import { useRef, useState } from 'react';
@@ -166,7 +167,7 @@ export default function CreateRoomScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <View style={styles.topBar}>
-          <Pressable onPress={() => router.back()} style={styles.backBtn}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Geri dön" hitSlop={12} onPress={() => goBackOrReplace(router, '/(tabs)')} style={styles.backBtn}>
             <ChevronLeft color={colors.textPrimary} size={22} />
           </Pressable>
           <Text style={styles.screenTitle}>Oda Oluştur</Text>
