@@ -39,7 +39,7 @@ describe('human-like test bot migration', () => {
   test('keeps bot availability aligned with supported mode engines', () => {
     assert.match(migration, /v_room\.game_mode IN \('gizli_tilki', 'double_trap'\)/i);
     assert.match(migration, /v_room\.game_mode IN \('team_battle', 'orman_hazinesi'\)/i);
-    assert.match(botControls, /UNSUPPORTED_BOT_MODES = new Set\(\['gizli_tilki', 'double_trap'\]\)/i);
+    assert.ok(botControls.includes("UNSUPPORTED_BOT_MODES = new Set(['gizli_tilki', 'double_trap'])"));
   });
 
   test('does not assign duplicate migration version identifiers', () => {
@@ -47,8 +47,8 @@ describe('human-like test bot migration', () => {
     const files = readdirSync(dir).filter((name) => name.endsWith('.sql'));
     const versions = new Map<string, string[]>();
     for (const file of files) {
-      const version = file.match(/^(\\d+)_/)?.[1];
-      if (!version) continue;
+      const version = file.split('_', 1)[0];
+      if (!version || !Number.isFinite(Number(version))) continue;
       versions.set(version, [...(versions.get(version) ?? []), file]);
     }
     const duplicates = [...versions.entries()].filter(([, names]) => names.length > 1);
