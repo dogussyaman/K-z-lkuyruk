@@ -39,6 +39,26 @@
 
 ## Remaining findings and limits
 
+### Waiting-screen follow-up
+
+The reported waiting screen mixed a local prototype completion mark with an old
+server counter. The real human answer was stored, but the two bots had not
+answered and the bluff deadline had expired. Timeout reconciliation previously
+lived in question/ability screens, so leaving those screens removed recovery.
+
+Room synchronization now runs in the persistent store, reads authoritative state
+every two seconds, respects pauses, and advances expired timed phases. Bot turns
+also refresh state immediately. Live waiting uses only server submission status,
+routes back to the question when guessing starts, and hides simulation controls.
+Snapshot version comparisons are scoped to a room so an older room cannot block
+the initial state of a newly created room.
+
+139 automated tests, TypeScript and web export passed. The rolled-back database
+test `supabase/tests/waiting_recovery.sql` reproduced one human answer plus two
+silent bots, recovered the expired bluff phase, recorded both bot guesses and
+reached reveal. This verifies the waiting recovery path in addition to direct
+bot RPC behavior; multi-device visual testing remains outside these checks.
+
 - Lint still reports 10 errors and 69 warnings in existing code, mostly React
   compiler diagnostics around effect-based state resets, ref handling and hook
   dependency arrays. Lint is not reported as passing. No rules were suppressed.

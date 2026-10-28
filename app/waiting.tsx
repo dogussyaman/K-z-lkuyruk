@@ -1,3 +1,4 @@
+import { getLiveWaitingDestination } from '@/services/roomSync';
 import { useTheme, useThemeStyles } from '@/theme/ThemeProvider';
 import type { ThemeColors } from '@/theme/ThemeProvider';
 import { useEffect, useRef, useState } from 'react';
@@ -50,12 +51,25 @@ export default function WaitingScreen() {
   const playersList = roomState ? Object.values(roomState.players) : [];
   const me = playersList.find((p) => p.id === currentPlayer?.id) || currentPlayer;
   const isPaused = roomState?.pausedAt != null;
-  const isGuessPhase = (prototype.waitingStage?.phase ?? roomState?.phase) === 'guess';
+  const waitingStage = isLive ? null : prototype.waitingStage;
+  const isGuessPhase = (waitingStage?.phase ?? roomState?.phase) === 'guess';
   const phase = isGuessPhase ? 'guess' : 'fake_answer';
-  const stageId = prototype.waitingStage?.id
+  const stageId = waitingStage?.id
     ?? `${roomCode ?? 'demo'}:${roomState?.currentRound ?? 1}:${phase}`;
 
   useEffect(() => {
+    if (!isLive || !roomState || !currentPlayer) return;
+    const destination = getLiveWaitingDestination(roomState, currentPlayer.id);
+    if (destination === '/result') {
+      trigger('success');
+      router.replace({ pathname: '/result', params: { round: String(roomState.currentRound), questionId: String(roomState.currentQuestionId) } });
+    } else if (destination) {
+      router.replace(destination);
+    }
+  }, [isLive, roomState, currentPlayer?.id, trigger]);
+
+  useEffect(() => {
+    if (isLive) return;
     if (roomState?.phase === 'reveal') {
       trigger('success');
       router.replace({
@@ -68,12 +82,12 @@ export default function WaitingScreen() {
     } else if (roomState?.phase === 'scoreboard') {
       router.replace('/scoreboard');
     }
-  }, [roomState?.phase, trigger, prototype.waitingStage]);
+  }, [roomState?.phase, trigger, prototype.waitingStage, isLive]);
 
   useEffect(() => {
-    const waitingPhase = prototype.waitingStage?.phase;
+    const waitingPhase = waitingStage?.phase;
     if (!waitingPhase || !roomState || roomState.phase === waitingPhase) return;
-    prototype.finishWaiting(prototype.waitingStage!.id);
+    prototype.finishWaiting(waitingStage!.id);
     if (roomState.phase === 'reveal') {
       router.replace({
         pathname: '/result',
@@ -87,19 +101,15 @@ export default function WaitingScreen() {
     } else if (roomState.phase === 'guess' || roomState.phase === 'fake_answer') {
       router.replace('/question');
     }
-  }, [roomState?.phase, prototype.waitingStage, prototype.finishWaiting]);
+  }, [roomState?.phase, waitingStage, prototype.finishWaiting]);
 
   const picks = roomState?.picks ?? {};
   const fakeAnswers = roomState?.fakeAnswers ?? {};
-  const hasAnswered = (player: Player) => prototype.isAnswered(
-    stageId,
-    player.id,
-    isLive
-      ? roomState?.progress?.submissionStatus[player.id] ?? false
-      : testMode
+  const hasAnswered = (player: Player) => isLive
+    ? roomState?.progress?.submissionStatus[player.id] ?? false
+    : prototype.isAnswered(stageId, player.id, testMode
       ? player.id === me?.id
-      : isGuessPhase ? picks[player.id] !== undefined : !!fakeAnswers[player.id],
-  );
+      : isGuessPhase ? picks[player.id] !== undefined : !!fakeAnswers[player.id]);
   const submittedCount = isLive
     ? roomState?.progress?.submittedCount ?? 0
     : playersList.filter(hasAnswered).length;
@@ -266,6 +276,7 @@ export default function WaitingScreen() {
           })}
         </View>
 
+        {!isLive && <>
         <Pressable
           onPress={() => {
             if (testMode) prototype.clearAnswers(stageId);
@@ -302,6 +313,8 @@ export default function WaitingScreen() {
             })}
           </Card>
         ) : null}
+
+        </>}
 
         {/* Tactical party tip */}
         <Card variant="comic" style={styles.tipCard}>

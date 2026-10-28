@@ -19,7 +19,7 @@ function delayFor(personality: TestBot['personality'], phase: string) {
 }
 
 export function BotDirector() {
-  const { roomCode, roomState, currentPlayer, service } = useGameStore();
+  const { roomCode, roomState, currentPlayer, service, refreshRoom } = useGameStore();
   const me = useMemo(() => {
     if (!currentPlayer || !roomState) return null;
     return roomState.players[currentPlayer.id] ?? currentPlayer;
@@ -52,6 +52,7 @@ export function BotDirector() {
           p_bot_id: botId,
         });
         if (error) throw error;
+        await refreshRoom();
       },
       delayFor: (bot) => {
         const preferred = delayFor(bot.personality ?? 'balanced', phase);
@@ -61,7 +62,7 @@ export function BotDirector() {
       isExpired: () => deadline != null && getServerNowMs() >= deadline,
       onError: (error) => console.warn('[BotDirector] Bot hamlesi tamamlanamadı:', error),
     });
-  }, [roomCode, currentRound, phase, phaseStartedAt, deadline, paused, isHost, isLiveSupabase, automationSupported]);
+  }, [roomCode, currentRound, phase, phaseStartedAt, deadline, paused, isHost, isLiveSupabase, automationSupported, refreshRoom]);
 
   return null;
 }

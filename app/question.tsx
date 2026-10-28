@@ -495,7 +495,8 @@ export default function QuestionScreen() {
       await service.submitFakeAnswer(roomCode, text);
       setFakeSubmitted(true);
       const stageId = `${roomCode}:${roomState?.currentRound ?? 1}:fake_answer`;
-      if (currentPlayer) prototype.beginWaiting(stageId, 'fake_answer', currentPlayer.id);
+      if (isLive) await refreshRoom();
+      else if (currentPlayer) prototype.beginWaiting(stageId, 'fake_answer', currentPlayer.id);
       router.replace('/waiting');
     } catch (e) {
       const rawMsg = (e as Error).message || '';
@@ -539,7 +540,8 @@ export default function QuestionScreen() {
     try {
       await service.submitPick(roomCode, choiceIndex);
       const stageId = `${roomCode}:${roomState?.currentRound ?? 1}:guess`;
-      if (currentPlayer) prototype.beginWaiting(stageId, 'guess', currentPlayer.id);
+      if (isLive) await refreshRoom();
+      else if (currentPlayer) prototype.beginWaiting(stageId, 'guess', currentPlayer.id);
       router.replace('/waiting');
     } catch (e) {
       setError((e as Error).message);

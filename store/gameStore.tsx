@@ -1,3 +1,5 @@
+import { selectRoomSnapshot, startRoomSync } from '@/services/roomSync';
+import { getServerNowMs } from '@/services/serverClock';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { AppState } from 'react-native';
@@ -60,16 +62,13 @@ export function GameStoreProvider({ children }: { children: ReactNode }) {
   const initCompleted = useRef(false);
   const currentPlayerId = useRef<string | null>(null);
   const roomOwnerId = useRef<string | null>(null);
+  const activeRoomCode = useRef<string | null>(null);
   const applyRoomState = useCallback((state: GameState | null) => {
-    setRoomState((previous) => (
-      state
-      && previous?.stateVersion !== undefined
-      && (state.stateVersion === undefined || state.stateVersion < previous.stateVersion)
-        ? previous
-        : state
-    ));
+    if (state && activeRoomCode.current && state.config.code !== activeRoomCode.current) return;
+    setRoomState(previous => selectRoomSnapshot(previous, state));
   }, []);
   const updateRoomCode = useCallback((code: string | null) => {
+    activeRoomCode.current = code;
     setRoomCodeState(code);
     if (code) {
       roomOwnerId.current = currentPlayer?.id ?? service.getCurrentPlayer()?.id ?? null;
@@ -254,6 +253,25 @@ export function GameStoreProvider({ children }: { children: ReactNode }) {
     const snap = await service.getRoomState(roomCode);
     applyRoomState(snap);
   }, [roomCode, service, applyRoomState]);
+
+  // Keep expiry/recovery alive even after the player leaves the question screen.
+  useEffect(() => {
+    if (!isLive || !roomCode) return;
+    return startRoomSync({
+      readState: () => service.getRoomState(roomCode),
+      applyState: applyRoomState,
+      advanceExpired: () => service.advanceExpiredPhase(roomCode),
+      now: getServerNowMs,
+      onError: (cause) => {
+        if ((cause as { code?: string })?.code === 'ROOM_MEMBERSHIP_INVALID') {
+          updateRoomCode(null);
+          applyRoomState(null);
+        } else {
+          setError(cause instanceof Error ? cause.message : 'Oyun durumu yenilenemedi; tekrar deneniyor.');
+        }
+      },
+    });
+  }, [roomCode, isLive, service, applyRoomState, updateRoomCode]);
 
   const continueSavedRoom = useCallback(async () => {
     if (!recoveryCode || !currentPlayer) {
