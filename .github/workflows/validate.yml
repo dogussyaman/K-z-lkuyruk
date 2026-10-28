@@ -1,6 +1,9 @@
 name: Validate game economy changes
 
 on:
+  push:
+    branches:
+      - main
   pull_request:
     branches:
       - main

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { ChevronLeft, Clock3, ShieldAlert, Wrench, RadioTower, Zap, Users, RefreshCw } from 'lucide-react-native';
@@ -27,8 +27,9 @@ export default function GizliTilkiScreen() {
   const { roomCode, currentPlayer, roomState } = useGameStore();
   const [state, setState] = useState<ModeState | null>(null);
   const [busy, setBusy] = useState(false);
+  const advanceInFlight = useRef(false);
   const [error, setError] = useState<string | null>(null);
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(Date.now);
   const [selectedSuspect, setSelectedSuspect] = useState<string | null>(null);
   const [selectedTeamIds, setSelectedTeamIds] = useState<string[]>([]);
   const isHost = Boolean(currentPlayer?.id && roomState?.players[currentPlayer.id]?.isHost);
@@ -68,26 +69,31 @@ export default function GizliTilkiScreen() {
   useEffect(() => {
     if (!roomCode || !isHost || !state || !deadline || deadline > now || busy) return;
     if (!['briefing', 'operation_select', 'secret_action', 'debrief', 'team_vote'].includes(state.phase)) return;
-    let cancelled = false;
-    setBusy(true);
-    void (async () => {
-      try {
-        const { error: rpcError } = await ensureSupabase().rpc('gizli_tilki_advance', { p_room_code: roomCode });
-        if (rpcError) throw rpcError;
-      } catch (cause) {
-        if (!cancelled) setError(cause instanceof Error ? cause.message : 'Aşama ilerletilemedi.');
-      } finally {
-        if (!cancelled) {
+    if (advanceInFlight.current) return;
+    const timer = setTimeout(() => {
+      if (advanceInFlight.current) return;
+      advanceInFlight.current = true;
+      setBusy(true);
+      void (async () => {
+        try {
+          const { error: rpcError } = await ensureSupabase().rpc('gizli_tilki_advance', { p_room_code: roomCode });
+          if (rpcError) throw rpcError;
+          await refresh();
+        } catch (cause) {
+          setError(cause instanceof Error ? cause.message : 'Aşama ilerletilemedi.');
+        } finally {
+          advanceInFlight.current = false;
           setBusy(false);
-          try { await refresh(); } catch { /* polling will retry */ }
         }
-      }
-    })();
-    return () => { cancelled = true; };
+      })();
+    }, 0);
+    // A busy/clock update may cancel a pending timer, but must not cancel the
+    // finally block of a request already running or the controls stay locked.
+    return () => clearTimeout(timer);
   }, [roomCode, isHost, state?.phase, deadline, now, busy, refresh]);
 
   const act = async (fn: () => Promise<unknown>) => {
-    if (busy) return;
+    if (busy || advanceInFlight.current) return;
     setBusy(true); setError(null);
     try { await fn(); await refresh(); }
     catch (cause) { setError(cause instanceof Error ? cause.message : 'İşlem tamamlanamadı.'); }

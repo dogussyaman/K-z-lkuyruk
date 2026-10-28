@@ -8,7 +8,7 @@
     "build:web": "expo export --platform web",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
-    "test": "npx --yes tsx --test tests/engine.test.ts tests/questions.test.ts tests/soundService.test.ts tests/avatar.test.ts tests/characterCatalog.test.ts tests/room-access.test.ts tests/social-discovery.test.ts tests/fake-answer-lock-migration.test.ts tests/gameModes.test.ts tests/gameModesMigration.test.ts tests/completeGameModeMigration.test.ts tests/humanLikeBots.test.ts"
+    "test": "node --import tsx --test tests/*.test.ts"
   },
   "dependencies": {
     "@dicebear/adventurer": "^9.4.2",
@@ -57,6 +57,9 @@
   "devDependencies": {
     "@babel/core": "^7.29.0",
     "@types/react": "~19.2.4",
+    "eslint": "9.39.1",
+    "eslint-config-expo": "57.0.2",
+    "tsx": "4.23.15",
     "typescript": "~6.0.3"
   }
 }

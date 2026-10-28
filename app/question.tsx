@@ -92,11 +92,11 @@ export default function QuestionScreen() {
     if (!roomCode || hasSubmittedPick || pickCommitted.current) return;
     soundService.play('click');
     trigger('light');
-    setSuspectedRivalId(rivalId);
     try {
       await service.submitSuspectPick(roomCode, rivalId);
-    } catch {
-      // safe fallback
+      setSuspectedRivalId(rivalId);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Şüpheli seçimi kaydedilemedi.');
     }
   };
 

@@ -27,17 +27,17 @@ export default function ResultScreen() {
   const styles = useThemeStyles((themeColors) => createStyles(themeColors, mode));
   const { roomState, currentPlayer, roomCode, service } = useGameStore();
   const params = useLocalSearchParams<{ round?: string | string[]; questionId?: string | string[] }>();
-  const initialResultRef = useRef({
+  const [initialResult] = useState(() => ({
     round: roomState?.currentRound ?? 1,
     questionId: roomState?.currentQuestionId ?? null,
-  }).current;
+  }));
   const rawRound = Array.isArray(params.round) ? params.round[0] : params.round;
   const rawQuestionId = Array.isArray(params.questionId) ? params.questionId[0] : params.questionId;
   const parsedRound = rawRound ? Number(rawRound) : Number.NaN;
   const resultRound = Number.isInteger(parsedRound) && parsedRound > 0
     ? parsedRound
-    : initialResultRef.round;
-  const resultQuestionId = rawQuestionId || initialResultRef.questionId;
+    : initialResult.round;
+  const resultQuestionId = rawQuestionId || initialResult.questionId;
   const isStaleResult = !roomState || (
     roomState.currentRound !== resultRound ||
     (resultQuestionId !== null && roomState.currentQuestionId !== resultQuestionId) ||

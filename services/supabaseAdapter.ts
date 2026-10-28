@@ -931,7 +931,7 @@ export class SupabaseGameService implements GameService {
       p_suspect_id: suspectPlayerId,
     });
     if (error) {
-      if (__DEV__) console.warn('[SupabaseAdapter] submit_suspect_pick_secure:', error.message);
+      throw new ServiceError('SUBMIT_SUSPECT_FAILED', error.message);
     }
   }
 

@@ -2,7 +2,7 @@ import { Image, StyleSheet, Text, View } from 'react-native';
 import { memo, useMemo, useState } from 'react';
 import { SvgXml } from 'react-native-svg';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors, radii, typography } from '@/theme';
+import { colors, typography } from '@/theme';
 import {
   avatarOf,
   defaultDiceBearAvatarKey,
@@ -28,6 +28,16 @@ export const UserAvatar = memo(function UserAvatar({
 }: AvatarProps) {
   const { colors: themeColors } = useTheme();
   const special = getSpecialAvatar(avatarKey);
+
+  const av = avatarOf(avatarKey);
+  const imageUri = /^(https?:|file:|content:)/.test(avatarKey ?? '') ? avatarKey ?? null : null;
+  const fallbackKey =
+    imageUri ? defaultDiceBearAvatarKey(userId) : avatarKey || defaultDiceBearAvatarKey(userId);
+  const diceBearSvg = useMemo(() => diceBearAvatarSvg(fallbackKey), [fallbackKey]);
+  const [loadedImageUri, setLoadedImageUri] = useState<string | null>(null);
+  const [failedImageUri, setFailedImageUri] = useState<string | null>(null);
+  const imageLoaded = imageUri !== null && loadedImageUri === imageUri;
+  const imageFailed = imageUri !== null && failedImageUri === imageUri;
 
   if (special) {
     return (
@@ -63,16 +73,6 @@ export const UserAvatar = memo(function UserAvatar({
       </View>
     );
   }
-
-  const av = avatarOf(avatarKey);
-  const imageUri = /^(https?:|file:|content:)/.test(avatarKey ?? '') ? avatarKey ?? null : null;
-  const fallbackKey =
-    imageUri ? defaultDiceBearAvatarKey(userId) : avatarKey || defaultDiceBearAvatarKey(userId);
-  const diceBearSvg = useMemo(() => diceBearAvatarSvg(fallbackKey), [fallbackKey]);
-  const [loadedImageUri, setLoadedImageUri] = useState<string | null>(null);
-  const [failedImageUri, setFailedImageUri] = useState<string | null>(null);
-  const imageLoaded = imageUri !== null && loadedImageUri === imageUri;
-  const imageFailed = imageUri !== null && failedImageUri === imageUri;
 
   return (
     <View style={{ position: 'relative' }}>

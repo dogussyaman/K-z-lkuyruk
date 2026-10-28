@@ -1532,6 +1532,8 @@ ALTER TABLE public.rooms VALIDATE CONSTRAINT rooms_player_bounds_check;
 
 ALTER TABLE public.room_players
     ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    ADD COLUMN IF NOT EXISTS is_bot BOOLEAN NOT NULL DEFAULT FALSE,
+    ADD COLUMN IF NOT EXISTS kicked_at TIMESTAMPTZ,
     ADD COLUMN IF NOT EXISTS ability_ready_round INTEGER NOT NULL DEFAULT 0;
 
 DROP TRIGGER IF EXISTS prevent_paused_ability_readiness ON public.room_players;
@@ -3805,7 +3807,7 @@ BEGIN
     FOR v_player_id IN
         SELECT rp.player_id
         FROM public.room_players rp
-        WHERE rp.room_id = v_room.id AND rp.is_active
+        WHERE rp.room_id = v_room.id AND rp.is_active AND NOT rp.is_bot AND rp.kicked_at IS NULL
         ORDER BY rp.player_id
     LOOP
         PERFORM pg_advisory_xact_lock(
@@ -3818,7 +3820,7 @@ BEGIN
     IF NOT EXISTS (
         SELECT 1
         FROM public.room_players rp
-        WHERE rp.room_id = v_room.id AND rp.is_active
+        WHERE rp.room_id = v_room.id AND rp.is_active AND NOT rp.is_bot AND rp.kicked_at IS NULL
     ) THEN
         RAISE EXCEPTION 'Aktif oyuncu olmadığı için soru seçilemedi';
     END IF;
@@ -3836,7 +3838,7 @@ BEGIN
             ON sh.user_id = rp.player_id
            AND sh.category_id = q.category_id
            AND sh.question_id = q.id
-          WHERE rp.room_id = v_room.id AND rp.is_active
+          WHERE rp.room_id = v_room.id AND rp.is_active AND NOT rp.is_bot AND rp.kicked_at IS NULL
       )
       AND NOT EXISTS (
           SELECT 1
@@ -3846,7 +3848,7 @@ BEGIN
            AND qr.category_id = q.category_id
            AND qr.question_id = q.id
           WHERE rp.room_id = v_room.id
-            AND rp.is_active
+            AND rp.is_active AND NOT rp.is_bot AND rp.kicked_at IS NULL
             AND qr.expires_at > now()
       )
       AND NOT EXISTS (
@@ -3874,7 +3876,7 @@ BEGIN
             ON sh.user_id = rp.player_id
            AND sh.category_id = q.category_id
            AND sh.question_id = q.id
-          WHERE rp.room_id = v_room.id AND rp.is_active
+          WHERE rp.room_id = v_room.id AND rp.is_active AND NOT rp.is_bot AND rp.kicked_at IS NULL
       )
       AND NOT EXISTS (
           SELECT 1
@@ -3884,7 +3886,7 @@ BEGIN
            AND qr.category_id = q.category_id
            AND qr.question_id = q.id
           WHERE rp.room_id = v_room.id
-            AND rp.is_active
+            AND rp.is_active AND NOT rp.is_bot AND rp.kicked_at IS NULL
             AND qr.expires_at > now()
       )
       AND NOT EXISTS (
@@ -3910,7 +3912,7 @@ BEGIN
            NEW.round_number, now() + interval '10 minutes'
     FROM public.room_players rp
     JOIN public.questions q ON q.id = v_question_id
-    WHERE rp.room_id = v_room.id AND rp.is_active;
+    WHERE rp.room_id = v_room.id AND rp.is_active AND NOT rp.is_bot AND rp.kicked_at IS NULL;
 
     RETURN NEW;
 END;
@@ -4338,3 +4340,34 @@ REVOKE ALL ON FUNCTION public.create_room_invite_secure(VARCHAR) FROM PUBLIC, an
 REVOKE ALL ON FUNCTION public.join_room_invite_secure(VARCHAR, VARCHAR, VARCHAR, TEXT) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.create_room_invite_secure(VARCHAR) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.join_room_invite_secure(VARCHAR, VARCHAR, VARCHAR, TEXT) TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.submit_suspect_pick_secure(p_room_code CHARACTER VARYING,p_suspect_id UUID)
+RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, public AS $function$
+DECLARE v_room public.rooms%ROWTYPE; v_detective UUID;
+BEGIN
+  IF auth.uid() IS NULL THEN RAISE EXCEPTION 'Oturum açılması gerekiyor'; END IF;
+  SELECT * INTO v_room FROM public.rooms WHERE code=upper(p_room_code) FOR UPDATE;
+  IF NOT FOUND OR v_room.phase<>'guess' THEN RAISE EXCEPTION 'Şüpheli tahmini yalnız tahmin aşamasında yapılabilir'; END IF;
+  IF v_room.game_mode NOT IN ('suspicious','detective_fox') THEN RAISE EXCEPTION 'Bu mod şüpheli tahmini kullanmıyor'; END IF;
+  IF p_suspect_id=auth.uid() THEN RAISE EXCEPTION 'Kendini seçemezsin'; END IF;
+  IF NOT EXISTS(SELECT 1 FROM public.room_players WHERE room_id=v_room.id AND player_id=auth.uid() AND is_active)
+     OR NOT EXISTS(SELECT 1 FROM public.room_players WHERE room_id=v_room.id AND player_id=p_suspect_id AND is_active)
+  THEN RAISE EXCEPTION 'Geçersiz oyuncu'; END IF;
+
+  IF v_room.game_mode='detective_fox' THEN
+    SELECT rp.player_id INTO v_detective
+    FROM public.room_players rp WHERE rp.room_id=v_room.id AND rp.is_active
+    ORDER BY rp.player_id
+    OFFSET ((v_room.current_round-1) % GREATEST((SELECT count(*) FROM public.room_players x WHERE x.room_id=v_room.id AND x.is_active),1))
+    LIMIT 1;
+    IF auth.uid() IS DISTINCT FROM v_detective THEN RAISE EXCEPTION 'Bu tur yalnız dedektif şüpheli seçebilir'; END IF;
+  END IF;
+
+  INSERT INTO public.round_suspect_picks(room_id,round_number,player_id,suspect_player_id)
+  VALUES(v_room.id,v_room.current_round,auth.uid(),p_suspect_id)
+  ON CONFLICT(room_id,round_number,player_id) DO NOTHING;
+  RETURN TRUE;
+END;
+$function$;
+REVOKE ALL ON FUNCTION public.submit_suspect_pick_secure(CHARACTER VARYING,UUID) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.submit_suspect_pick_secure(CHARACTER VARYING,UUID) TO authenticated, service_role;

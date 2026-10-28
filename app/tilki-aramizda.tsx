@@ -24,6 +24,10 @@ const PAIRS: Pair[] = [
 ];
 const pick = (n: number) => Math.floor(Math.random() * n);
 
+const Button = ({ title, onPress, secondary = false }: { title: string; onPress: () => void; secondary?: boolean }) => (
+    <Pressable accessibilityRole="button" onPress={onPress} style={[styles.button, secondary && styles.secondary]}><Text style={styles.buttonText}>{title}</Text></Pressable>
+  );
+
 export default function TilkiAramizda() {
   const [players, setPlayers] = useState<string[]>([]);
   const [input, setInput] = useState('');
@@ -71,9 +75,6 @@ export default function TilkiAramizda() {
     }
     setChosen(tied[0]); setVotes(next); setStage('result');
   }
-  const Button = ({ title, onPress, secondary = false }: { title: string; onPress: () => void; secondary?: boolean }) => (
-    <Pressable accessibilityRole="button" onPress={onPress} style={[styles.button, secondary && styles.secondary]}><Text style={styles.buttonText}>{title}</Text></Pressable>
-  );
   return <View style={styles.root}><LinearGradient colors={['#160e20', '#22132e', '#10151e']} style={StyleSheet.absoluteFill} />
     <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Geri dön"><Text style={styles.back}>‹  OYUN MODLARI</Text></Pressable>

@@ -37,7 +37,7 @@ export default function OrmanHazinesiScreen() {
   const reducedMotion = useReducedMotion();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(Date.now);
   const deadline = state?.phase_deadline_at ? new Date(state.phase_deadline_at).getTime() : null;
   const remaining = deadline ? Math.max(0, Math.ceil((deadline - now) / 1000)) : null;
   const isMyTurn = Boolean(state?.phase === 'expedition' && state.my_team && state.my_team === state.current_team && state.can_act);
