@@ -43,7 +43,7 @@ export default function GameModesScreen() {
           </Pressable>
           <Text style={s.eyebrow}>KIZILKUYRUK · OYUN EVRENİ</Text>
         </View>
-        <Text style={s.title}>Aynı ekip.\nBaşka bir oyun.</Text>
+        <Text style={s.title}>{'Aynı ekip.\nBaşka bir oyun.'}</Text>
         <Text style={s.lead}>
           Bir gece güvenini riske at. Bir gece birlikte kaç. Herkes kendi
           cihazında; aynı odada olmanız gerekmez.
