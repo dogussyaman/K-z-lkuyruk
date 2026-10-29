@@ -6,6 +6,11 @@ export type PlayerId = string;
 export type TeamId = 'A' | 'B';
 
 export type GameMode =
+  | 'tilki_soygunu'
+  | 'kizil_pakt'
+  | 'kilit_altinda'
+  | 'kayip_kare'
+  | 'gece_pazari'
   | 'classic'
   | 'survival'
   | 'suspicious'

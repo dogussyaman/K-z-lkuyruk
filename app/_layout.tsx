@@ -142,6 +142,7 @@ function RootNavigator() {
             presentation: 'modal',
           }}
         />
+        <Stack.Screen name="party-game" options={{ animation: 'fade' }} />
         <Stack.Screen name="question" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="waiting" options={{ animation: 'fade' }} />
         <Stack.Screen name="result" options={{ animation: 'fade_from_bottom' }} />

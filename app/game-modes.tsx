@@ -1,152 +1,188 @@
+import { useState } from 'react';
+import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { useMemo, useState, type ReactNode } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { ChevronLeft, Clock3, Flame, Gamepad2, Sparkles, Users } from 'lucide-react-native';
-import { gameModeImages } from '../assets/game-modes';
-import { GAME_MODES, type GameModeDefinition } from '../features/game/modes';
-import { getGameModeTheme } from '../features/game/themes';
-
-type FilterId = 'all' | 'fast' | 'competitive' | 'social' | 'chaos';
-
-const FILTERS: Array<{ id: FilterId; label: string }> = [
-  { id: 'all', label: 'Tümü' },
-  { id: 'fast', label: 'Hızlı' },
-  { id: 'competitive', label: 'Rekabetçi' },
-  { id: 'social', label: 'Sosyal' },
-  { id: 'chaos', label: 'Kaos' },
-];
-
-const GROUPS: Record<Exclude<FilterId, 'all'>, string[]> = {
-  fast: ['blitz', 'golden_question'],
-  competitive: ['survival', 'blitz', 'team_battle', 'golden_question', 'gizli_tilki', 'orman_hazinesi'],
-  social: ['suspicious', 'secret_missions', 'detective_fox', 'team_battle', 'gizli_tilki'],
-  chaos: ['double_trap', 'golden_question', 'suspicious'],
+import { ChevronLeft, ArrowUpRight } from 'lucide-react-native';
+import { FEATURED_GAMES } from '@/features/game/modes';
+import { getGameModeTheme } from '@/features/game/themes';
+import { goBackOrReplace } from '@/lib/backNavigation';
+const groups = [
+  ['all', 'Hepsi'],
+  ['bluff', 'Blöf'],
+  ['coop', 'İş birliği'],
+  ['social', 'Gizli roller'],
+  ['market', 'Pazarlık'],
+] as const;
+const ids: Record<string, string[]> = {
+  bluff: ['classic', 'tilki_soygunu', 'kayip_kare'],
+  coop: ['kilit_altinda'],
+  social: ['kizil_pakt'],
+  market: ['gece_pazari'],
 };
-
 export default function GameModesScreen() {
-  const [filter, setFilter] = useState<FilterId>('all');
-  const visible = useMemo(() => {
-    const modes = GAME_MODES.map(mode => mode.id === 'suspicious' ? { ...mode, name: 'Tilki Aramızda', tagline: 'Farklı soruyu gören tilkiyi bul!', description: 'Tek telefonu sırayla paylaşın, cevapları dinleyin ve aranızdaki tilkiyi gizli oylamayla bulun.', badge: 'TEK TELEFON', playerCountLabel: '4–10 Oyuncu', estimatedDurationLabel: '5–10 dk', difficultyLabel: 'Kolay' as const } : mode);
-    return filter === 'all' ? modes : modes.filter(mode => GROUPS[filter].includes(mode.id));
-  }, [filter]);
-
+  const [filter, setFilter] = useState('all');
+  const games = FEATURED_GAMES.filter(
+    (g) => filter === 'all' || ids[filter]?.includes(g.id),
+  );
   return (
-    <View style={styles.root}>
-      <LinearGradient colors={['#100B18', '#191026', '#0D111B']} style={StyleSheet.absoluteFill} />
-      <View style={styles.orangeGlow} />
-      <View style={styles.blueGlow} />
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.topBar}>
-          <Pressable onPress={() => router.back()} style={styles.iconButton}><ChevronLeft color="#FFF" size={22} /></Pressable>
-          <View style={styles.topCenter}><Text style={styles.eyebrow}>KIZILKUYRUK EVRENİ</Text><Text style={styles.headerTitle}>Oyun Modları</Text></View>
-          <View style={styles.playablePill}><Flame color="#FF7A45" size={14} /><Text style={styles.playableText}>11 OYNANABİLİR</Text></View>
+    <View style={s.root}>
+      <LinearGradient
+        pointerEvents="none"
+        colors={['#20162F', '#10151F', '#18101E']}
+        style={StyleSheet.absoluteFill}
+      />
+      <ScrollView contentContainerStyle={s.content}>
+        <View style={s.top}>
+          <Pressable
+            accessibilityLabel="Geri dön"
+            accessibilityRole="button"
+            hitSlop={12}
+            onPress={() => goBackOrReplace(router, '/(tabs)')}
+          >
+            <ChevronLeft color="#fff" />
+          </Pressable>
+          <Text style={s.eyebrow}>KIZILKUYRUK · OYUN EVRENİ</Text>
         </View>
-
-        <View style={styles.hero}>
-          <LinearGradient colors={['rgba(255,101,77,0.32)', 'rgba(53,184,255,0.20)', 'rgba(16,11,24,0.86)']} style={StyleSheet.absoluteFill} />
-          <View style={styles.heroCopy}>
-            <Text style={styles.heroKicker}>11 FARKLI OYUN STİLİ</Text>
-            <Text style={styles.heroTitle}>Her gece başka bir oyun.</Text>
-            <Text style={styles.heroText}>Blöf ve dedektifliğin yanında takım savaşı, gizli operasyon ve soru-cevap içermeyen keşif seferleri: her mod farklı bir oyun döngüsü sunar.</Text>
-          </View>
-          <Text style={styles.heroFox}>🦊</Text>
-        </View>
-
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
-          {FILTERS.map((item) => (
-            <Pressable key={item.id} onPress={() => setFilter(item.id)} style={[styles.filter, filter === item.id && styles.filterActive]}>
-              <Text style={[styles.filterText, filter === item.id && styles.filterTextActive]}>{item.label}</Text>
+        <Text style={s.title}>Aynı ekip.\nBaşka bir oyun.</Text>
+        <Text style={s.lead}>
+          Bir gece güvenini riske at. Bir gece birlikte kaç. Herkes kendi
+          cihazında; aynı odada olmanız gerekmez.
+        </Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={s.filters}
+        >
+          {groups.map(([id, label]) => (
+            <Pressable
+              key={id}
+              onPress={() => setFilter(id)}
+              style={[s.filter, filter === id && s.active]}
+            >
+              <Text style={s.text}>{label}</Text>
             </Pressable>
           ))}
         </ScrollView>
-
-        <View style={styles.sectionHeader}>
-          <View><Text style={styles.sectionTitle}>{filter === 'all' ? 'Tüm Modlar' : FILTERS.find((item) => item.id === filter)?.label}</Text><Text style={styles.sectionSub}>{visible.length} oyun modu</Text></View>
-          <Gamepad2 color="rgba(255,255,255,0.34)" size={22} />
-        </View>
-
-        <View style={styles.grid}>
-          {visible.map((mode) => <ModeCard key={mode.id} mode={mode} />)}
-        </View>
+        {games.map((g, i) => {
+          const t = getGameModeTheme(g.id);
+          return (
+            <Pressable
+              key={g.id}
+              accessibilityRole="button"
+              onPress={() =>
+                g.id === 'classic'
+                  ? router.push('/create-room')
+                  : router.push({
+                      pathname: '/mode-create-room',
+                      params: { mode: g.id },
+                    })
+              }
+              style={({ pressed }) => [
+                s.card,
+                { backgroundColor: t.surface, borderColor: t.accent + '55' },
+                pressed && { opacity: 0.8 },
+              ]}
+            >
+              <View style={s.row}>
+                <Text style={[s.badge, { color: t.accent }]}>
+                  {g.id === 'classic' ? 'BİLGİ & BLÖF · MAÇ AYARLARI' : g.badge}
+                </Text>
+                <ArrowUpRight size={21} color={t.accent} />
+              </View>
+              <View style={s.cardHeading}>
+                <Text style={s.symbol}>{t.heroEmoji}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.name}>{g.name}</Text>
+                  <Text style={[s.tag, { color: t.accent }]}>{g.tagline}</Text>
+                </View>
+              </View>
+              <Text style={s.description}>
+                {g.id === 'classic'
+                  ? 'Klasik, hızlı, takım, can ve özel tur kurallarını tek yerden seç. Diğer oyunlardan bağımsız soru–blöf deneyimi.'
+                  : g.description}
+              </Text>
+              <View style={s.row}>
+                <Text style={s.meta}>
+                  {g.playerCountLabel} · {g.estimatedDurationLabel}
+                </Text>
+                <Text style={[s.cta, { color: t.accent }]}>EKİBİ TOPLA →</Text>
+              </View>
+            </Pressable>
+          );
+        })}
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.push('/tilki-aramizda')}
+          style={s.local}
+        >
+          <Text style={s.text}>
+            Aynı yerde misiniz? Tek telefonla Tilki Aramızda ↗
+          </Text>
+          <Text style={s.small}>
+            Yerel parti oyunu · çevrim içi oda gerektirmez
+          </Text>
+        </Pressable>
       </ScrollView>
     </View>
   );
 }
-
-function ModeCard({ mode }: { mode: GameModeDefinition }) {
-  const theme = getGameModeTheme(mode.id);
-  return (
-    <Pressable
-      onPress={() => { if (mode.id === 'suspicious') router.push('/tilki-aramizda'); else if (mode.status === 'active') router.push({ pathname: '/mode-create-room', params: { mode: mode.id } }); }}
-      style={({ pressed }) => [styles.card, { borderColor: theme.glow }, pressed && styles.cardPressed]}
-    >
-      <View style={styles.imageWrap}>
-        <Image source={gameModeImages[mode.illustrationKey]} style={styles.image} resizeMode="cover" />
-        <LinearGradient colors={['transparent', theme.background]} style={StyleSheet.absoluteFill} />
-        <View style={[styles.badge, { backgroundColor: theme.accent }]}><Text style={styles.badgeText}>{mode.badge}</Text></View>
-        <Text style={styles.atmosphereEmoji}>{theme.heroEmoji}</Text>
-      </View>
-      <View style={styles.cardBody}>
-        <Text style={styles.cardTitle}>{mode.name}</Text>
-        <Text style={[styles.cardTagline, { color: theme.accent }]} numberOfLines={2}>{mode.tagline}</Text>
-        <Text style={styles.cardDescription} numberOfLines={3}>{mode.description}</Text>
-        <View style={styles.metaRow}>
-          <Meta icon={<Users color="rgba(255,255,255,0.62)" size={14} />} text={mode.playerCountLabel.replace(' Oyuncu', '')} />
-          <Meta icon={<Clock3 color="rgba(255,255,255,0.62)" size={14} />} text={mode.estimatedDurationLabel} />
-          <Meta icon={<Sparkles color="rgba(255,255,255,0.62)" size={14} />} text={mode.difficultyLabel} />
-        </View>
-        <View style={[styles.playButton, { backgroundColor: mode.status === 'active' ? theme.accent : 'rgba(255,255,255,0.10)' }]}><Text style={styles.playButtonText}>{mode.status === 'active' ? 'Bu Modu Oyna' : 'Operasyon sistemi hazırlanıyor'}</Text></View>
-      </View>
-    </Pressable>
-  );
-}
-
-function Meta({ icon, text }: { icon: ReactNode; text: string }) {
-  return <View style={styles.meta}><View>{icon}</View><Text style={styles.metaText}>{text}</Text></View>;
-}
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#100B18' },
-  content: { paddingHorizontal: 16, paddingTop: 54, paddingBottom: 52 },
-  orangeGlow: { position: 'absolute', width: 360, height: 360, borderRadius: 999, backgroundColor: 'rgba(255,101,77,0.12)', top: -170, left: -140 },
-  blueGlow: { position: 'absolute', width: 350, height: 350, borderRadius: 999, backgroundColor: 'rgba(53,184,255,0.10)', top: 220, right: -220 },
-  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 },
-  iconButton: { width: 42, height: 42, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.07)' },
-  topCenter: { alignItems: 'center' },
-  eyebrow: { color: '#FF7A45', fontSize: 9, fontWeight: '900', letterSpacing: 1.8 },
-  headerTitle: { color: '#FFF', fontSize: 19, fontWeight: '900', marginTop: 2 },
-  playablePill: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(255,122,69,0.10)', borderRadius: 14, paddingHorizontal: 9, height: 34 },
-  playableText: { color: '#FF9A6F', fontSize: 9, fontWeight: '900' },
-  hero: { minHeight: 190, borderRadius: 28, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', marginBottom: 17, justifyContent: 'center' },
-  heroCopy: { padding: 22, paddingRight: 104 },
-  heroKicker: { color: '#FFD166', fontWeight: '900', letterSpacing: 1.5, fontSize: 10 },
-  heroTitle: { color: '#FFF', fontSize: 26, lineHeight: 30, fontWeight: '900', marginTop: 7 },
-  heroText: { color: 'rgba(255,255,255,0.67)', fontSize: 13, lineHeight: 19, marginTop: 8 },
-  heroFox: { position: 'absolute', right: 20, bottom: 18, fontSize: 70, transform: [{ rotate: '-8deg' }] },
-  filters: { gap: 8, paddingBottom: 18 },
-  filter: { paddingHorizontal: 15, height: 38, borderRadius: 14, justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.055)' },
-  filterActive: { backgroundColor: '#FFF' },
-  filterText: { color: 'rgba(255,255,255,0.62)', fontWeight: '800', fontSize: 12 },
-  filterTextActive: { color: '#17101F' },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  sectionTitle: { color: '#FFF', fontSize: 20, fontWeight: '900' },
-  sectionSub: { color: 'rgba(255,255,255,0.42)', fontSize: 11, marginTop: 2 },
-  grid: { gap: 14 },
-  card: { borderRadius: 26, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.055)', borderWidth: 1 },
-  cardPressed: { opacity: 0.78, transform: [{ scale: 0.99 }] },
-  imageWrap: { height: 180, overflow: 'hidden' },
-  image: { width: '100%', height: '100%' },
-  badge: { position: 'absolute', top: 13, left: 13, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10 },
-  badgeText: { color: '#FFF', fontSize: 9, fontWeight: '900', letterSpacing: 0.8 },
-  atmosphereEmoji: { position: 'absolute', right: 14, top: 12, fontSize: 30 },
-  cardBody: { padding: 17 },
-  cardTitle: { color: '#FFF', fontSize: 21, fontWeight: '900' },
-  cardTagline: { fontSize: 12, fontWeight: '800', marginTop: 4 },
-  cardDescription: { color: 'rgba(255,255,255,0.60)', fontSize: 12, lineHeight: 18, marginTop: 8 },
-  metaRow: { flexDirection: 'row', gap: 7, marginTop: 14 },
-  meta: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 8, height: 30, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.055)' },
-  metaText: { color: 'rgba(255,255,255,0.72)', fontSize: 10, fontWeight: '700' },
-  playButton: { minHeight: 46, marginTop: 15, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
-  playButtonText: { color: '#FFF', fontWeight: '900', fontSize: 13 },
+const s = StyleSheet.create({
+  root: { flex: 1, backgroundColor: '#15101e' },
+  content: {
+    padding: 20,
+    paddingTop: 54,
+    paddingBottom: 50,
+    maxWidth: 800,
+    width: '100%',
+    alignSelf: 'center',
+    gap: 18,
+  },
+  top: { flexDirection: 'row', alignItems: 'center', gap: 15 },
+  eyebrow: {
+    color: '#c6b1dd',
+    fontSize: 10,
+    letterSpacing: 2,
+    fontWeight: '800',
+  },
+  title: {
+    color: '#fff',
+    fontSize: 39,
+    lineHeight: 43,
+    fontWeight: '900',
+    marginTop: 20,
+  },
+  lead: { color: '#c5bdcf', fontSize: 15, lineHeight: 23, maxWidth: 570 },
+  filters: { gap: 8, paddingVertical: 8 },
+  filter: {
+    padding: 12,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: '#ffffff25',
+  },
+  active: { backgroundColor: '#7049a0', borderColor: '#b998e4' },
+  text: { color: '#eee7f6', fontSize: 12, fontWeight: '700' },
+  card: { padding: 22, borderRadius: 27, borderWidth: 1, gap: 17 },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 10,
+    flexWrap: 'wrap',
+  },
+  badge: { fontSize: 10, letterSpacing: 1, fontWeight: '900' },
+  cardHeading: { flexDirection: 'row', gap: 18, alignItems: 'center' },
+  symbol: { fontSize: 46 },
+  name: { color: '#fff', fontSize: 25, fontWeight: '900' },
+  tag: { fontSize: 13, lineHeight: 19, marginTop: 5, fontWeight: '700' },
+  description: { color: '#d7cedf', fontSize: 14, lineHeight: 22 },
+  meta: { color: '#a99db7', fontSize: 11 },
+  cta: { fontSize: 10, fontWeight: '900', letterSpacing: 1 },
+  local: {
+    padding: 20,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#ffffff20',
+    gap: 7,
+  },
+  small: { color: '#9e92ad', fontSize: 11 },
 });

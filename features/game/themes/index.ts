@@ -1,3 +1,4 @@
+import { PARTY_GAMES } from '../../party/catalog';
 import type { GameMode } from '../../../types/game';
 
 export interface GameModeTheme {
@@ -15,6 +16,7 @@ export interface GameModeTheme {
 }
 
 export const GAME_MODE_THEMES: Record<GameMode, GameModeTheme> = {
+  ...Object.fromEntries(PARTY_GAMES.map(g=>[g.id,{id:g.id,accent:g.accent,accentSecondary:g.accent,background:g.background,surface:g.surface,glow:g.accent+'33',heroEmoji:g.emoji,atmosphere:'mystery',lobbyTitle:g.name+' · Ekip',roundTitle:g.tagline,victoryTitle:'Final'}])) as Record<typeof PARTY_GAMES[number]['id'],GameModeTheme>,
   classic: {
     id: 'classic', accent: '#FF713D', accentSecondary: '#A16BFF', background: '#160F22', surface: '#241634', glow: 'rgba(255,113,61,0.25)', heroEmoji: '🦊', atmosphere: 'campfire', lobbyTitle: 'Kamp Ateşi Lobisi', roundTitle: 'Blöf Zamanı', victoryTitle: 'Kurnazlığın Kazandı',
   },

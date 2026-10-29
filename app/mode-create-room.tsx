@@ -1,3 +1,4 @@
+import { isPartyMode } from '@/features/party/catalog';
 import { goBackOrReplace } from '@/lib/backNavigation';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -38,6 +39,7 @@ export default function ModeCreateRoomScreen() {
   const categories = CATEGORIES.map((category) => category.id);
 
   const createRoom = async () => {
+    if (isPartyMode(mode.id) && service.kind!=='supabase') { setError('Çevrim içi oyun için Supabase bağlantısıyla giriş yapmalısın.'); return; }
     if (!currentPlayer) {
       router.replace('/onboarding');
       return;
@@ -105,7 +107,7 @@ export default function ModeCreateRoomScreen() {
           ))}
         </View>
 
-        {CALLOUTS[mode.id] ? (
+        {!isPartyMode(mode.id) && CALLOUTS[mode.id] ? (
           <View style={[styles.callout, { backgroundColor: theme.glow, borderColor: theme.accent }]}>
             <Text style={[styles.calloutTitle, { color: theme.accent }]}>Bu modun farkı</Text>
             <Text style={styles.calloutText}>{CALLOUTS[mode.id]}</Text>
@@ -113,8 +115,8 @@ export default function ModeCreateRoomScreen() {
         ) : null}
 
         <View style={styles.summaryRow}>
-          <Text style={styles.summaryText}>{mode.rules.defaultRoundSeconds} sn / tur</Text>
-          <Text style={styles.summaryText}>{categories.length} kategori</Text>
+          <Text style={styles.summaryText}>{isPartyMode(mode.id)?'Aşama bazlı süre':`${mode.rules.defaultRoundSeconds} sn / tur`}</Text>
+          <Text style={styles.summaryText}>{isPartyMode(mode.id)?'Soru bankası gerekmez':`${categories.length} kategori`}</Text>
           <Text style={styles.summaryText}>{mode.difficultyLabel}</Text>
         </View>
 

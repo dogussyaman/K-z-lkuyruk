@@ -1,3 +1,4 @@
+import { isPartyMode } from '@/features/party/catalog';
 import { useEffect, useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { ensureSupabase } from '@/lib/supabase/client';
@@ -26,7 +27,7 @@ export function BotDirector() {
   }, [currentPlayer, roomState]);
 
   const mode = roomState?.config.gameMode ?? 'classic';
-  const automationSupported = !UNSUPPORTED_AUTOMATION_MODES.has(mode);
+  const automationSupported = !isPartyMode(mode) && !UNSUPPORTED_AUTOMATION_MODES.has(mode);
   const isHost = !!me?.isHost;
   const isLiveSupabase = service.kind === 'supabase';
   const currentRound = roomState?.currentRound;

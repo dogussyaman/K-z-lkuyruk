@@ -1,3 +1,4 @@
+import { isPartyMode } from '../features/party/catalog';
 import { supabase, supabaseConfigured, ensureSupabase } from '../lib/supabase/client';
 import { Platform } from 'react-native';
 import * as Linking from 'expo-linking';
@@ -564,7 +565,7 @@ export class SupabaseGameService implements GameService {
     let code = '';
     for (let i = 0; i < 5; i++) code += chars[Math.floor(Math.random() * chars.length)];
 
-    const { data, error } = await sb.rpc('create_room_with_mode_secure', {
+    const { data, error } = await sb.rpc(isPartyMode(config.gameMode) ? 'create_party_room_secure' : 'create_room_with_mode_secure', {
       p_code: code,
       p_name: config.hostName.trim() || 'Ev Sahibi',
       p_avatar_key: config.avatarKey,
@@ -733,6 +734,11 @@ export class SupabaseGameService implements GameService {
     }
     if (!data) return null;
     const state = data as Record<string, unknown>;
+    const { data: modeRow, error: modeError } = await sb.from('rooms').select('party_mode').eq('code',code.trim().toUpperCase()).single();
+    if (modeError) throw new ServiceError('ROOM_STATE_FAILED',modeError.message);
+    if (isPartyMode(modeRow?.party_mode) && state.config && typeof state.config==='object') {
+      state.config={...state.config,gameMode:modeRow.party_mode};
+    }
     if (
       typeof state.phase !== 'string' ||
       typeof state.currentRound !== 'number' ||

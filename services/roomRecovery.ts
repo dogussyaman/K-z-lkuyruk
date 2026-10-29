@@ -1,3 +1,4 @@
+import { isPartyMode } from '../features/party/catalog';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { GameState, RoomPhase } from '@/types/game';
 
@@ -13,6 +14,7 @@ export interface RoomRecoveryRecord {
 }
 
 export type RoomRecoveryRoute =
+  | '/party-game'
   | '/lobby'
   | '/category-select'
   | '/ability-select'
@@ -22,9 +24,10 @@ export type RoomRecoveryRoute =
   | '/scoreboard'
   | '/game-over';
 
-export type RecoveryState = Pick<GameState, 'phase' | 'progress'>;
+export type RecoveryState = Pick<GameState, 'phase' | 'progress'> & Partial<Pick<GameState,'config'>>;
 
 export function getRoomRecoveryRoute(state: RecoveryState, playerId: string): RoomRecoveryRoute {
+  if (isPartyMode(state.config?.gameMode) && state.phase!=='lobby') return '/party-game';
   const submitted = state.progress?.submissionStatus[playerId] === true;
   const phaseRoutes: Partial<Record<RoomPhase, RoomRecoveryRoute>> = {
     lobby: '/lobby',

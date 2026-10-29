@@ -1,3 +1,4 @@
+import { CLASSIC_VARIANTS } from '@/features/game/modes';
 import { goBackOrReplace } from '@/lib/backNavigation';
 import { useTheme, useThemeStyles } from '@/theme/ThemeProvider';
 import type { ThemeColors } from '@/theme/ThemeProvider';
@@ -266,7 +267,7 @@ export default function CreateRoomScreen() {
 
           <Card variant="surface" style={styles.sectionCard}>
             <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionLabel}>Oyun Modu</Text>
+              <Text style={styles.sectionLabel}>Klasik Blöf · Maç Kuralları</Text>
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Tüm modları incele"
@@ -279,89 +280,9 @@ export default function CreateRoomScreen() {
             </View>
 
             <View style={styles.modesGrid}>
-              {/* Klasik */}
-              <Pressable
-                accessibilityRole="radio"
-                accessibilityState={{ checked: gameMode === 'classic' }}
-                onPress={() => handleSelectGameMode('classic')}
-                style={[styles.modeSelectCard, gameMode === 'classic' && styles.modeSelectCardActive]}
-              >
-                <View style={styles.modeCardHeader}>
-                  <Image source={gameModeImages.classic} style={styles.modeCardThumb} />
-                  <View style={{ flex: 1 }}>
-                    <View style={styles.modeTitleRow}>
-                      <Text style={[styles.modeSelectTitle, gameMode === 'classic' && styles.modeSelectTitleActive]}>
-                        Klasik Blöf
-                      </Text>
-                      <Badge tone="orange" style={styles.modeTinyBadge}>VARSAYILAN</Badge>
-                    </View>
-                    <Text style={styles.modeSelectDesc}>Puan biriktir, tuzak kur ve en yüksek skorla kazan.</Text>
-                  </View>
-                </View>
-              </Pressable>
-
-              {/* Hayatta Kalma */}
-              <Pressable
-                accessibilityRole="radio"
-                accessibilityState={{ checked: gameMode === 'survival' }}
-                onPress={() => handleSelectGameMode('survival')}
-                style={[styles.modeSelectCard, gameMode === 'survival' && styles.modeSelectCardActive]}
-              >
-                <View style={styles.modeCardHeader}>
-                  <Image source={gameModeImages.survival} style={styles.modeCardThumb} />
-                  <View style={{ flex: 1 }}>
-                    <View style={styles.modeTitleRow}>
-                      <Text style={[styles.modeSelectTitle, gameMode === 'survival' && styles.modeSelectTitleActive]}>
-                        Hayatta Kalma
-                      </Text>
-                      <Badge tone="danger" style={styles.modeTinyBadge}>3 CAN</Badge>
-                    </View>
-                    <Text style={styles.modeSelectDesc}>3 canla başla; yanlış cevap veya süre aşımında can kaybet.</Text>
-                  </View>
-                </View>
-              </Pressable>
-
-              {/* Tilki Aramızda */}
-              <Pressable
-                accessibilityRole="radio"
-                accessibilityHint="Tek telefonlu oyuna geçer"
-                onPress={() => router.push('/tilki-aramizda')}
-                style={styles.modeSelectCard}
-              >
-                <View style={styles.modeCardHeader}>
-                  <Image source={gameModeImages.suspicious} style={styles.modeCardThumb} />
-                  <View style={{ flex: 1 }}>
-                    <View style={styles.modeTitleRow}>
-                      <Text style={styles.modeSelectTitle}>
-                        Tilki Aramızda
-                      </Text>
-                      <Badge tone="purple" style={styles.modeTinyBadge}>YENİ MOD</Badge>
-                    </View>
-                    <Text style={styles.modeSelectDesc}>Tek telefonla oynayın; farklı soruyu gören tilkiyi bulun.</Text>
-                  </View>
-                </View>
-              </Pressable>
-
-              {/* Fırtına Turu */}
-              <Pressable
-                accessibilityRole="radio"
-                accessibilityState={{ checked: gameMode === 'blitz' }}
-                onPress={() => handleSelectGameMode('blitz')}
-                style={[styles.modeSelectCard, gameMode === 'blitz' && styles.modeSelectCardActive]}
-              >
-                <View style={styles.modeCardHeader}>
-                  <Image source={gameModeImages.blitz} style={styles.modeCardThumb} />
-                  <View style={{ flex: 1 }}>
-                    <View style={styles.modeTitleRow}>
-                      <Text style={[styles.modeSelectTitle, gameMode === 'blitz' && styles.modeSelectTitleActive]}>
-                        Fırtına Turu
-                      </Text>
-                      <Badge tone="yellow" style={styles.modeTinyBadge}>7 SANİYE</Badge>
-                    </View>
-                    <Text style={styles.modeSelectDesc}>Hızlı cevapla, ilk 3 saniyede bilip hız bonusunu kap!</Text>
-                  </View>
-                </View>
-              </Pressable>
+              {CLASSIC_VARIANTS.map(variant => <Pressable key={variant.id} accessibilityRole="radio" accessibilityState={{checked:gameMode===variant.id}} onPress={()=>handleSelectGameMode(variant.id)} style={[styles.modeSelectCard,gameMode===variant.id&&styles.modeSelectCardActive]}>
+                <Text style={styles.modeSelectTitle}>{variant.name}</Text><Text style={styles.modeSelectDesc}>{variant.description}</Text>
+              </Pressable>)}
             </View>
           </Card>
 

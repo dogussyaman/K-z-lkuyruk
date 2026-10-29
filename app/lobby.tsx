@@ -1,3 +1,5 @@
+import { isPartyMode } from '@/features/party/catalog';
+import { getGameMode } from '@/features/game/modes';
 import { useTheme, useThemeStyles } from '@/theme/ThemeProvider';
 import type { ThemeColors } from '@/theme/ThemeProvider';
 import { useEffect, useId, useRef, useState } from 'react';
@@ -59,6 +61,7 @@ export default function LobbyScreen() {
     roomState,
     currentPlayer,
     service,
+    refreshRoom,
     lastNudge,
     isLive,
     setRoomCode,
@@ -102,6 +105,10 @@ export default function LobbyScreen() {
   }, [roomCode, roomState?.config.gameMode]);
 
   useEffect(() => {
+    if (isPartyMode(roomState?.config.gameMode)) {
+      if (roomState?.phase !== 'lobby') router.replace('/party-game');
+      return;
+    }
     if (roomState?.phase === 'ability_select') {
       router.replace('/ability-select');
     } else if (
@@ -111,7 +118,7 @@ export default function LobbyScreen() {
     ) {
       router.replace('/question');
     }
-  }, [roomState?.phase]);
+  }, [roomState?.phase,roomState?.config.gameMode]);
 
   const isIncomingNudge = !!lastNudge && lastNudge.toId === currentPlayer?.id;
   const nudgeBanner = isIncomingNudge && lastNudge?.at !== dismissedNudgeAt
@@ -132,9 +139,7 @@ export default function LobbyScreen() {
   const getReady = (player: Player) =>
     prototype.getReady(player.id, testMode && player.id !== me?.id ? false : player.isReady);
   const readyCount = playersList.filter(getReady).length;
-  const canStart = ['gizli_tilki', 'orman_hazinesi', 'team_battle'].includes(roomState?.config.gameMode ?? '')
-    ? playersList.length >= 4 && readyCount === playersList.length
-    : readyCount >= 2;
+  const canStart = readyCount >= (roomState?.config.minPlayers ?? 2) && readyCount === playersList.length;
   const maxPlayers = roomState?.config.maxPlayers ?? 8;
   const emptySlotsCount = Math.max(0, Math.min(4, maxPlayers - playersList.length));
 
@@ -197,6 +202,13 @@ export default function LobbyScreen() {
     setStarting(true);
     setError(null);
     try {
+      if (isPartyMode(roomState?.config.gameMode)) {
+        const {error:startError}=await ensureSupabase().rpc('party_start_secure',{p_room_code:roomCode});
+        if(startError) throw startError;
+        await refreshRoom();
+        router.replace('/party-game');
+        return;
+      }
       if (roomState?.config.gameMode === 'gizli_tilki' || roomState?.config.gameMode === 'orman_hazinesi') {
         const isForest = roomState.config.gameMode === 'orman_hazinesi';
         const { error: startError } = await ensureSupabase().rpc(isForest ? 'forest_treasure_start' : 'gizli_tilki_start', { p_room_code: roomCode });
@@ -278,18 +290,9 @@ export default function LobbyScreen() {
           <Text style={styles.codeHint}>Kodu arkadaşlarınla paylaşarak odaya davet et</Text>
 
           <View style={styles.metaRow}>
-            <Badge tone="purple" sticker>{roomState?.config.totalRounds ?? 5} Tur</Badge>
-            <Badge tone="yellow" sticker>{roomState?.config.roundSeconds ?? 15} sn Soru</Badge>
-            <Badge tone="lime" sticker>{roomState?.config.selectedCategoryIds.length ?? 6} Kategori</Badge>
-            {roomState?.config.gameMode === 'survival' ? (
-              <Badge tone="danger" sticker>❤️ HAYATTA KALMA</Badge>
-            ) : roomState?.config.gameMode === 'suspicious' ? (
-              <Badge tone="purple" sticker>🕵️ HERKES ŞÜPHELİ</Badge>
-            ) : roomState?.config.gameMode === 'blitz' ? (
-              <Badge tone="yellow" sticker>⚡ FIRTINA TURU</Badge>
-            ) : (
-              <Badge tone="orange" sticker>🦊 KLASİK MOD</Badge>
-            )}
+            <Badge tone="purple" sticker>{getGameMode(roomState?.config.gameMode).name}</Badge>
+            <Badge tone="yellow" sticker>{roomState?.config.minPlayers ?? 2}–{roomState?.config.maxPlayers ?? 10} kişi</Badge>
+            <Badge tone="lime" sticker>{isPartyMode(roomState?.config.gameMode) ? 'Herkes kendi cihazında' : `${roomState?.config.totalRounds ?? 5} tur`}</Badge>
           </View>
         </Card>
 
@@ -440,7 +443,7 @@ export default function LobbyScreen() {
 
         {isHost ? (
           <Button
-            label={canStart ? 'Oyunu Başlat!' : (['gizli_tilki', 'orman_hazinesi', 'team_battle'].includes(roomState?.config.gameMode ?? '') ? 'En az 4 hazır oyuncu bekleniyor' : 'En az 2 hazır oyuncu bekleniyor')}
+            label={canStart ? 'Oyunu Başlat!' : `En az ${roomState?.config.minPlayers ?? 2} hazır oyuncu bekleniyor`}
             onPress={handleStartGame}
             variant="orange"
             disabled={!canStart || starting}

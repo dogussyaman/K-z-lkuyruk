@@ -1,5 +1,10 @@
 # Kızılkuyruk
 
+Çevrim içi oyun kataloğu: Klasik Blöf, Tilki Soygunu, Kızıl Pakt, Kilit Altında,
+Kayıp Kare ve Gece Pazarı. Kurallar ve veritabanı kurulumu: [Party games](docs/PARTY_GAMES.md).
+Yeni beş oyun için `20261029074751_distinct_party_games.sql` migrationı gerekir.
+
+
 ## Local setup
 
 1. Install dependencies with `npm install`.

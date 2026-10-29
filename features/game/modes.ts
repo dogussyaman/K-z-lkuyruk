@@ -1,3 +1,4 @@
+import { PARTY_GAMES } from '../party/catalog';
 import type { GameMode } from '../../types/game';
 import { gameModeImages } from '../../assets/game-modes';
 
@@ -53,6 +54,7 @@ export const BLITZ_SPEED_BONUS_POINTS = 1;
 export const SUSPECT_DEDUCTION_BONUS_POINTS = 1;
 
 export const GAME_MODES: GameModeDefinition[] = [
+  ...PARTY_GAMES.map((g): GameModeDefinition => ({id:g.id,name:g.name,tagline:g.tagline,description:g.description,badge:g.badge,status:'active',playerCountLabel:`${g.min}–${g.max} Oyuncu`,estimatedDurationLabel:g.minutes,difficultyLabel:'Taktiksel',accentColor:g.accent,gradientColors:[g.accent,g.surface,g.background],iconName:'Users',illustrationKey:g.illustration,rules:{defaultRoundSeconds:40,minRoundSeconds:20,maxRoundSeconds:65,defaultRounds:g.rounds,minPlayers:g.min,maxPlayers:g.max,hasLives:false,correctAnswerPoints:0,trapVictimPoints:0,allowAbilities:false},features:[...g.steps]})),
   { id:'classic', name:'Klasik Blöf', tagline:'Bilgi ve zekice tuzakların eğlenceli savaşı', description:'Sahte cevap üret, rakipleri kandır ve doğru cevabı bul.', badge:'VARSAYILAN', status:'active', playerCountLabel:'2–10 Oyuncu', estimatedDurationLabel:'5–10 dk', difficultyLabel:'Dinamik', accentColor:'#FF713D', gradientColors:['#FF713D','#A16BFF','#28183D'], iconName:'Sparkles', illustrationKey:'classic', rules:{defaultRoundSeconds:15,minRoundSeconds:10,maxRoundSeconds:30,defaultRounds:5,minPlayers:2,maxPlayers:10,hasLives:false,correctAnswerPoints:2,trapVictimPoints:1,allowAbilities:true}, features:['Doğru cevap +2','Rakip tuzağa düşerse +1','Kredi tabanlı yetenekler'] },
   { id:'survival', name:'Hayatta Kalma', tagline:'3 canla başla, elenmeden son tilki ol!', description:'Yanlış cevap veya süre aşımı can götürür. Son ayakta kalan kazanır.', badge:'REKABETÇİ', status:'active', playerCountLabel:'2–10 Oyuncu', estimatedDurationLabel:'4–8 dk', difficultyLabel:'Zor', accentColor:'#EF4444', gradientColors:['#EF4444','#991B1B','#1A1228'], iconName:'Shield', illustrationKey:'survival', rules:{defaultRoundSeconds:15,minRoundSeconds:10,maxRoundSeconds:25,defaultRounds:5,minPlayers:2,maxPlayers:10,hasLives:true,startingLives:3,correctAnswerPoints:2,trapVictimPoints:1,allowAbilities:true}, features:['3 can','Yanlışta -1 can','Son hayatta kalan kazanır'] },
   { id:'suspicious', name:'Herkes Şüpheli', tagline:'Blöfün yanına sosyal çıkarımı ekle!', description:'Doğru cevabı bulurken kimin başarılı blöf yaptığını da tahmin et.', badge:'SOSYAL', status:'active', playerCountLabel:'2–10 Oyuncu', estimatedDurationLabel:'6–12 dk', difficultyLabel:'Taktiksel', accentColor:'#A16BFF', gradientColors:['#A16BFF','#7547C4','#110D1B'], iconName:'Search', illustrationKey:'suspicious', rules:{defaultRoundSeconds:20,minRoundSeconds:12,maxRoundSeconds:35,defaultRounds:5,minPlayers:2,maxPlayers:10,hasLives:false,hasSuspectDeduction:true,correctAnswerPoints:2,trapVictimPoints:1,suspectBonusPoints:1,allowAbilities:true}, features:['Şüpheli seçimi','Başarılı blöfçüyü bulursan +1','Tur sonu ifşa'] },
@@ -75,3 +77,6 @@ export function isGameModeActive(id?: string | null): boolean {
 export function getActiveGameModes(): GameModeDefinition[] { return GAME_MODES.filter((m) => m.status === 'active'); }
 export function getComingSoonGameModes(): GameModeDefinition[] { return GAME_MODES.filter((m) => m.status === 'coming_soon'); }
 export function getAllGameModes(): GameModeDefinition[] { return GAME_MODES; }
+
+export const CLASSIC_VARIANTS = GAME_MODES.filter(mode => ['classic','survival','suspicious','blitz','team_battle','secret_missions','double_trap','golden_question','detective_fox'].includes(mode.id));
+export const FEATURED_GAMES = GAME_MODES.filter(mode => ['classic',...PARTY_GAMES.map(g=>g.id)].includes(mode.id));

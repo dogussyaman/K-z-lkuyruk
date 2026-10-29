@@ -294,8 +294,8 @@ export default function HomeScreen() {
           </View>
           <View style={styles.modeSpotlightCopy}>
             <Text style={styles.modeSpotlightKicker}>YENİ OYUN TARZLARI</Text>
-            <Text style={styles.modeSpotlightTitle}>Orman Hazinesi</Text>
-            <Text style={styles.modeSpotlightText}>Soru-cevap yok: takımını yönet, ormanda keşfe çık ve rakipten önce hazineyi bul. Gizli Tilki ve daha fazlasını da keşfet.</Text>
+            <Text style={styles.modeSpotlightTitle}>Aynı ekip, başka oyun</Text>
+            <Text style={styles.modeSpotlightText}>Soygun planla, gizli tilkiyi bul, birlikte kilitleri aç veya Gece Pazarı’nda pazarlık yap. Herkes kendi cihazında.</Text>
             <View style={styles.modeSpotlightLink}><Text style={styles.modeSpotlightLinkText}>Tüm oyun modlarını keşfet</Text><ChevronRight color="#17101F" size={16} /></View>
           </View>
           <Text style={styles.modeSpotlightFox}>🦊</Text>

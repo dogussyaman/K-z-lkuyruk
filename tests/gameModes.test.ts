@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { existsSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, it } from 'node:test';
-import { GAME_MODES, getActiveGameModes, getComingSoonGameModes, isGameModeActive } from '../features/game/modes';
+import { GAME_MODES, FEATURED_GAMES, CLASSIC_VARIANTS, getActiveGameModes, getComingSoonGameModes, isGameModeActive } from '../features/game/modes';
 import { GAME_MODE_THEMES } from '../features/game/themes';
 import { resolveZartoRound } from '../features/game/engine';
 import { detectiveForRound, isGoldenRound, missionBonusForRound } from '../features/game/modeRules';
@@ -42,9 +42,11 @@ const choices: RoundChoice[] = [
 ];
 
 describe('complete game mode registry', () => {
-  it('exposes all eleven modes as active with a theme and local illustration', () => {
-    assert.equal(GAME_MODES.length, 11);
-    assert.equal(getActiveGameModes().length, 11);
+  it('keeps legacy variants compatible and exposes distinct party families', () => {
+    assert.equal(GAME_MODES.length, 16);
+    assert.equal(FEATURED_GAMES.length,6);
+    assert.equal(CLASSIC_VARIANTS.length,9);
+    assert.equal(getActiveGameModes().length, 16);
     assert.equal(getComingSoonGameModes().length, 0);
     assert.equal(isGameModeActive('gizli_tilki'), true);
     assert.equal(isGameModeActive('orman_hazinesi'), true);
