@@ -63,6 +63,9 @@ export default function AccountDeletionScreen() {
           <Text style={[styles.notice, { color: colors.warning }]}>
             Aktif bir oyundaysan önce o odadan ayrılmalısın. Hesap silme işlemi geri alınamaz.
           </Text>
+          <Text style={[styles.notice, { color: colors.textMuted }]}>
+            Güvenlik ve kötüye kullanım bildirimleri, moderasyon amacıyla hesap kimliğin ve adın anonimleştirilerek saklanabilir.
+          </Text>
           {error ? <Text accessibilityRole="alert" style={[styles.error, { color: colors.danger }]}>{error}</Text> : null}
 
           {isLive && currentPlayer ? (
