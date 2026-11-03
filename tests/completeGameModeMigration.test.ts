@@ -44,9 +44,9 @@ describe('complete game mode migrations', () => {
 
   it('contains the core server-authoritative mode mechanics', () => {
     assert.match(completeSql, /picker\.team_id IS DISTINCT FROM v_player\.team_id/);
-    assert.match(partySql, /v_room\.game_mode='golden_question'/);
-    assert.match(partySql, /v_room\.game_mode='secret_missions'/);
-    assert.match(partySql, /v_room\.game_mode='detective_fox'/);
+    assert.match(partySql, /v_room\.party_mode='golden_question'/);
+    assert.match(partySql, /v_room\.party_mode='secret_missions'/);
+    assert.match(partySql, /v_room\.party_mode='detective_fox'/);
     assert.match(stateSql, /v_room\.game_mode\s*=\s*'double_trap'/);
     assert.match(stateSql, /'teamScores'/);
     assert.match(stateSql, /'modeMeta'/);
