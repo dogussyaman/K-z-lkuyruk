@@ -1,4 +1,4 @@
--- Run after 20261118000005_account_deletion.sql on a disposable database.
+-- Run after 20261103121209_account_deletion.sql on a disposable database.
 -- Uses synthetic UUIDs only and rolls back all fixture data.
 BEGIN;
 
