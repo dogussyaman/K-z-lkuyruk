@@ -78,7 +78,7 @@ BEGIN
     RAISE EXCEPTION 'Report evidence was not anonymized when the reporter account was deleted';
   END IF;
 
-  IF position('isBot', pg_get_functiondef('public.get_room_state_secure(character varying)'::regprocedure)) = 0 THEN
+  IF strpos(pg_get_functiondef('public.get_room_state_secure(character varying)'::regprocedure), 'isBot') = 0 THEN
     RAISE EXCEPTION 'Room state does not expose the isBot flag';
   END IF;
 END;
