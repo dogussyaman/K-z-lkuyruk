@@ -354,15 +354,13 @@ export default function QuestionScreen() {
       return;
     }
     if (roomState?.phase !== 'guess' || !roomCode) {
-      setChoices([]);
-      setSelectedChoiceIndex(null);
-      pickCommitted.current = false;
+      // Choices are rendered only during the guess phase; the next guess-phase
+      // fetch clears the previous round before showing the new choices.
       return;
     }
 
     setChoices([]);
     setSelectedChoiceIndex(null);
-    pickCommitted.current = false;
     void service.getRoundChoices(roomCode).then((list) => {
       if (choicesRequestId.current !== requestId || roomState?.phase !== 'guess') return;
       setChoices(list);
