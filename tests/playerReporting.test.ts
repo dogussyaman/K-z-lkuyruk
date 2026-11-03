@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { describe, it } from 'node:test';
 
-const migration = readFileSync(new URL('../supabase/migrations/20261118000006_player_reporting.sql', import.meta.url), 'utf8');
+const migration = readFileSync(new URL('../supabase/migrations/20261103122647_player_reporting.sql', import.meta.url), 'utf8');
 const reportScreen = readFileSync(new URL('../app/report-player.tsx', import.meta.url), 'utf8');
 const resultScreen = readFileSync(new URL('../app/result.tsx', import.meta.url), 'utf8');
 const adapter = readFileSync(new URL('../services/supabaseAdapter.ts', import.meta.url), 'utf8');
