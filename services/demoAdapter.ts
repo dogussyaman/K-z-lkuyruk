@@ -1113,6 +1113,10 @@ export class DemoGameService implements GameService {
     if (this.currentPlayer) this.relationships.set(`${playerId}:${this.currentPlayer.id}`, 'blocked');
   }
 
+  async reportPlayer(): Promise<void> {
+    throw new ServiceError('PLAYER_REPORT_UNAVAILABLE', 'Oyuncu bildirimi yalnızca canlı oyunlarda kullanılabilir.');
+  }
+
   async unblockUser(playerId: string): Promise<void> {
     this.relationships.set(this.relationshipKey(playerId), 'none');
     if (this.currentPlayer) this.relationships.set(`${playerId}:${this.currentPlayer.id}`, 'none');
