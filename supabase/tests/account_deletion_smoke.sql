@@ -12,6 +12,8 @@ DECLARE
   v_picked TEXT;
   v_deceived UUID;
 BEGIN
+  INSERT INTO auth.users(id, is_anonymous)
+  VALUES (v_user, TRUE), (v_other, TRUE);
   INSERT INTO public.profiles(id, display_name)
   VALUES (v_user, 'Deletion smoke user');
   INSERT INTO public.user_stats(user_id) VALUES (v_user);
