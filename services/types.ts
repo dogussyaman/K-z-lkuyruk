@@ -101,6 +101,7 @@ export interface GameService {
   updatePlayerProfile(name: string, avatarKey: string): Promise<Player>;
   uploadAvatar(base64: string, mimeType: string): Promise<string>;
   signOut(): Promise<void>;
+  deleteAccount(): Promise<void>;
 
   // Rooms
   createRoom(config: {
