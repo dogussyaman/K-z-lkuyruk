@@ -61,7 +61,7 @@ export default function ReportPlayerScreen() {
         </View>
 
         {submitted ? (
-          <Card variant="surface" gap={16}>
+          <Card variant="surface" style={styles.successCard}>
             <View style={[styles.successIcon, { backgroundColor: colors.successSurface }]}>
               <CheckCircle2 color={colors.success} size={30} />
             </View>
@@ -83,7 +83,7 @@ export default function ReportPlayerScreen() {
               </Text>
             </View>
 
-            <Card variant="surface" gap={14}>
+            <Card variant="surface" style={styles.formCard}>
               <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Bildirim nedeni</Text>
               {categories.map((option) => {
                 const selected = category === option.value;
@@ -149,6 +149,8 @@ export default function ReportPlayerScreen() {
 
 const styles = StyleSheet.create({
   page: { padding: 20, paddingBottom: 42, gap: 20 },
+  successCard: { gap: 16 },
+  formCard: { gap: 14 },
   header: { gap: 10 },
   eyebrow: { fontSize: 11, fontWeight: '900', letterSpacing: 1.5 },
   hero: { alignItems: 'center', gap: 10, paddingVertical: 12 },
