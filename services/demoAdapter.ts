@@ -149,6 +149,10 @@ export class DemoGameService implements GameService {
     throw new ServiceError('AUTH_UNAVAILABLE', 'Google girişi için Supabase yapılandırılmalıdır.');
   }
 
+  async signInWithApple(): Promise<never> {
+    throw new ServiceError('AUTH_UNAVAILABLE', 'Apple girişi için Supabase yapılandırılmalıdır.');
+  }
+
   async completeOAuthCallback(): Promise<never> {
     throw new ServiceError('AUTH_UNAVAILABLE', 'Google girişi için Supabase yapılandırılmalıdır.');
   }
