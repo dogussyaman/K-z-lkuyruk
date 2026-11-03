@@ -95,8 +95,9 @@ remain external release steps.
   project ID/owner and production environment configuration.
 - Native build numbers are initialized at 1 and configured for remote
   auto-increment in EAS.
-- Account deletion is implemented in the app and repository migration/Edge
-  Function source, but is not yet deployed or end-to-end verified in production.
+- The account cleanup migration and JWT-protected Edge Function are deployed.
+  The in-app request screen is in PR #30; a real end-to-end test with a
+  disposable account remains required.
 - A published privacy policy, terms and a monitored support contact are still
   required before store submission.
 - The production Supabase migration history differs from the repository
