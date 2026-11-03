@@ -30,19 +30,21 @@ remain external release steps.
   and tested on a real iOS device.
 - [ ] Verify report/block controls and assign a person to review the private
   `player_reports` queue. Publish the moderation and appeals process.
-- [ ] Publish a public privacy policy that accurately describes Supabase Auth,
-  Google sign-in, email/password sign-in, profile names, avatars, friend
-  relationships, game-room activity, gameplay statistics, uploaded profile
-  images, retention and deletion. Add its URL to both store records and in-app
-  settings.
+- [ ] Finalize and publish `docs/PRIVACY_POLICY_DRAFT.md`. Replace all
+  placeholders, verify the actual SDK/provider list, add the privacy contact
+  and public URL, then link it from both store records and in-app settings.
+- [ ] Use `docs/STORE_DATA_INVENTORY.md` to complete App Store App Privacy and
+  Google Play Data safety declarations from the real production data flows.
 - [ ] Deploy and end-to-end test the in-app account deletion flow and public
   account-deletion URL on a test account before store submission.
 - [ ] Verify deletion removes the Auth identity, avatar storage, friendships,
   blocks, stats, historical round references, private game state and invites.
   Active games intentionally block deletion until the player leaves; host-only
   rooms are handed off or closed.
-- [ ] Publish terms of service and a support/contact page with a monitored
-  contact channel. Confirm the legal operator name and contact details.
+- [ ] Finalize and publish `docs/TERMS_OF_SERVICE_DRAFT.md`; replace all
+  placeholders and obtain legal review.
+- [ ] Publish a support/contact page with a monitored channel. Confirm the
+  legal operator name, address and contact details.
 - [ ] Complete Apple App Privacy and Google Play Data safety declarations from
   the actual production data flows. Never place a service-role key in a client
   build or an `EXPO_PUBLIC_*` variable.
