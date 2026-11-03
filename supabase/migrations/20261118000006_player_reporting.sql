@@ -65,7 +65,7 @@ BEGIN
   IF p_room_code IS NULL OR btrim(p_room_code) = '' THEN
     RAISE EXCEPTION 'Oyun odası bulunamadı';
   END IF;
-  IF p_category NOT IN ('harassment', 'inappropriate_name', 'inappropriate_content', 'cheating', 'spam', 'other') THEN
+  IF p_category IS NULL OR p_category NOT IN ('harassment', 'inappropriate_name', 'inappropriate_content', 'cheating', 'spam', 'other') THEN
     RAISE EXCEPTION 'Geçersiz bildirim kategorisi';
   END IF;
   IF char_length(v_description) > 500 THEN
