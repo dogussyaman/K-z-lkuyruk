@@ -26,6 +26,14 @@ export interface RoomSummary {
 export type RoomAccessPreflight = 'open' | 'password_required';
 
 export type ConnectionState = 'connecting' | 'online' | 'reconnecting' | 'offline' | 'error';
+export type PlayerReportCategory =
+  | 'harassment'
+  | 'inappropriate_name'
+  | 'inappropriate_content'
+  | 'cheating'
+  | 'spam'
+  | 'other';
+
 export type RelationshipStatus =
   | 'none'
   | 'outgoing_pending'
@@ -164,6 +172,7 @@ export interface GameService {
   cancelFriendRequest(requestId: string): Promise<void>;
   removeFriend(playerId: string): Promise<void>;
   blockUser(playerId: string): Promise<void>;
+  reportPlayer(roomCode: string, playerId: string, category: PlayerReportCategory, description: string): Promise<void>;
   unblockUser(playerId: string): Promise<void>;
   listFriends(): Promise<SocialPlayer[]>;
   listFriendRequests(): Promise<FriendRequest[]>;
