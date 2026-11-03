@@ -72,15 +72,33 @@ export default function OnboardingScreen() {
     } finally {
       setAvailabilityLoading(false);
     }
-  }, [service]);
+  }, [service, setTakenAvatars, setAvailabilityError, setAvailabilityLoading]);
 
   useEffect(() => {
     void init();
   }, [init]);
 
   useEffect(() => {
-    void refreshTakenCharacters();
-  }, [refreshTakenCharacters]);
+    let active = true;
+    service.listTakenPresetCharacters()
+      .then((taken) => {
+        if (!active) return;
+        setTakenAvatars(taken);
+        setAvailabilityError(null);
+      })
+      .catch((cause) => {
+        if (!active) return;
+        setAvailabilityError(cause instanceof Error
+          ? cause.message
+          : 'Karakterlerin uygunluğu kontrol edilemedi. Tekrar dene.');
+      })
+      .finally(() => {
+        if (active) setAvailabilityLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [service, setTakenAvatars, setAvailabilityError, setAvailabilityLoading]);
 
   useEffect(() => {
     // A pending anonymous auth user is retained after a race for an occupied
