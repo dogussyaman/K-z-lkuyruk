@@ -6,7 +6,8 @@ ALTER TABLE public.rooms DROP CONSTRAINT IF EXISTS rooms_game_mode_check;
 ALTER TABLE public.rooms ADD CONSTRAINT rooms_game_mode_check
 CHECK (game_mode IN (
   'classic','survival','suspicious','blitz','team_battle',
-  'secret_missions','double_trap','golden_question','detective_fox'
+  'secret_missions','double_trap','golden_question','detective_fox',
+  'gizli_tilki','orman_hazinesi'
 ));
 
 ALTER TABLE public.round_results ADD COLUMN IF NOT EXISTS mission_bonus INTEGER NOT NULL DEFAULT 0;
@@ -53,11 +54,14 @@ BEGIN
   IF auth.uid() IS NULL THEN RAISE EXCEPTION 'Oturum açılması gerekiyor'; END IF;
   IF p_game_mode IS NULL OR p_game_mode NOT IN (
     'classic','survival','suspicious','blitz','team_battle',
-    'secret_missions','double_trap','golden_question','detective_fox'
+    'secret_missions','double_trap','golden_question','detective_fox',
+    'gizli_tilki','orman_hazinesi'
   ) THEN RAISE EXCEPTION 'Desteklenmeyen oyun modu'; END IF;
 
   CASE p_game_mode
     WHEN 'team_battle' THEN v_min_players := 4;
+    WHEN 'gizli_tilki' THEN v_min_players := 4; v_max_players := 10;
+    WHEN 'orman_hazinesi' THEN v_min_players := 4; v_max_players := 10;
     WHEN 'secret_missions' THEN v_min_players := 3; v_max_players := 8;
     WHEN 'double_trap' THEN v_max_players := 6;
     WHEN 'detective_fox' THEN v_min_players := 4;
