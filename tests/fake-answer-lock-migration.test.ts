@@ -8,7 +8,7 @@ const migration = readFileSync(
   'utf8'
 );
 const survivalMigration = readFileSync(
-  resolve(process.cwd(), 'supabase/migrations/20261115000001_survival_mode_and_cleanup_security.sql'),
+  resolve(process.cwd(), 'supabase/migrations/20261025130156_survival_mode_and_cleanup_security.sql'),
   'utf8'
 );
 
