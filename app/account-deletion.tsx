@@ -37,7 +37,7 @@ export default function AccountDeletionScreen() {
       <ScrollView contentContainerStyle={styles.page} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Button label="Geri" variant="ghost" onPress={() => router.back()} icon={<ChevronLeft color={colors.textPrimary} size={18} />} />
-          <Text style={[styles.eyebrow, { color: colors.textPrimaryMuted }]}>HESAP VE GİZLİLİK</Text>
+          <Text style={[styles.eyebrow, { color: colors.textMuted }]}>HESAP VE GİZLİLİK</Text>
         </View>
 
         <View style={styles.hero}>
@@ -45,7 +45,7 @@ export default function AccountDeletionScreen() {
             <ShieldAlert color={colors.danger} size={28} />
           </View>
           <Text style={[styles.title, { color: colors.textPrimary }]}>Hesabını sil</Text>
-          <Text style={[styles.subtitle, { color: colors.textPrimaryMuted }]}>
+          <Text style={[styles.subtitle, { color: colors.textMuted }]}>
             Kızılkuyruk hesabını ve bu hesaba bağlı kişisel oyun verilerini kalıcı olarak silme talebini buradan gönderebilirsin.
           </Text>
         </View>
@@ -58,7 +58,7 @@ export default function AccountDeletionScreen() {
             'Puanlar, istatistikler ve sana bağlı oyun geçmişi kayıtları',
             'Aktif olmayan odalardaki oyuncu kimliğin ve özel oyun durumu',
           ].map((item) => (
-            <Text key={item} style={[styles.bullet, { color: colors.textPrimaryMuted }]}>• {item}</Text>
+            <Text key={item} style={[styles.bullet, { color: colors.textMuted }]}>• {item}</Text>
           ))}
           <Text style={[styles.notice, { color: colors.warning }]}>
             Aktif bir oyundaysan önce o odadan ayrılmalısın. Hesap silme işlemi geri alınamaz.
@@ -75,7 +75,7 @@ export default function AccountDeletionScreen() {
             />
           ) : (
             <>
-              <Text style={[styles.notice, { color: colors.textPrimaryMuted }]}>
+              <Text style={[styles.notice, { color: colors.textMuted }]}>
                 Silme talebi göndermek için aynı hesapla giriş yap. Giriş yaptıktan sonra bu sayfaya yeniden dön.
               </Text>
               <Button label="Giriş yap" fullWidth onPress={() => router.replace('/auth')} />
@@ -88,7 +88,7 @@ export default function AccountDeletionScreen() {
         <View style={styles.modalBackdrop}>
           <View style={[styles.modalCard, { backgroundColor: colors.bgSurface, borderColor: colors.border }]}>
             <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Bu hesabı kalıcı olarak silelim mi?</Text>
-            <Text style={[styles.modalText, { color: colors.textPrimaryMuted }]}>
+            <Text style={[styles.modalText, { color: colors.textMuted }]}>
               Profilin, avatarların, arkadaşlıkların ve sana bağlı oyun kayıtların silinecek. Bu işlem geri alınamaz.
             </Text>
             <Button label="Vazgeç" variant="ghost" fullWidth disabled={deleting} onPress={() => setConfirming(false)} />
