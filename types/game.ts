@@ -28,6 +28,7 @@ export interface Player {
   name: string;
   avatarKey: string;
   isHost: boolean;
+  isBot?: boolean;
   isReady: boolean;
   isOnline: boolean;
   score: number;
