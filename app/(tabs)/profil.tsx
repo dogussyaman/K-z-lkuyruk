@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View, ScrollView, Switch, Pressable, Platform, Modal, KeyboardAvoidingView } from 'react-native';
 import { router } from 'expo-router';
 import { useFocusEffect } from 'expo-router';
