@@ -90,7 +90,8 @@ export default function QuestionScreen() {
   const isGamePaused = roomState?.pausedAt != null;
 
   const handleSelectSuspect = async (rivalId: string) => {
-    if (!roomCode || hasSubmittedPick || pickCommitted.current) return;
+    if (!roomCode || hasSubmittedPick || suspectedRivalId || suspectSubmissionInProgress.current) return;
+    suspectSubmissionInProgress.current = true;
     soundService.play('click');
     trigger('light');
     try {
@@ -98,6 +99,8 @@ export default function QuestionScreen() {
       setSuspectedRivalId(rivalId);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Şüpheli seçimi kaydedilemedi.');
+    } finally {
+      suspectSubmissionInProgress.current = false;
     }
   };
 
@@ -113,7 +116,7 @@ export default function QuestionScreen() {
   }, []);
 
   const pickSubmissionInProgress = useRef(false);
-  const pickCommitted = useRef(false);
+  const suspectSubmissionInProgress = useRef(false);
   const clockPlayedFake = useRef(false);
   const clockPlayedGuess = useRef(false);
   const clockAttemptedFake = useRef(false);
@@ -224,7 +227,6 @@ export default function QuestionScreen() {
     if (blockedPrankTimeoutRef.current) clearTimeout(blockedPrankTimeoutRef.current);
     setChoices([]);
     setSelectedChoiceIndex(null);
-    pickCommitted.current = false;
     setSecondsLeft(totalTime);
     expirationRequested.current = null;
     soundService.stop('clock');
@@ -359,8 +361,6 @@ export default function QuestionScreen() {
       return;
     }
 
-    setChoices([]);
-    setSelectedChoiceIndex(null);
     void service.getRoundChoices(roomCode).then((list) => {
       if (choicesRequestId.current !== requestId || roomState?.phase !== 'guess') return;
       setChoices(list);
@@ -566,10 +566,9 @@ export default function QuestionScreen() {
   };
 
   const handleChoiceSelect = (choice: RoundChoice) => {
-    if (choice.isOwnFake || hasSubmittedPick || pickCommitted.current) return;
+    if (choice.isOwnFake || hasSubmittedPick || submitting || pickSubmissionInProgress.current) return;
     soundService.play('click');
     trigger('light');
-    pickCommitted.current = true;
     setSelectedChoiceIndex(choice.choiceIndex);
     void submitPick(choice.choiceIndex);
   };
