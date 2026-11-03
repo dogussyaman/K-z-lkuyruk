@@ -31,16 +31,16 @@ export default function GizliTilkiScreen() {
   const [error, setError] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now);
   const [selectedSuspect, setSelectedSuspect] = useState<string | null>(null);
-  const [selectedTeamIds, setSelectedTeamIds] = useState<string[]>([]);
+  const [teamSelection, setTeamSelection] = useState<{ roomCode: string | null; ids: string[] } | null>(null);
+  const defaultTeamIds = state?.players?.slice(0, Math.min(3, state.players.length)).map((p) => p.player_id) ?? [];
+  const selectedTeamIds = teamSelection?.roomCode === roomCode ? teamSelection.ids : defaultTeamIds;
+  const setSelectedTeamIds = (update: string[] | ((previous: string[]) => string[])) => {
+    const previous = teamSelection?.roomCode === roomCode ? teamSelection.ids : defaultTeamIds;
+    setTeamSelection({ roomCode, ids: typeof update === 'function' ? update(previous) : update });
+  };
   const isHost = Boolean(currentPlayer?.id && roomState?.players[currentPlayer.id]?.isHost);
   const deadline = state?.phase_deadline_at ? new Date(state.phase_deadline_at).getTime() : null;
   const remaining = deadline ? Math.max(0, Math.ceil((deadline - now) / 1000)) : null;
-
-  useEffect(() => {
-    if (state?.players?.length && selectedTeamIds.length === 0) {
-      setSelectedTeamIds(state.players.slice(0, Math.min(3, state.players.length)).map((p) => p.player_id));
-    }
-  }, [state?.players, selectedTeamIds.length]);
 
   const refresh = useCallback(async () => {
     if (!roomCode) return;
