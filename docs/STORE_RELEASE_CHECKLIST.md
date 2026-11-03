@@ -106,8 +106,9 @@ remain external release steps.
   disposable account remains required.
 - A published privacy policy, terms and a monitored support contact are still
   required before store submission.
-- The production Supabase migration history differs from the repository
-  migration filenames. Compare actual schema/function definitions before
-  applying any pending migration.
+- The 20 migration versions recorded in production now have matching repository
+  filenames. Another 29 SQL files remain unrecorded; they may include changes
+  applied manually. Reconcile each against the live schema before any
+  `supabase db push` or migration replay.
 - CI now includes lint, web export and Expo Doctor; resolve every failing check
   before treating the branch as release-ready.
