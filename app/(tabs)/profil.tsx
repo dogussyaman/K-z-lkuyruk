@@ -3,7 +3,7 @@ import { ActivityIndicator, StyleSheet, Text, View, ScrollView, Switch, Pressabl
 import { router } from 'expo-router';
 import { useFocusEffect } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
-import { Shield, Zap, Award, Sparkles, Volume2, Vibrate, Globe, Check, Edit2, Flame, ImagePlus, LogOut, Sun, Moon, Shuffle } from 'lucide-react-native';
+import { Shield, Zap, Award, Sparkles, Volume2, Vibrate, Globe, Check, Edit2, Flame, ImagePlus, LogOut, Sun, Moon, Shuffle, Trash2 } from 'lucide-react-native';
 import { Screen, ScreenHeader, Card, Button, Avatar, Badge, Input } from '@/components/ui';
 import { spacing, typography, radii, shadows } from '@/theme';
 import { useTheme, useThemeStyles } from '@/theme/ThemeProvider';
@@ -566,6 +566,13 @@ export default function ProfilScreen() {
               {isAnonymous ? 'Misafir oturumu' : 'Supabase hesabı'}
             </Text>
             {profileError ? <Text style={styles.profileError}>{profileError}</Text> : null}
+            <Button
+              label="Hesabımı kalıcı olarak sil"
+              variant="danger"
+              fullWidth
+              onPress={() => router.push('/account-deletion')}
+              icon={<Trash2 color="#FFF" size={18} />}
+            />
             <Button
               label={signingOut ? 'Çıkış yapılıyor...' : 'Çıkış yap'}
               variant="danger"
