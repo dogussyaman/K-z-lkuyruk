@@ -12,13 +12,15 @@ DECLARE
   v_picked TEXT;
   v_deceived UUID;
 BEGIN
-  INSERT INTO auth.users(id, is_anonymous)
-  VALUES (v_user, TRUE), (v_other, TRUE);
-  INSERT INTO public.profiles(id, display_name)
-  VALUES (v_user, 'Deletion smoke user');
-  INSERT INTO public.user_stats(user_id) VALUES (v_user);
+  INSERT INTO auth.users(id, email, raw_user_meta_data, is_anonymous)
+  VALUES
+    (v_user, 'deletion-smoke-' || v_user::TEXT || '@example.invalid', jsonb_build_object('display_name', 'Deletion smoke user'), TRUE),
+    (v_other, 'deletion-smoke-' || v_other::TEXT || '@example.invalid', jsonb_build_object('display_name', 'Remaining player'), TRUE);
+  UPDATE public.profiles SET display_name = 'Deletion smoke user' WHERE id = v_user;
+  INSERT INTO public.user_stats(user_id) VALUES (v_user) ON CONFLICT DO NOTHING;
   INSERT INTO public.friendships(user_low, user_high)
-  VALUES (LEAST(v_user, v_other), GREATEST(v_user, v_other));
+  VALUES (LEAST(v_user, v_other), GREATEST(v_user, v_other))
+  ON CONFLICT DO NOTHING;
 
   INSERT INTO public.rooms(code, host_id, phase, game_mode)
   VALUES (v_code, v_user, 'lobby', 'classic')
