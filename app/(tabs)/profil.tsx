@@ -29,7 +29,7 @@ export default function ProfilScreen() {
     name: string;
     avatarKey: string;
   } | null>(null);
-  const activeProfileDraft = profileDraft?.playerId === currentPlayer?.id
+  const activeProfileDraft = profileDraft && profileDraft.playerId === currentPlayer?.id
     ? profileDraft
     : {
         playerId: currentPlayer?.id ?? null,
