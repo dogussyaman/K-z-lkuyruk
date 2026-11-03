@@ -73,8 +73,8 @@ BEGIN
               PERFORM public.submit_fake_answer_secure(
                 code::varchar,
                 CASE WHEN mode='double_trap'
-                  THEN 'Regression A '||player.player_id::text||' round '||round_no||E'\n'||'Regression B '||player.player_id::text||' round '||round_no
-                  ELSE 'Regression '||player.player_id::text||' round '||round_no
+                  THEN 'RA-'||substr(player.player_id::text,1,8)||'-'||round_no||E'\n'||'RB-'||substr(player.player_id::text,1,8)||'-'||round_no
+                  ELSE 'R-'||substr(player.player_id::text,1,8)||'-'||round_no
                 END
               );
             END IF;
