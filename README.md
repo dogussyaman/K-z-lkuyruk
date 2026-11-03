@@ -148,6 +148,29 @@ approved. Review each row, then explicitly set `status = 'approved'` and
    For web, serve the app on an allowed HTTPS origin. The app uses Supabase
    PKCE and returns OAuth sessions through `/auth/callback`.
 
+## Sign in with Apple setup
+
+The iOS login screen includes an Apple sign-in action to meet the platform's
+third-party sign-in requirements. It will not work until the Apple provider is
+configured:
+
+1. In Apple Developer, enable **Sign in with Apple** for the app identifier
+   `com.foxmasque.game`.
+2. Create a Services ID and configure the web authentication domain
+   `sjryoojjaqrhvligjqjs.supabase.co` with this return URL:
+   `https://sjryoojjaqrhvligjqjs.supabase.co/auth/v1/callback`.
+3. Create a Sign in with Apple key and keep its private key secure.
+4. In Supabase Dashboard → Authentication → Providers → Apple, enable the
+   provider and enter the Services ID, Team ID, Key ID and private key.
+5. In Supabase Auth URL Configuration, allow
+   `foxmasque://auth/callback` for native sign-in and the deployed HTTPS
+   `/auth/callback` route for web.
+6. Test first-time and returning Apple sign-in on a physical iOS device,
+   including the case where Apple provides the user's name only on first
+   authorization.
+
+Do not submit the iOS build while Apple sign-in is unconfigured or untested.
+
 Email/password accounts use Supabase Auth. Configure email confirmation and
 SMTP in Supabase as appropriate for production. Password recovery redirects to
 the same callback route and allows the user to set a new password after
