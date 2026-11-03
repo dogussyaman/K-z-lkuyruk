@@ -8,6 +8,7 @@ import type {
   EmailSignUpResult,
   FriendRequest,
   GameService,
+  PlayerReportCategory,
   LeaderboardScope,
   RelationshipStatus,
   RoomSummary,
@@ -1164,6 +1165,17 @@ export class SupabaseGameService implements GameService {
     const sb = ensureSupabase();
     const { error } = await sb.rpc('block_user_secure', { p_other_id: playerId });
     if (error) throw new ServiceError('USER_BLOCK_FAILED', error.message);
+  }
+
+  async reportPlayer(roomCode: string, playerId: string, category: PlayerReportCategory, description: string): Promise<void> {
+    const sb = ensureSupabase();
+    const { error } = await sb.rpc('report_player_secure', {
+      p_room_code: roomCode,
+      p_reported_player_id: playerId,
+      p_category: category,
+      p_description: description,
+    });
+    if (error) throw new ServiceError('PLAYER_REPORT_FAILED', error.message);
   }
 
   async unblockUser(playerId: string): Promise<void> {
