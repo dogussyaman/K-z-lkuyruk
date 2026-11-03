@@ -21,6 +21,9 @@ remain external release steps.
 
 ## Store blockers to resolve before submission
 
+- [ ] Set the Google Play account-deletion URL to
+  `https://dogussyaman.github.io/K-z-lkuyruk/account-deletion` and verify it
+  works in a signed-out browser before submission.
 - [ ] Publish a public privacy policy that accurately describes Supabase Auth,
   Google sign-in, email/password sign-in, profile names, avatars, friend
   relationships, game-room activity, gameplay statistics, uploaded profile
