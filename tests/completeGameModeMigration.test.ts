@@ -14,6 +14,7 @@ const lobbySource = readFileSync(resolve(process.cwd(), 'app/lobby.tsx'), 'utf8'
 const modeIds = [
   'classic', 'survival', 'suspicious', 'blitz', 'team_battle',
   'secret_missions', 'double_trap', 'golden_question', 'detective_fox',
+  'gizli_tilki', 'orman_hazinesi',
 ];
 
 describe('complete game mode migrations', () => {
@@ -21,9 +22,11 @@ describe('complete game mode migrations', () => {
     for (const mode of modeIds) assert.match(completeSql, new RegExp(`'${mode}'`));
   });
 
-  it('keeps all eleven client modes represented in the final server mode constraint', () => {
-    const allModes = ['classic', 'survival', 'suspicious', 'blitz', 'team_battle', 'secret_missions', 'double_trap', 'golden_question', 'detective_fox', 'gizli_tilki', 'orman_hazinesi'];
-    for (const mode of allModes) assert.match(forestSql, new RegExp(`'${mode}'`), `${mode} must be accepted by the final create-room migration`);
+  it('keeps every client game mode accepted by the final room constraint and creation RPC', () => {
+    for (const mode of modeIds) {
+      assert.match(completeSql, new RegExp(`'${mode}'`), `${mode} must remain in the final room constraint and mode-aware create RPC`);
+      assert.match(forestSql, new RegExp(`'${mode}'`), `${mode} must be accepted by the dedicated mode creation migration`);
+    }
   });
 
   it('keeps dedicated state machines wired for both non-question modes', () => {
