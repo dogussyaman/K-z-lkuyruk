@@ -28,7 +28,7 @@ export default function ReportPlayerScreen() {
   const roomCode = firstParam(params.roomCode)?.trim().toUpperCase();
   const target = playerId ? roomState?.players[playerId] : undefined;
   const canReport = service.kind === 'supabase'
-    && Boolean(roomCode && playerId && target)
+    && Boolean(currentPlayer && roomCode && playerId && target)
     && target?.id !== currentPlayer?.id
     && target?.isBot !== true;
 
