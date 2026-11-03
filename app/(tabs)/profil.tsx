@@ -24,8 +24,22 @@ export default function ProfilScreen() {
   const { enabled: soundEnabled, ready: soundPreferenceReady, setEnabled: setSoundEnabled } = useSound();
 
   const [editingName, setEditingName] = useState(false);
-  const [tempName, setTempName] = useState(currentPlayer?.name ?? 'Oyuncu');
-  const [selectedAvatar, setSelectedAvatar] = useState(currentPlayer?.avatarKey ?? 'fox');
+  const [profileDraft, setProfileDraft] = useState<{
+    playerId: string | null;
+    name: string;
+    avatarKey: string;
+  } | null>(null);
+  const activeProfileDraft = profileDraft?.playerId === currentPlayer?.id
+    ? profileDraft
+    : {
+        playerId: currentPlayer?.id ?? null,
+        name: currentPlayer?.name ?? 'Oyuncu',
+        avatarKey: currentPlayer?.avatarKey ?? 'fox',
+      };
+  const tempName = activeProfileDraft.name;
+  const selectedAvatar = activeProfileDraft.avatarKey;
+  const setTempName = (name: string) => setProfileDraft({ ...activeProfileDraft, name });
+  const setSelectedAvatar = (avatarKey: string) => setProfileDraft({ ...activeProfileDraft, avatarKey });
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const [showAllAvatars, setShowAllAvatars] = useState(false);
   const [selectedAvatarCategory, setSelectedAvatarCategory] = useState<'all' | 'special' | 'people' | 'robots' | 'emoji' | 'animals' | 'fashion' | 'streetwear'>('all');
@@ -58,12 +72,6 @@ export default function ProfilScreen() {
   useFocusEffect(useCallback(() => {
     void refreshStats();
   }, [refreshStats]));
-
-  useEffect(() => {
-    if (!currentPlayer) return;
-    setSelectedAvatar(currentPlayer.avatarKey);
-    setTempName(currentPlayer.name);
-  }, [currentPlayer?.id]);
 
   const saveProfile = async (name: string, avatarKey: string) => {
     if (!currentPlayer || savingProfile) return;
@@ -486,7 +494,7 @@ export default function ProfilScreen() {
                 <Volume2 color={colors.purpleSoft} size={20} />
                 <View>
                   <Text style={styles.settingText}>Ses Efektleri</Text>
-                  <Text style={styles.settingSub}>Oyun içi zil ve parti jingle'ları</Text>
+                  <Text style={styles.settingSub}>Oyun içi zil ve parti jingle’ları</Text>
                 </View>
               </View>
               <Switch
