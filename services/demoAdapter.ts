@@ -190,6 +190,10 @@ export class DemoGameService implements GameService {
     this.currentPlayer = null;
   }
 
+  async deleteAccount(): Promise<void> {
+    throw new ServiceError('ACCOUNT_DELETE_UNAVAILABLE', 'Hesap silme yalnızca canlı hesaplarda kullanılabilir.');
+  }
+
   async createRoom(config: {
     hostName: string;
     avatarKey: string;
