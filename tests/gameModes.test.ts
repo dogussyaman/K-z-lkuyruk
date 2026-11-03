@@ -81,7 +81,7 @@ describe('Double Trap answer generation', () => {
   });
 });
 
-describe('mode-specific scoring', () =>
+describe('mode-specific scoring', () => {
   it('does not award Team Battle trap points for a teammate pick', () => {
     const p1 = createPlayer('p1', 'A');
     const p2 = createPlayer('p2', 'A');
