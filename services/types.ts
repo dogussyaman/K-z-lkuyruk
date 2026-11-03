@@ -93,6 +93,7 @@ export interface GameService {
   signUpWithEmail(email: string, password: string, name: string): Promise<EmailSignUpResult>;
   signInWithEmail(email: string, password: string): Promise<Player>;
   signInWithGoogle(): Promise<Player>;
+  signInWithApple(): Promise<Player>;
   completeOAuthCallback(code: string): Promise<Player>;
   sendPasswordResetEmail(email: string): Promise<void>;
   updatePassword(password: string): Promise<void>;
