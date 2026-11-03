@@ -13,7 +13,7 @@ import {
   View,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Mail } from 'lucide-react-native';
+import { Apple, Mail } from 'lucide-react-native';
 import { Screen, Button, Card, Input } from '@/components/ui';
 import { colors, spacing, typography, radii } from '@/theme';
 import { useGameStore } from '@/store/gameStore';
@@ -86,6 +86,18 @@ export default function AuthScreen() {
       finishAuth(await service.signInWithGoogle());
     } catch (authError) {
       setError((authError as Error).message || 'Google girişi tamamlanamadı.');
+      setBusy(false);
+    }
+  };
+
+  const handleAppleAuth = async () => {
+    setBusy(true);
+    setError(null);
+    setMessage(null);
+    try {
+      finishAuth(await service.signInWithApple());
+    } catch (authError) {
+      setError((authError as Error).message || 'Apple girişi tamamlanamadı.');
       setBusy(false);
     }
   };
@@ -190,6 +202,18 @@ export default function AuthScreen() {
                   </Text>
                 </Pressable>
               </View>
+              {Platform.OS === 'ios' && isLive ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Apple ile devam et"
+                  onPress={() => void handleAppleAuth()}
+                  disabled={busy}
+                  style={({ pressed }) => [styles.appleButton, pressed && styles.appleButtonPressed, busy && styles.appleButtonDisabled]}
+                >
+                  {busy ? <ActivityIndicator color="#FFF" /> : <Apple color="#FFF" size={20} />}
+                  <Text style={styles.appleButtonText}>Apple ile devam et</Text>
+                </Pressable>
+              ) : null}
               <Button
                 label="Google ile devam et"
                 onPress={() => void handleGoogleAuth()}
@@ -346,6 +370,21 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   modeTextActive: {
     color: colors.textPrimary,
   },
+  appleButton: {
+    minHeight: 52,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radii.md,
+    backgroundColor: '#000000',
+    borderWidth: 1,
+    borderColor: '#333333',
+  },
+  appleButtonPressed: { opacity: 0.86 },
+  appleButtonDisabled: { opacity: 0.55 },
+  appleButtonText: { ...typography.bodyMedium, color: '#FFFFFF' },
   separator: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   rule: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: colors.border },
   orText: { ...typography.caption, color: colors.textMuted },
