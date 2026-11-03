@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { describe, it } from 'node:test';
 
-const deletionSql = readFileSync(new URL('../supabase/migrations/20261118000005_account_deletion.sql', import.meta.url), 'utf8');
+const deletionSql = readFileSync(new URL('../supabase/migrations/20261103121209_account_deletion.sql', import.meta.url), 'utf8');
 const edgeFunction = readFileSync(new URL('../supabase/functions/delete-account/index.ts', import.meta.url), 'utf8');
 const deletionScreen = readFileSync(new URL('../app/account-deletion.tsx', import.meta.url), 'utf8');
 const profileScreen = readFileSync(new URL('../app/(tabs)/profil.tsx', import.meta.url), 'utf8');
