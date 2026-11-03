@@ -24,6 +24,12 @@ remain external release steps.
 - [ ] Set the Google Play account-deletion URL to
   `https://dogussyaman.github.io/K-z-lkuyruk/account-deletion` and verify it
   works in a signed-out browser before submission.
+- [ ] Configure Sign in with Apple in Apple Developer and Supabase (Services ID,
+  Team ID, Key ID, private key and Supabase callback URL). The iOS app now
+  exposes an Apple sign-in action; do not submit until this provider is enabled
+  and tested on a real iOS device.
+- [ ] Verify report/block controls and assign a person to review the private
+  `player_reports` queue. Publish the moderation and appeals process.
 - [ ] Publish a public privacy policy that accurately describes Supabase Auth,
   Google sign-in, email/password sign-in, profile names, avatars, friend
   relationships, game-room activity, gameplay statistics, uploaded profile
