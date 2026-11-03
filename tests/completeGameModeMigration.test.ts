@@ -51,6 +51,6 @@ describe('complete game mode migrations', () => {
     assert.match(stateSql, /'teamScores'/);
     assert.match(stateSql, /'modeMeta'/);
     assert.match(stateSql, /cardinality\(v_answers\) <> 2/);
-    assert.match(stateSql, /FOREACH v_answer IN ARRAY v_answers/);
+    assert.match(doubleTrapSql, /FOREACH v_answer IN ARRAY v_answers/);
   });
 });
