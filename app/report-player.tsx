@@ -62,8 +62,8 @@ export default function ReportPlayerScreen() {
 
         {submitted ? (
           <Card variant="surface" gap={16}>
-            <View style={[styles.successIcon, { backgroundColor: colors.greenSurface }]}>
-              <CheckCircle2 color={colors.green} size={30} />
+            <View style={[styles.successIcon, { backgroundColor: colors.successSurface }]}>
+              <CheckCircle2 color={colors.success} size={30} />
             </View>
             <Text style={[styles.title, { color: colors.textPrimary }]}>Bildirimin alındı</Text>
             <Text style={[styles.body, { color: colors.textMuted }]}>
