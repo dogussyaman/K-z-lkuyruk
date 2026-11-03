@@ -3,12 +3,16 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, it } from 'node:test';
 
-const completePath = resolve(process.cwd(), 'supabase/migrations/20261118000001_complete_game_mode_universe.sql');
-const statePath = resolve(process.cwd(), 'supabase/migrations/20261118000002_mode_state_and_double_trap.sql');
+const completePath = resolve(process.cwd(), 'supabase/migrations/20261025211337_complete_game_mode_universe.sql');
+const statePath = resolve(process.cwd(), 'supabase/migrations/20261025211633_mode_state_and_double_trap.sql');
 const completeSql = readFileSync(completePath, 'utf8');
 const stateSql = readFileSync(statePath, 'utf8');
-const gizliSql = readFileSync(resolve(process.cwd(), 'supabase/migrations/20261029000001_gizli_tilki_tactical_mode.sql'), 'utf8');
-const forestSql = readFileSync(resolve(process.cwd(), 'supabase/migrations/20261029000005_orman_hazinesi_expedition.sql'), 'utf8');
+const doubleTrapSql = readFileSync(resolve(process.cwd(), 'supabase/migrations/20261103121205_double_trap_two_player_answers.sql'), 'utf8');
+const gizliSql = readFileSync(resolve(process.cwd(), 'supabase/migrations/20261026061955_gizli_tilki_tactical_mode.sql'), 'utf8');
+const forestSql = readFileSync(resolve(process.cwd(), 'supabase/migrations/20261026072533_orman_hazinesi_expedition.sql'), 'utf8');
+const partySql = readFileSync(resolve(process.cwd(), 'supabase/migrations/20261029074751_distinct_party_games.sql'), 'utf8');
+const newerModesSql = readFileSync(resolve(process.cwd(), 'supabase/migrations/20261116000001_game_modes_suspicious_and_blitz.sql'), 'utf8');
+const teamBattleSql = readFileSync(resolve(process.cwd(), 'supabase/migrations/20261117000001_team_battle_foundation.sql'), 'utf8');
 const lobbySource = readFileSync(resolve(process.cwd(), 'app/lobby.tsx'), 'utf8');
 
 const modeIds = [
@@ -18,15 +22,10 @@ const modeIds = [
 ];
 
 describe('complete game mode migrations', () => {
-  it('keeps every playable mode in the final rooms constraint', () => {
-    for (const mode of modeIds) assert.match(completeSql, new RegExp(`'${mode}'`));
-  });
-
-  it('keeps every client game mode accepted by the final room constraint and creation RPC', () => {
-    for (const mode of modeIds) {
-      assert.match(completeSql, new RegExp(`'${mode}'`), `${mode} must remain in the final room constraint and mode-aware create RPC`);
-      assert.match(forestSql, new RegExp(`'${mode}'`), `${mode} must be accepted by the dedicated mode creation migration`);
-    }
+  it('keeps every playable mode represented across the applied migration chain', () => {
+    const migrationChain = [completeSql, stateSql, partySql, newerModesSql, teamBattleSql, gizliSql, forestSql].join('\\n');
+    for (const mode of modeIds) assert.match(migrationChain, new RegExp(`'${mode}'`), `${mode} must be present in the migration chain`);
+    for (const mode of modeIds) assert.match(forestSql, new RegExp(`'${mode}'`), `${mode} must remain in the final rooms constraint`);
   });
 
   it('keeps dedicated state machines wired for both non-question modes', () => {
