@@ -20,6 +20,7 @@ const modeIds = [
   'secret_missions', 'double_trap', 'golden_question', 'detective_fox',
   'gizli_tilki', 'orman_hazinesi',
 ];
+const partyModeIds = ['tilki_soygunu', 'kizil_pakt', 'kilit_altinda', 'kayip_kare', 'gece_pazari'];
 
 describe('complete game mode migrations', () => {
   it('keeps every playable mode represented across the applied migration chain', () => {
@@ -42,11 +43,17 @@ describe('complete game mode migrations', () => {
     assert.match(stateSql, /REVOKE ALL ON FUNCTION public\.get_room_state_secure/);
   });
 
+  it('keeps the five independent party modes in the party engine', () => {
+    for (const mode of partyModeIds) {
+      assert.match(partySql, new RegExp(`'${mode}'`), `${mode} must be present in the independent party-mode engine`);
+    }
+  });
+
   it('contains the core server-authoritative mode mechanics', () => {
     assert.match(completeSql, /picker\.team_id IS DISTINCT FROM v_player\.team_id/);
-    assert.match(partySql, /v_room\.party_mode='golden_question'/);
-    assert.match(partySql, /v_room\.party_mode='secret_missions'/);
-    assert.match(partySql, /v_room\.party_mode='detective_fox'/);
+    assert.match(partySql, /v_room\.game_mode='golden_question'/);
+    assert.match(partySql, /v_room\.game_mode='secret_missions'/);
+    assert.match(partySql, /v_room\.game_mode='detective_fox'/);
     assert.match(stateSql, /v_room\.game_mode\s*=\s*'double_trap'/);
     assert.match(stateSql, /'teamScores'/);
     assert.match(stateSql, /'modeMeta'/);
