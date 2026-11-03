@@ -58,9 +58,9 @@ remain external release steps.
 - [ ] App icon, launch/splash presentation and required iPhone screenshots.
 - [ ] Because iPad support is enabled, test iPad layouts and prepare iPad
   screenshots; otherwise explicitly decide whether to disable tablet support.
-- [ ] Test Google OAuth, email registration, email confirmation, password
-  recovery, session restoration, account deletion and sign-out on a physical
-  iPhone and iPad.
+- [ ] Test Apple OAuth, Google OAuth, email registration, email confirmation,
+  password recovery, session restoration, account deletion and sign-out on a
+  physical iPhone and iPad.
 - [ ] Provide a review account or a clear review path that does not depend on
   finding other live players.
 
