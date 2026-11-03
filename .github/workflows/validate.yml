@@ -1,4 +1,4 @@
-name: Validate game economy changes
+name: Validate Kızılkuyruk app and game modes
 
 on:
   push:
@@ -37,3 +37,12 @@ jobs:
 
       - name: Type-check TypeScript
         run: npm run typecheck
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Build production web export
+        run: npm run build:web
+
+      - name: Check Expo project configuration
+        run: npx --yes expo-doctor
