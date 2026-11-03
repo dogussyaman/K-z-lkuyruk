@@ -5,13 +5,14 @@
 
 ## Current result
 
-The production database records 19 migrations. Their repository filenames now use the same version IDs as the Supabase migration history.
+The production database records 20 migrations. Their repository filenames now use the same version IDs as the Supabase migration history.
 
 The following new migrations were applied to production and recorded:
 
 - `20261103121201_team_battle_start_guard.sql`
 - `20261103121205_double_trap_two_player_answers.sql`
 - `20261103121209_account_deletion.sql`
+- `20261103122647_player_reporting.sql`
 
 The first two historical migrations, `20261025211337` and `20261025211633`, were already recorded in production. They were not re-applied. Their source files were restored to the original migration content and aligned to the recorded version IDs.
 
@@ -22,6 +23,11 @@ The first two historical migrations, `20261025211337` and `20261025211633`, were
 - No real player account was deleted and no smoke-test fixture was committed.
 - Deployed the `delete-account` Edge Function. It is ACTIVE and requires a valid JWT.
 - The `delete_account_data_secure` RPC is executable only by `service_role`.
+- Deployed private player reports with server-side room membership, self-report,
+  bot, duplicate and rate-limit checks. Account deletion anonymizes report
+  identifiers and name snapshots while retaining moderation evidence.
+- Ran the player-reporting SQL smoke test with synthetic Auth users and rolled
+  back the test transaction.
 
 ## Unrecorded repository migrations — do not auto-apply
 
