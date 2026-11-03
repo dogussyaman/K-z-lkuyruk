@@ -8,7 +8,7 @@ import { useTheme } from '@/theme/ThemeProvider';
 
 export default function AccountDeletionScreen() {
   const { colors } = useTheme();
-  const { currentPlayer, isLive, service, setCurrentPlayer } = useGameStore();
+  const { currentPlayer, isLive, service, setCurrentPlayer, setRoomCode, setRoomState } = useGameStore();
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -23,6 +23,8 @@ export default function AccountDeletionScreen() {
     try {
       await service.deleteAccount();
       setCurrentPlayer(null);
+      setRoomCode(null);
+      setRoomState(null);
       setConfirming(false);
       router.replace('/auth');
     } catch (cause) {
