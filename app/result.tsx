@@ -1,9 +1,9 @@
 import { useTheme, useThemeStyles } from '@/theme/ThemeProvider';
 import type { ThemeColors } from '@/theme/ThemeProvider';
 import { useEffect, useRef, useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, Image } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, Image, Pressable } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { ArrowRight, Check, Search, Zap } from 'lucide-react-native';
+import { ArrowRight, Check, Search, Zap, Flag } from 'lucide-react-native';
 import {
   Screen,
   Button,
@@ -431,9 +431,25 @@ export default function ResultScreen() {
                   <View style={[styles.playerRow, player.id === me?.id && styles.currentPlayerRow]}>
                     <Avatar avatarKey={player.avatarUrl ?? player.avatarKey} userId={player.id} size={38} />
                     <View style={styles.playerDetails}>
-                      <Text style={styles.playerName} numberOfLines={1}>
-                        {player.name}{player.id === me?.id ? ' (Sen)' : ''}
-                      </Text>
+                      <View style={styles.playerNameRow}>
+                        <Text style={styles.playerName} numberOfLines={1}>
+                          {player.name}{player.id === me?.id ? ' (Sen)' : ''}
+                        </Text>
+                        {service.kind === 'supabase' && roomCode && player.id !== me?.id && !player.isBot ? (
+                          <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel={`${player.name} oyuncusunu bildir`}
+                            style={styles.reportButton}
+                            onPress={() => router.push({
+                              pathname: '/report-player',
+                              params: { playerId: player.id, roomCode },
+                            })}
+                          >
+                            <Flag size={13} color={colors.textSecondary} />
+                            <Text style={styles.reportText}>Bildir</Text>
+                          </Pressable>
+                        ) : null}
+                      </View>
                       {result?.victimsCount ? (
                         <Text style={styles.playerPointsHint}>
                           {result.victimsCount} oyuncuyu tuzağa düşürdü
@@ -720,6 +736,27 @@ const createStyles = (colors: ThemeColors, mode: 'dark' | 'light') => StyleSheet
   playerDetails: {
     flex: 1,
     minWidth: 0,
+  },
+  playerNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+  },
+  reportButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.pill,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+  },
+  reportText: {
+    fontSize: 10,
+    color: colors.textSecondary,
+    fontFamily: 'Poppins-Medium',
   },
   playerName: {
     ...typography.bodyMedium,
