@@ -93,12 +93,22 @@ export function validateFakeAnswer(
   fakeAnswer: string,
   otherFakeAnswers: Iterable<string>
 ): FakeAnswerValidationError {
-  const normalized = normalizeChoiceText(fakeAnswer);
-  if (!normalized) return null;
-  if (normalized === normalizeChoiceText(question.correctAnswer ?? '')) return 'correct_answer';
-  for (const answer of otherFakeAnswers) {
-    if (normalizeChoiceText(answer) === normalized) return 'duplicate_answer';
+  const candidates = fakeAnswer.split(/\r?\n/).map((answer) => answer.trim()).filter(Boolean);
+  if (candidates.length === 0) return null;
+  const normalizedCandidates = candidates.map(normalizeChoiceText);
+  const correct = normalizeChoiceText(question.correctAnswer ?? '');
+  if (normalizedCandidates.some((answer) => answer === correct)) return 'correct_answer';
+
+  const seen = new Set<string>();
+  for (const answer of normalizedCandidates) {
+    if (seen.has(answer)) return 'duplicate_answer';
+    seen.add(answer);
   }
+
+  const existing = [...otherFakeAnswers].flatMap((answer) =>
+    answer.split(/\r?\n/).map((part) => normalizeChoiceText(part)).filter(Boolean)
+  );
+  if (normalizedCandidates.some((answer) => existing.includes(answer))) return 'duplicate_answer';
   return null;
 }
 
@@ -114,12 +124,13 @@ export function blendChoices(
   ];
   const seenTexts = new Set<string>([normalizeChoiceText(trueAnswer)]);
   for (const [playerId, fakeText] of Object.entries(fakeAnswers)) {
-    const clean = fakeText.trim();
-    if (!clean) continue;
-    const normalized = normalizeChoiceText(clean);
-    if (seenTexts.has(normalized)) continue;
-    seenTexts.add(normalized);
-    rawList.push({ text: clean, authorId: playerId, isCorrect: false });
+    const candidates = fakeText.split(/\r?\n/).map((answer) => answer.trim()).filter(Boolean);
+    for (const clean of candidates) {
+      const normalized = normalizeChoiceText(clean);
+      if (seenTexts.has(normalized)) continue;
+      seenTexts.add(normalized);
+      rawList.push({ text: clean, authorId: playerId, isCorrect: false });
+    }
   }
   const arr = [...rawList];
   let s = randomSeed * 9301 + 49297;
