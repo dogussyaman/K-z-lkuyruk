@@ -6,7 +6,7 @@ import { resolve } from 'node:path';
 const botControls = readFileSync(resolve(process.cwd(), 'components/LobbyBotControls.tsx'), 'utf8');
 
 const migration = readFileSync(
-  resolve(process.cwd(), 'supabase/migrations/20261026100000_human_like_test_bots.sql'),
+  resolve(process.cwd(), 'supabase/migrations/20261026093719_human_like_test_bots.sql'),
   'utf8'
 );
 
