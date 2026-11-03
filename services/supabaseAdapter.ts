@@ -409,6 +409,42 @@ export class SupabaseGameService implements GameService {
     return this.exchangeOAuthCode(code);
   }
 
+  async signInWithApple(): Promise<Player> {
+    const sb = ensureSupabase();
+    const redirectTo = Platform.OS === 'web'
+      ? getWebAppUrl('auth/callback')
+      : Linking.createURL('auth/callback');
+    const { data, error } = await sb.auth.signInWithOAuth({
+      provider: 'apple',
+      options: {
+        redirectTo,
+        skipBrowserRedirect: true,
+        scopes: 'email name',
+      },
+    });
+    if (error) throw new ServiceError('APPLE_AUTH_FAILED', this.authErrorMessage(error.message));
+    if (!data.url) throw new ServiceError('APPLE_AUTH_FAILED', 'Apple giriş bağlantısı oluşturulamadı.');
+
+    if (Platform.OS === 'web') {
+      window.location.assign(data.url);
+      return new Promise<Player>(() => {});
+    }
+
+    const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+    if (result.type === 'cancel' || result.type === 'dismiss') {
+      throw new ServiceError('AUTH_CANCELLED', 'Apple girişi iptal edildi.');
+    }
+    if (result.type !== 'success' || !result.url) {
+      throw new ServiceError('APPLE_AUTH_FAILED', 'Apple giriş akışı tamamlanamadı.');
+    }
+    const params = new URL(result.url).searchParams;
+    const oauthError = params.get('error_description') ?? params.get('error');
+    if (oauthError) throw new ServiceError('APPLE_AUTH_FAILED', this.authErrorMessage(oauthError));
+    const code = params.get('code');
+    if (!code) throw new ServiceError('APPLE_AUTH_FAILED', 'Apple yanıtında oturum kodu bulunamadı.');
+    return this.exchangeOAuthCode(code);
+  }
+
   async completeOAuthCallback(code: string): Promise<Player> {
     return this.exchangeOAuthCode(code);
   }
