@@ -547,6 +547,28 @@ export class SupabaseGameService implements GameService {
     this.emit({ type: 'auth_state', payload: { player: null, isAnonymous: false } });
   }
 
+  async deleteAccount(): Promise<void> {
+    const sb = ensureSupabase();
+    const { error } = await sb.functions.invoke('delete-account', { body: {} });
+    if (error) {
+      let message = error.message;
+      const context = (error as unknown as { context?: Response }).context;
+      if (context && typeof context.clone === 'function') {
+        try {
+          const payload = await context.clone().json() as { error?: string };
+          if (payload.error) message = payload.error;
+        } catch {
+          // Fall back to the Functions error message when the response is not JSON.
+        }
+      }
+      throw new ServiceError('ACCOUNT_DELETE_FAILED', message);
+    }
+
+    await sb.auth.signOut({ scope: 'local' });
+    this.cachedPlayer = null;
+    this.emit({ type: 'auth_state', payload: { player: null, isAnonymous: false } });
+  }
+
   async createRoom(config: {
     hostName: string;
     avatarKey: string;
