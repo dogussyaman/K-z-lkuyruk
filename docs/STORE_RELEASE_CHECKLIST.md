@@ -26,12 +26,12 @@ remain external release steps.
   relationships, game-room activity, gameplay statistics, uploaded profile
   images, retention and deletion. Add its URL to both store records and in-app
   settings.
-- [ ] Add an in-app account deletion flow for registered accounts and a public
-  account-deletion request URL for Google Play. The current profile screen only
-  exposes sign-out; it does not delete the Auth identity and associated data.
-- [ ] Confirm the deletion implementation covers profile/avatar storage,
-  friendships, blocks, stats, active rooms, round records, private game state,
-  invites and all other user-linked data. Do not ship a UI that merely signs out.
+- [ ] Deploy and end-to-end test the in-app account deletion flow and public
+  account-deletion URL on a test account before store submission.
+- [ ] Verify deletion removes the Auth identity, avatar storage, friendships,
+  blocks, stats, historical round references, private game state and invites.
+  Active games intentionally block deletion until the player leaves; host-only
+  rooms are handed off or closed.
 - [ ] Publish terms of service and a support/contact page with a monitored
   contact channel. Confirm the legal operator name and contact details.
 - [ ] Complete Apple App Privacy and Google Play Data safety declarations from
@@ -92,8 +92,10 @@ remain external release steps.
   project ID/owner and production environment configuration.
 - Native build numbers are initialized at 1 and configured for remote
   auto-increment in EAS.
-- Account deletion, a published privacy policy, terms and a monitored support
-  contact are not implemented by this configuration change.
+- Account deletion is implemented in the app and repository migration/Edge
+  Function source, but is not yet deployed or end-to-end verified in production.
+- A published privacy policy, terms and a monitored support contact are still
+  required before store submission.
 - The production Supabase migration history differs from the repository
   migration filenames. Compare actual schema/function definitions before
   applying any pending migration.
