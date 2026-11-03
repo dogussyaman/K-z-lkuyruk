@@ -28,7 +28,7 @@ Before the first run:
    `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` under **Settings → Secrets and
    variables → Actions → Variables**. These are public client credentials;
    never use a Supabase `service_role` key here.
-2. Add `https://dogussyaman.github.io/zartix-main/auth/callback` to the
+2. Add `https://dogussyaman.github.io/K-z-lkuyruk/auth/callback` to the
    Supabase Auth redirect URL allowlist.
 3. Under **Settings → Pages**, set the publishing source to **GitHub Actions**.
 4. Push a commit to `main` or run the workflow manually.
@@ -38,6 +38,24 @@ fallback so Expo Router routes continue to work when opened directly or
 refreshed. This base path is only applied during the web deployment; it does
 not change the iOS or Android app configuration. For a custom Pages domain,
 add the Actions variable `EXPO_PUBLIC_BASE_URL` with the value `/`.
+
+## Native iOS and Android builds (EAS)
+
+The repository includes development, preview and production profiles in
+`eas.json`. Before the first native build:
+
+1. Run `eas init` and commit the generated EAS project ID/owner.
+2. Configure the EAS production environment with
+   `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
+3. Build an installable preview with
+   `eas build --platform all --profile preview`.
+4. After the release checklist passes, build with
+   `eas build --platform all --profile production`.
+
+Production builds use remote version management and auto-increment native
+build numbers. Store submission still requires the App Store Connect and
+Google Play Console records, signing credentials, legal disclosures and
+review assets. See [Store release checklist](docs/STORE_RELEASE_CHECKLIST.md).
 
 ## Supabase schema
 
