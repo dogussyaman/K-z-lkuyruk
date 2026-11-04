@@ -32,7 +32,10 @@ const ACTIONS = [
 export default function OrmanHazinesiScreen() {
   const { roomCode, currentPlayer } = useGameStore();
   const [state, setState] = useState<ForestState | null>(null);
-  const [selected, setSelected] = useState<string | null>(null);
+  const selectionKey = `${roomCode ?? ''}:${state?.state_version ?? 0}:${state?.turn_number ?? 0}:${state?.phase ?? ''}`;
+  const [selection, setSelection] = useState<{ key: string; action: string | null }>({ key: '', action: null });
+  const selected = selection.key === selectionKey ? selection.action : null;
+  const setSelected = (action: string | null) => setSelection({ key: selectionKey, action });
   const flight = useRef(false);
   const reducedMotion = useReducedMotion();
   const [busy, setBusy] = useState(false);
@@ -68,7 +71,6 @@ export default function OrmanHazinesiScreen() {
   }, [roomCode]);
 
   useEffect(() => { const clock = setInterval(() => setNow(Date.now()), 250); return () => clearInterval(clock); }, []);
-  useEffect(() => { setSelected(null); }, [state?.state_version]);
   useEffect(() => {
     if (!roomCode || state?.phase !== 'expedition' || flight.current) return;
     const actor = state.players.find(p => p.player_id === state.active_player_id);

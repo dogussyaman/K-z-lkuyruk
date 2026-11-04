@@ -70,13 +70,28 @@ BEGIN
               PERFORM public.bot_take_turn_secure(code::varchar,player.player_id);
             ELSE
               PERFORM set_config('request.jwt.claim.sub',player.player_id::text,true);
-              PERFORM public.submit_fake_answer_secure(code::varchar,'Regression '||player.player_id::text||' round '||round_no);
+              PERFORM public.submit_fake_answer_secure(
+                code::varchar,
+                CASE WHEN mode='double_trap'
+                  THEN 'RA-'||substr(player.player_id::text,1,8)||'-'||round_no||E'\n'||'RB-'||substr(player.player_id::text,1,8)||'-'||round_no
+                  ELSE 'R-'||substr(player.player_id::text,1,8)||'-'||round_no
+                END
+              );
             END IF;
           END LOOP;
           -- Each real RPC commits separately, so its ON COMMIT DROP table is gone.
           DROP TABLE IF EXISTS pg_temp.temp_blended_choices;
           SELECT phase::text INTO phase_now FROM public.rooms WHERE id=room;
           IF phase_now<>'guess' THEN RAISE EXCEPTION 'Guess phase not reached: %',phase_now; END IF;
+          IF mode='double_trap' AND EXISTS (
+            SELECT 1
+            FROM public.room_players rp
+            WHERE rp.room_id=room AND rp.is_active AND NOT rp.is_bot
+              AND (SELECT count(*) FROM public.round_choices rc
+                   WHERE rc.room_id=room AND rc.round_number=round_no AND rc.author_id=rp.player_id)<>2
+          ) THEN
+            RAISE EXCEPTION 'Double Trap must expose exactly two fake choices per human author';
+          END IF;
           SELECT player_id INTO detective FROM public.room_players WHERE room_id=room AND is_active ORDER BY player_id OFFSET (round_no-1)%4 LIMIT 1;
           FOR player IN SELECT * FROM public.room_players WHERE room_id=room AND is_active ORDER BY is_bot,player_id LOOP
             IF player.is_bot THEN

@@ -43,18 +43,28 @@ export default function OnboardingScreen() {
     if (avatarCategory === 'streetwear') return style === 'streetwear';
     return false;
   });
-  const selectedCharacter = getPresetCharacterIdentity(selectedAvatar);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [takenAvatars, setTakenAvatars] = useState<string[]>([]);
   const [availabilityLoading, setAvailabilityLoading] = useState(true);
   const [availabilityError, setAvailabilityError] = useState<string | null>(null);
+  const selectedAvatarIsTaken = takenAvatars.includes(selectedAvatar);
+  const availableInFilter = filteredAvatarOptions.find((key) => !takenAvatars.includes(key));
+  const anyAvailableAvatar = avatarOptions.find((key) => !takenAvatars.includes(key));
+  const effectiveSelectedAvatar = selectedAvatarIsTaken
+    ? availableInFilter ?? anyAvailableAvatar ?? selectedAvatar
+    : selectedAvatar;
+  const effectiveAvatarCategory = selectedAvatarIsTaken && !availableInFilter && anyAvailableAvatar
+    ? 'all'
+    : avatarCategory;
+  const visibleAvatarOptions = effectiveAvatarCategory === 'all' ? avatarOptions : filteredAvatarOptions;
+  const selectedCharacter = getPresetCharacterIdentity(effectiveSelectedAvatar);
 
   const refreshTakenCharacters = useCallback(async () => {
-    setAvailabilityLoading(true);
-    setAvailabilityError(null);
     try {
-      setTakenAvatars(await service.listTakenPresetCharacters());
+      const taken = await service.listTakenPresetCharacters();
+      setTakenAvatars(taken);
+      setAvailabilityError(null);
     } catch (cause) {
       setAvailabilityError(cause instanceof Error
         ? cause.message
@@ -62,29 +72,33 @@ export default function OnboardingScreen() {
     } finally {
       setAvailabilityLoading(false);
     }
-  }, [service]);
+  }, [service, setTakenAvatars, setAvailabilityError, setAvailabilityLoading]);
 
   useEffect(() => {
     void init();
   }, [init]);
 
   useEffect(() => {
-    void refreshTakenCharacters();
-  }, [refreshTakenCharacters]);
-
-  useEffect(() => {
-    if (!takenAvatars.includes(selectedAvatar)) return;
-    const availableInFilter = filteredAvatarOptions.find((key) => !takenAvatars.includes(key));
-    if (availableInFilter) {
-      setSelectedAvatar(availableInFilter);
-      return;
-    }
-    const anyAvailable = avatarOptions.find((key) => !takenAvatars.includes(key));
-    if (anyAvailable) {
-      setSelectedAvatar(anyAvailable);
-      setAvatarCategory('all');
-    }
-  }, [takenAvatars, selectedAvatar, avatarCategory]);
+    let active = true;
+    service.listTakenPresetCharacters()
+      .then((taken) => {
+        if (!active) return;
+        setTakenAvatars(taken);
+        setAvailabilityError(null);
+      })
+      .catch((cause) => {
+        if (!active) return;
+        setAvailabilityError(cause instanceof Error
+          ? cause.message
+          : 'Karakterlerin uygunluğu kontrol edilemedi. Tekrar dene.');
+      })
+      .finally(() => {
+        if (active) setAvailabilityLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [service, setTakenAvatars, setAvailabilityError, setAvailabilityLoading]);
 
   useEffect(() => {
     // A pending anonymous auth user is retained after a race for an occupied
@@ -108,7 +122,7 @@ export default function OnboardingScreen() {
       setError(availabilityError ?? 'Karakter uygunluğu kontrol ediliyor.');
       return;
     }
-    if (takenAvatars.includes(selectedAvatar)) {
+    if (takenAvatars.includes(effectiveSelectedAvatar)) {
       setError('Bu karakter dolu. Boş karakterlerden birini seç.');
       await refreshTakenCharacters();
       return;
@@ -117,7 +131,7 @@ export default function OnboardingScreen() {
     setBusy(true);
     setError(null);
     try {
-      const player = await service.signInAnonymously(selectedCharacter.displayName, selectedAvatar);
+      const player = await service.signInAnonymously(selectedCharacter.displayName, effectiveSelectedAvatar);
       setCurrentPlayer(player);
       router.replace('/(tabs)');
     } catch (authError) {
@@ -219,14 +233,14 @@ export default function OnboardingScreen() {
 
             {/* Preview Avatar */}
             <View style={styles.previewAvatarWrap}>
-              <Avatar avatarKey={selectedAvatar} size={90} ring />
+              <Avatar avatarKey={effectiveSelectedAvatar} size={90} ring />
               <Text style={styles.selectedCharacterName}>{selectedCharacter.displayName}</Text>
               <Text style={styles.selectedCharacterHint}>Karakterin · {selectedCharacter.avatarLabel}</Text>
             </View>
 
             {/* Avatar Grid */}
             <Text style={styles.sectionLabel}>
-              KARAKTERİNİ SEÇ · {filteredAvatarOptions.filter((key) => !takenAvatars.includes(key)).length} / {filteredAvatarOptions.length} BOŞ
+              KARAKTERİNİ SEÇ · {visibleAvatarOptions.filter((key) => !takenAvatars.includes(key)).length} / {visibleAvatarOptions.length} BOŞ
             </Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.avatarFilters}>
               {([
@@ -239,7 +253,7 @@ export default function OnboardingScreen() {
                 { key: 'fashion', label: 'Moda' },
                 { key: 'streetwear', label: 'Sokak Stili' },
               ] as const).map((filter) => {
-                const active = avatarCategory === filter.key;
+                const active = effectiveAvatarCategory === filter.key;
                 return (
                   <Pressable
                     key={filter.key}
@@ -254,8 +268,8 @@ export default function OnboardingScreen() {
               })}
             </ScrollView>
             <View style={styles.avatarGrid}>
-              {filteredAvatarOptions.map((key) => {
-                const active = selectedAvatar === key;
+              {visibleAvatarOptions.map((key) => {
+                const active = effectiveSelectedAvatar === key;
                 return (
                   <Pressable
                     key={key}
@@ -324,7 +338,7 @@ export default function OnboardingScreen() {
               onPress={handleFinish}
               variant="orange"
               fullWidth
-              disabled={busy || availabilityLoading || !!availabilityError || takenAvatars.includes(selectedAvatar) || avatarOptions.every((key) => takenAvatars.includes(key))}
+              disabled={busy || availabilityLoading || !!availabilityError || takenAvatars.includes(effectiveSelectedAvatar) || avatarOptions.every((key) => takenAvatars.includes(key))}
               icon={busy ? <ActivityIndicator color="#FFF" /> : <Sparkles color="#FFF" size={20} />}
             />
           )}

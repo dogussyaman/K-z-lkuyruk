@@ -12,22 +12,24 @@ interface CountdownProps {
 
 export function Countdown({ seconds, onExpire, size = 64 }: CountdownProps) {
   const { colors: themeColors } = useTheme();
-  const [remaining, setRemaining] = useState(seconds);
+  const [timerState, setTimerState] = useState(() => ({ seconds, remaining: seconds }));
+  const remaining = timerState.seconds === seconds ? timerState.remaining : seconds;
   const progress = useSharedValue(1);
 
   useEffect(() => {
-    setRemaining(seconds);
     progress.value = 1;
     const start = Date.now();
+    let expired = false;
     const interval = setInterval(() => {
       const elapsed = (Date.now() - start) / 1000;
       const left = Math.max(0, seconds - elapsed);
-      setRemaining(Math.ceil(left));
-      progress.value = withTiming(left / seconds, {
+      setTimerState({ seconds, remaining: Math.ceil(left) });
+      progress.value = withTiming(seconds > 0 ? left / seconds : 0, {
         duration: 1000,
         easing: Easing.linear,
       });
-      if (left <= 0) {
+      if (left <= 0 && !expired) {
+        expired = true;
         clearInterval(interval);
         onExpire?.();
       }

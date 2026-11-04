@@ -26,6 +26,14 @@ export interface RoomSummary {
 export type RoomAccessPreflight = 'open' | 'password_required';
 
 export type ConnectionState = 'connecting' | 'online' | 'reconnecting' | 'offline' | 'error';
+export type PlayerReportCategory =
+  | 'harassment'
+  | 'inappropriate_name'
+  | 'inappropriate_content'
+  | 'cheating'
+  | 'spam'
+  | 'other';
+
 export type RelationshipStatus =
   | 'none'
   | 'outgoing_pending'
@@ -93,6 +101,7 @@ export interface GameService {
   signUpWithEmail(email: string, password: string, name: string): Promise<EmailSignUpResult>;
   signInWithEmail(email: string, password: string): Promise<Player>;
   signInWithGoogle(): Promise<Player>;
+  signInWithApple(): Promise<Player>;
   completeOAuthCallback(code: string): Promise<Player>;
   sendPasswordResetEmail(email: string): Promise<void>;
   updatePassword(password: string): Promise<void>;
@@ -101,6 +110,7 @@ export interface GameService {
   updatePlayerProfile(name: string, avatarKey: string): Promise<Player>;
   uploadAvatar(base64: string, mimeType: string): Promise<string>;
   signOut(): Promise<void>;
+  deleteAccount(): Promise<void>;
 
   // Rooms
   createRoom(config: {
@@ -162,6 +172,7 @@ export interface GameService {
   cancelFriendRequest(requestId: string): Promise<void>;
   removeFriend(playerId: string): Promise<void>;
   blockUser(playerId: string): Promise<void>;
+  reportPlayer(roomCode: string, playerId: string, category: PlayerReportCategory, description: string): Promise<void>;
   unblockUser(playerId: string): Promise<void>;
   listFriends(): Promise<SocialPlayer[]>;
   listFriendRequests(): Promise<FriendRequest[]>;

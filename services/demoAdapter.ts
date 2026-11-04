@@ -149,6 +149,10 @@ export class DemoGameService implements GameService {
     throw new ServiceError('AUTH_UNAVAILABLE', 'Google girişi için Supabase yapılandırılmalıdır.');
   }
 
+  async signInWithApple(): Promise<never> {
+    throw new ServiceError('AUTH_UNAVAILABLE', 'Apple girişi için Supabase yapılandırılmalıdır.');
+  }
+
   async completeOAuthCallback(): Promise<never> {
     throw new ServiceError('AUTH_UNAVAILABLE', 'Google girişi için Supabase yapılandırılmalıdır.');
   }
@@ -188,6 +192,10 @@ export class DemoGameService implements GameService {
 
   async signOut(): Promise<void> {
     this.currentPlayer = null;
+  }
+
+  async deleteAccount(): Promise<void> {
+    throw new ServiceError('ACCOUNT_DELETE_UNAVAILABLE', 'Hesap silme yalnızca canlı hesaplarda kullanılabilir.');
   }
 
   async createRoom(config: {
@@ -651,8 +659,16 @@ export class DemoGameService implements GameService {
     }
     const meId = player.id;
     const clean = fakeAnswer.trim();
-    if (!clean || clean.length > 120) {
-      throw new ServiceError('INVALID_FAKE_ANSWER', 'Cevap 1-120 karakter arasında olmalıdır.');
+    const candidates = clean.split(/\r?\n/).map((answer) => answer.trim()).filter(Boolean);
+    const isDoubleTrap = room.config.gameMode === 'double_trap';
+    if (
+      !clean
+      || (isDoubleTrap ? candidates.length !== 2 || candidates.some((answer) => answer.length > 48) : candidates.length !== 1 || clean.length > 120)
+    ) {
+      throw new ServiceError(
+        'INVALID_FAKE_ANSWER',
+        isDoubleTrap ? 'Çifte Tuzak için 1-48 karakterlik iki farklı cevap yazmalısın.' : 'Cevap 1-120 karakter arasında olmalıdır.'
+      );
     }
     const question = QUESTIONS.find((q) => q.id === room.currentQuestionId) || QUESTIONS[0];
     const validation = validateFakeAnswer(
@@ -693,7 +709,11 @@ export class DemoGameService implements GameService {
     for (const p of Object.values(room.players)) {
       if (p.id !== meId && !p.isBlockedCurrentRound && room.fakeAnswers[p.id] === undefined
         && (room.config.gameMode !== 'survival' || (p.livesRemaining ?? 3) > 0)) {
-        room.fakeAnswers[p.id] = `${botAnswers[decoyIdx % botAnswers.length]} (${decoyIdx + 1})`;
+        const firstBotAnswer = `${botAnswers[decoyIdx % botAnswers.length]} (${decoyIdx + 1})`;
+        const secondBotAnswer = `${botAnswers[(decoyIdx + 1) % botAnswers.length]} (${decoyIdx + 1}-2)`;
+        room.fakeAnswers[p.id] = room.config.gameMode === 'double_trap'
+          ? `${firstBotAnswer}\n${secondBotAnswer}`
+          : firstBotAnswer;
         decoyIdx++;
       }
     }
@@ -1091,6 +1111,10 @@ export class DemoGameService implements GameService {
   async blockUser(playerId: string): Promise<void> {
     this.relationships.set(this.relationshipKey(playerId), 'blocked');
     if (this.currentPlayer) this.relationships.set(`${playerId}:${this.currentPlayer.id}`, 'blocked');
+  }
+
+  async reportPlayer(): Promise<void> {
+    throw new ServiceError('PLAYER_REPORT_UNAVAILABLE', 'Oyuncu bildirimi yalnızca canlı oyunlarda kullanılabilir.');
   }
 
   async unblockUser(playerId: string): Promise<void> {

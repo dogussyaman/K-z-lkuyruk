@@ -73,6 +73,7 @@ export default function QuestionScreen() {
           : getRemainingSeconds(deadline, getServerNowMs())
       : secondsLeft;
   const [fakeAnswerText, setFakeAnswerText] = useState('');
+  const [fakeAnswerSecondText, setFakeAnswerSecondText] = useState('');
   const [fakeSubmitted, setFakeSubmitted] = useState(false);
   const [choices, setChoices] = useState<RoundChoice[]>([]);
   const [selectedChoiceIndex, setSelectedChoiceIndex] = useState<number | null>(null);
@@ -89,7 +90,8 @@ export default function QuestionScreen() {
   const isGamePaused = roomState?.pausedAt != null;
 
   const handleSelectSuspect = async (rivalId: string) => {
-    if (!roomCode || hasSubmittedPick || pickCommitted.current) return;
+    if (!roomCode || hasSubmittedPick || suspectedRivalId || suspectSubmissionInProgress.current) return;
+    suspectSubmissionInProgress.current = true;
     soundService.play('click');
     trigger('light');
     try {
@@ -97,6 +99,8 @@ export default function QuestionScreen() {
       setSuspectedRivalId(rivalId);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Şüpheli seçimi kaydedilemedi.');
+    } finally {
+      suspectSubmissionInProgress.current = false;
     }
   };
 
@@ -112,7 +116,7 @@ export default function QuestionScreen() {
   }, []);
 
   const pickSubmissionInProgress = useRef(false);
-  const pickCommitted = useRef(false);
+  const suspectSubmissionInProgress = useRef(false);
   const clockPlayedFake = useRef(false);
   const clockPlayedGuess = useRef(false);
   const clockAttemptedFake = useRef(false);
@@ -185,6 +189,7 @@ export default function QuestionScreen() {
   const playersList = roomState ? Object.values(roomState.players) : [];
   const me = playersList.find((p) => p.id === currentPlayer?.id) || currentPlayer;
   const isBlocked = !!me?.isBlockedCurrentRound;
+  const isDoubleTrap = roomState?.config.gameMode === 'double_trap';
   const isEliminated = roomState?.config.gameMode === 'survival' && (me?.livesRemaining ?? 3) <= 0;
   const hasSubmittedFake = fakeSubmitted || (
     roomState?.phase === 'fake_answer'
@@ -214,6 +219,7 @@ export default function QuestionScreen() {
     clockAttemptedGuess.current = false;
     setFakeSubmitted(false);
     setFakeAnswerText('');
+    setFakeAnswerSecondText('');
     setBlockedPrankRevealed(false);
     setBlockedPrankSending(false);
     setSuspectedRivalId(null);
@@ -221,7 +227,6 @@ export default function QuestionScreen() {
     if (blockedPrankTimeoutRef.current) clearTimeout(blockedPrankTimeoutRef.current);
     setChoices([]);
     setSelectedChoiceIndex(null);
-    pickCommitted.current = false;
     setSecondsLeft(totalTime);
     expirationRequested.current = null;
     soundService.stop('clock');
@@ -351,15 +356,11 @@ export default function QuestionScreen() {
       return;
     }
     if (roomState?.phase !== 'guess' || !roomCode) {
-      setChoices([]);
-      setSelectedChoiceIndex(null);
-      pickCommitted.current = false;
+      // Choices are rendered only during the guess phase; the next guess-phase
+      // fetch clears the previous round before showing the new choices.
       return;
     }
 
-    setChoices([]);
-    setSelectedChoiceIndex(null);
-    pickCommitted.current = false;
     void service.getRoundChoices(roomCode).then((list) => {
       if (choicesRequestId.current !== requestId || roomState?.phase !== 'guess') return;
       setChoices(list);
@@ -452,10 +453,23 @@ export default function QuestionScreen() {
 
   const handleFakeSubmit = () => {
     const clean = fakeAnswerText.trim();
-    if (!clean) {
-      const emptyMsg = 'Lütfen inandırıcı bir sahte cevap yaz.';
+    const second = fakeAnswerSecondText.trim();
+    if (!clean || (isDoubleTrap && !second)) {
+      const emptyMsg = isDoubleTrap
+        ? 'Çifte Tuzak için iki farklı sahte cevap yazmalısın.'
+        : 'Lütfen inandırıcı bir sahte cevap yaz.';
       setError(emptyMsg);
       showTopToast(emptyMsg, 'Cevap Boş Olamaz', 'warning');
+      return;
+    }
+    if (
+      isDoubleTrap
+      && clean.normalize('NFKC').replace(/\s+/g, ' ').toLocaleLowerCase('tr-TR')
+        === second.normalize('NFKC').replace(/\s+/g, ' ').toLocaleLowerCase('tr-TR')
+    ) {
+      const duplicateMsg = 'İki sahte cevabın birbirinden farklı olmalı.';
+      setError(duplicateMsg);
+      showTopToast(duplicateMsg, 'Farklı İki Cevap Yaz', 'warning');
       return;
     }
     soundService.stop('clock');
@@ -483,7 +497,7 @@ export default function QuestionScreen() {
       return;
     }
 
-    submitFake(clean);
+    submitFake(isDoubleTrap ? `${clean}\n${second}` : clean);
   };
 
   const submitFake = async (text: string) => {
@@ -552,10 +566,9 @@ export default function QuestionScreen() {
   };
 
   const handleChoiceSelect = (choice: RoundChoice) => {
-    if (choice.isOwnFake || hasSubmittedPick || pickCommitted.current) return;
+    if (choice.isOwnFake || hasSubmittedPick || submitting || pickSubmissionInProgress.current) return;
     soundService.play('click');
     trigger('light');
-    pickCommitted.current = true;
     setSelectedChoiceIndex(choice.choiceIndex);
     void submitPick(choice.choiceIndex);
   };
@@ -709,7 +722,9 @@ export default function QuestionScreen() {
               ) : !hasSubmittedFake ? (
                 <>
                   <View style={styles.inputContainer}>
-                    <Text style={styles.answerInputLabel}>CEVABINI YAZ</Text>
+                    <Text style={styles.answerInputLabel}>
+                      {isDoubleTrap ? 'İLK SAHTE CEVABIN' : 'CEVABINI YAZ'}
+                    </Text>
                     <Input
                       value={fakeAnswerText}
                       onChangeText={(t) => {
@@ -721,19 +736,43 @@ export default function QuestionScreen() {
                       placeholderTextColor={colors.textMuted}
                       style={styles.fakeInput}
                       maxLength={48}
-                      returnKeyType="done"
-                      onSubmitEditing={handleFakeSubmit}
+                      returnKeyType={isDoubleTrap ? 'next' : 'done'}
+                      onSubmitEditing={isDoubleTrap ? undefined : handleFakeSubmit}
                       focusedBorderColor={colors.purple}
                     />
                   </View>
+                  {isDoubleTrap ? (
+                    <View style={styles.inputContainer}>
+                      <Text style={styles.answerInputLabel}>İKİNCİ SAHTE CEVABIN</Text>
+                      <Input
+                        value={fakeAnswerSecondText}
+                        onChangeText={(t) => {
+                          setFakeAnswerSecondText(t);
+                          if (error) setError(null);
+                          if (topToast) setTopToast(null);
+                        }}
+                        placeholder="İlk cevabından farklı bir tuzak yaz..."
+                        placeholderTextColor={colors.textMuted}
+                        style={styles.fakeInput}
+                        maxLength={48}
+                        returnKeyType="done"
+                        onSubmitEditing={handleFakeSubmit}
+                        focusedBorderColor={colors.purple}
+                      />
+                    </View>
+                  ) : null}
                 </>
               ) : (
                 <PopView delay={80} duration={350}>
                   <Card variant="accent" style={styles.submittedCard}>
                     <CheckCircle2 color={colors.lime} size={32} />
-                    <Text style={styles.submittedTitle}>Cevabın Havuzda Kilitlendi!</Text>
+                    <Text style={styles.submittedTitle}>
+                      {isDoubleTrap ? 'İki Tuzağın da Kilitlendi!' : 'Cevabın Havuzda Kilitlendi!'}
+                    </Text>
                     <Text style={styles.submittedText}>
-                      Cevabın sunucuya kaydedildi ve bu tur yeniden gönderilmeyecek. Diğer oyuncular bekleniyor...
+                      {isDoubleTrap
+                        ? 'İki sahte cevabın da sunucuya kaydedildi. Diğer oyuncular bekleniyor...'
+                        : 'Cevabın sunucuya kaydedildi ve bu tur yeniden gönderilmeyecek. Diğer oyuncular bekleniyor...'}
                     </Text>
                   </Card>
                 </PopView>
@@ -877,11 +916,21 @@ export default function QuestionScreen() {
           <StickyActionBar>
             {error ? <Text style={styles.errorText}>{error}</Text> : null}
             <Button
-              label={submitting ? 'Cevabın gönderiliyor…' : 'Sahte Cevabını Kilitle!'}
+              label={
+                submitting
+                  ? 'Cevabın gönderiliyor…'
+                  : isDoubleTrap
+                    ? 'İki Tuzağı Kilitle!'
+                    : 'Sahte Cevabını Kilitle!'
+              }
               onPress={handleFakeSubmit}
               variant="orange"
               loading={submitting}
-              disabled={submitting || fakeAnswerText.trim().length === 0}
+              disabled={
+                submitting
+                || fakeAnswerText.trim().length === 0
+                || (isDoubleTrap && fakeAnswerSecondText.trim().length === 0)
+              }
               fullWidth
               icon={<Send color="#FFF" size={18} />}
             />

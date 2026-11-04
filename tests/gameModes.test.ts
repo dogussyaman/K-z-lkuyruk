@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 import { describe, it } from 'node:test';
 import { GAME_MODES, FEATURED_GAMES, CLASSIC_VARIANTS, getActiveGameModes, getComingSoonGameModes, isGameModeActive } from '../features/game/modes';
 import { GAME_MODE_THEMES } from '../features/game/themes';
-import { resolveZartoRound } from '../features/game/engine';
+import { blendChoices, normalizeChoiceText, resolveZartoRound, validateFakeAnswer } from '../features/game/engine';
 import { detectiveForRound, isGoldenRound, missionBonusForRound } from '../features/game/modeRules';
 import type { Player, RoundChoice } from '../types/game';
 import type { Question } from '../features/game/questions';
@@ -58,6 +58,26 @@ describe('complete game mode registry', () => {
       assert.ok(existsSync(filePath), `${mode.id} illustration must exist`);
       assert.ok(statSync(filePath).size > 10000, `${mode.id} illustration must not be empty`);
     }
+  });
+});
+
+describe('Double Trap answer generation', () => {
+  it('creates two separately selectable fake choices for each author', () => {
+    const blended = blendChoices(sampleQuestion, {
+      p1: 'Ankara\nİstanbul',
+      p2: 'İzmir\nBursa',
+    });
+    assert.equal(blended.length, 5);
+    assert.equal(blended.filter((choice) => choice.authorId === 'p1').length, 2);
+    assert.equal(blended.filter((choice) => choice.authorId === 'p2').length, 2);
+    assert.equal(new Set(blended.map((choice) => normalizeChoiceText(choice.text))).size, 5);
+  });
+
+  it('rejects a correct answer or duplicate within the two fake answers', () => {
+    assert.equal(validateFakeAnswer(sampleQuestion, 'Ankara\n1923', []), 'correct_answer');
+    assert.equal(validateFakeAnswer(sampleQuestion, 'Ankara\nAnkara', []), 'duplicate_answer');
+    assert.equal(validateFakeAnswer(sampleQuestion, 'Ankara\nİstanbul', ['İstanbul\nBursa']), 'duplicate_answer');
+    assert.equal(validateFakeAnswer(sampleQuestion, 'Ankara\nİstanbul', []), null);
   });
 });
 

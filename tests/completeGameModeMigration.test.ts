@@ -3,27 +3,30 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, it } from 'node:test';
 
-const completePath = resolve(process.cwd(), 'supabase/migrations/20261118000001_complete_game_mode_universe.sql');
-const statePath = resolve(process.cwd(), 'supabase/migrations/20261118000002_mode_state_and_double_trap.sql');
+const completePath = resolve(process.cwd(), 'supabase/migrations/20261025211337_complete_game_mode_universe.sql');
+const statePath = resolve(process.cwd(), 'supabase/migrations/20261025211633_mode_state_and_double_trap.sql');
 const completeSql = readFileSync(completePath, 'utf8');
 const stateSql = readFileSync(statePath, 'utf8');
-const gizliSql = readFileSync(resolve(process.cwd(), 'supabase/migrations/20261029000001_gizli_tilki_tactical_mode.sql'), 'utf8');
-const forestSql = readFileSync(resolve(process.cwd(), 'supabase/migrations/20261029000005_orman_hazinesi_expedition.sql'), 'utf8');
+const doubleTrapSql = readFileSync(resolve(process.cwd(), 'supabase/migrations/20261103121205_double_trap_two_player_answers.sql'), 'utf8');
+const gizliSql = readFileSync(resolve(process.cwd(), 'supabase/migrations/20261026061955_gizli_tilki_tactical_mode.sql'), 'utf8');
+const forestSql = readFileSync(resolve(process.cwd(), 'supabase/migrations/20261026072533_orman_hazinesi_expedition.sql'), 'utf8');
+const partySql = readFileSync(resolve(process.cwd(), 'supabase/migrations/20261029074751_distinct_party_games.sql'), 'utf8');
+const newerModesSql = readFileSync(resolve(process.cwd(), 'supabase/migrations/20261116000001_game_modes_suspicious_and_blitz.sql'), 'utf8');
+const teamBattleSql = readFileSync(resolve(process.cwd(), 'supabase/migrations/20261117000001_team_battle_foundation.sql'), 'utf8');
 const lobbySource = readFileSync(resolve(process.cwd(), 'app/lobby.tsx'), 'utf8');
 
 const modeIds = [
   'classic', 'survival', 'suspicious', 'blitz', 'team_battle',
   'secret_missions', 'double_trap', 'golden_question', 'detective_fox',
+  'gizli_tilki', 'orman_hazinesi',
 ];
+const partyModeIds = ['tilki_soygunu', 'kizil_pakt', 'kilit_altinda', 'kayip_kare', 'gece_pazari'];
 
 describe('complete game mode migrations', () => {
-  it('keeps every playable mode in the final rooms constraint', () => {
-    for (const mode of modeIds) assert.match(completeSql, new RegExp(`'${mode}'`));
-  });
-
-  it('keeps all eleven client modes represented in the final server mode constraint', () => {
-    const allModes = ['classic', 'survival', 'suspicious', 'blitz', 'team_battle', 'secret_missions', 'double_trap', 'golden_question', 'detective_fox', 'gizli_tilki', 'orman_hazinesi'];
-    for (const mode of allModes) assert.match(forestSql, new RegExp(`'${mode}'`), `${mode} must be accepted by the final create-room migration`);
+  it('keeps every playable mode represented across the applied migration chain', () => {
+    const migrationChain = [completeSql, stateSql, partySql, newerModesSql, teamBattleSql, gizliSql, forestSql].join('\\n');
+    for (const mode of modeIds) assert.match(migrationChain, new RegExp(`'${mode}'`), `${mode} must be present in the migration chain`);
+    for (const mode of modeIds) assert.match(forestSql, new RegExp(`'${mode}'`), `${mode} must remain in the final rooms constraint`);
   });
 
   it('keeps dedicated state machines wired for both non-question modes', () => {
@@ -40,13 +43,21 @@ describe('complete game mode migrations', () => {
     assert.match(stateSql, /REVOKE ALL ON FUNCTION public\.get_room_state_secure/);
   });
 
+  it('keeps the five independent party modes in the party engine', () => {
+    for (const mode of partyModeIds) {
+      assert.match(partySql, new RegExp(`'${mode}'`), `${mode} must be present in the independent party-mode engine`);
+    }
+  });
+
   it('contains the core server-authoritative mode mechanics', () => {
     assert.match(completeSql, /picker\.team_id IS DISTINCT FROM v_player\.team_id/);
     assert.match(completeSql, /v_room\.game_mode='golden_question'/);
     assert.match(completeSql, /v_room\.game_mode='secret_missions'/);
     assert.match(completeSql, /v_room\.game_mode='detective_fox'/);
-    assert.match(stateSql, /v_room\.game_mode='double_trap'/);
+    assert.match(stateSql, /v_room\.game_mode\s*=\s*'double_trap'/);
     assert.match(stateSql, /'teamScores'/);
     assert.match(stateSql, /'modeMeta'/);
+    assert.match(doubleTrapSql, /cardinality\(v_answers\) <> 2/);
+    assert.match(doubleTrapSql, /FOREACH v_answer IN ARRAY v_answers/);
   });
 });

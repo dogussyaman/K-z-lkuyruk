@@ -9,10 +9,12 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.foxmasque.game"
+      "bundleIdentifier": "com.foxmasque.game",
+      "buildNumber": "1"
     },
     "android": {
-      "package": "com.foxmasque.game"
+      "package": "com.foxmasque.game",
+      "versionCode": 1
     },
     "web": {
       "bundler": "metro",

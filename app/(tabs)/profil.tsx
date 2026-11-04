@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View, ScrollView, Switch, Pressable, Platform, Modal, KeyboardAvoidingView } from 'react-native';
 import { router } from 'expo-router';
 import { useFocusEffect } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
-import { Shield, Zap, Award, Sparkles, Volume2, Vibrate, Globe, Check, Edit2, Flame, ImagePlus, LogOut, Sun, Moon, Shuffle } from 'lucide-react-native';
+import { Shield, Zap, Award, Sparkles, Volume2, Vibrate, Globe, Check, Edit2, Flame, ImagePlus, LogOut, Sun, Moon, Shuffle, Trash2 } from 'lucide-react-native';
 import { Screen, ScreenHeader, Card, Button, Avatar, Badge, Input } from '@/components/ui';
 import { spacing, typography, radii, shadows } from '@/theme';
 import { useTheme, useThemeStyles } from '@/theme/ThemeProvider';
@@ -24,8 +24,22 @@ export default function ProfilScreen() {
   const { enabled: soundEnabled, ready: soundPreferenceReady, setEnabled: setSoundEnabled } = useSound();
 
   const [editingName, setEditingName] = useState(false);
-  const [tempName, setTempName] = useState(currentPlayer?.name ?? 'Oyuncu');
-  const [selectedAvatar, setSelectedAvatar] = useState(currentPlayer?.avatarKey ?? 'fox');
+  const [profileDraft, setProfileDraft] = useState<{
+    playerId: string | null;
+    name: string;
+    avatarKey: string;
+  } | null>(null);
+  const activeProfileDraft = profileDraft && profileDraft.playerId === currentPlayer?.id
+    ? profileDraft
+    : {
+        playerId: currentPlayer?.id ?? null,
+        name: currentPlayer?.name ?? 'Oyuncu',
+        avatarKey: currentPlayer?.avatarKey ?? 'fox',
+      };
+  const tempName = activeProfileDraft.name;
+  const selectedAvatar = activeProfileDraft.avatarKey;
+  const setTempName = (name: string) => setProfileDraft({ ...activeProfileDraft, name });
+  const setSelectedAvatar = (avatarKey: string) => setProfileDraft({ ...activeProfileDraft, avatarKey });
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const [showAllAvatars, setShowAllAvatars] = useState(false);
   const [selectedAvatarCategory, setSelectedAvatarCategory] = useState<'all' | 'special' | 'people' | 'robots' | 'emoji' | 'animals' | 'fashion' | 'streetwear'>('all');
@@ -58,12 +72,6 @@ export default function ProfilScreen() {
   useFocusEffect(useCallback(() => {
     void refreshStats();
   }, [refreshStats]));
-
-  useEffect(() => {
-    if (!currentPlayer) return;
-    setSelectedAvatar(currentPlayer.avatarKey);
-    setTempName(currentPlayer.name);
-  }, [currentPlayer?.id]);
 
   const saveProfile = async (name: string, avatarKey: string) => {
     if (!currentPlayer || savingProfile) return;
@@ -486,7 +494,7 @@ export default function ProfilScreen() {
                 <Volume2 color={colors.purpleSoft} size={20} />
                 <View>
                   <Text style={styles.settingText}>Ses Efektleri</Text>
-                  <Text style={styles.settingSub}>Oyun içi zil ve parti jingle'ları</Text>
+                  <Text style={styles.settingSub}>Oyun içi zil ve parti jingle’ları</Text>
                 </View>
               </View>
               <Switch
@@ -558,6 +566,13 @@ export default function ProfilScreen() {
               {isAnonymous ? 'Misafir oturumu' : 'Supabase hesabı'}
             </Text>
             {profileError ? <Text style={styles.profileError}>{profileError}</Text> : null}
+            <Button
+              label="Hesabımı kalıcı olarak sil"
+              variant="danger"
+              fullWidth
+              onPress={() => router.push('/account-deletion')}
+              icon={<Trash2 color="#FFF" size={18} />}
+            />
             <Button
               label={signingOut ? 'Çıkış yapılıyor...' : 'Çıkış yap'}
               variant="danger"
