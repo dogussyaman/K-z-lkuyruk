@@ -12,6 +12,7 @@ export type GameMode =
   | 'kayip_kare'
   | 'gece_pazari'
   | 'tilki_parkuru'
+  | 'kizilkure_parkuru'
   | 'kivilcim_kapisma'
   | 'classic'
   | 'survival'
@@ -30,7 +31,6 @@ export interface Player {
   name: string;
   avatarKey: string;
   isHost: boolean;
-  isBot?: boolean;
   isReady: boolean;
   isOnline: boolean;
   score: number;

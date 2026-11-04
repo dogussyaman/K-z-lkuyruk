@@ -81,7 +81,9 @@ export default function ModeCreateRoomScreen() {
         </View>
 
         <View style={[styles.hero, { borderColor: theme.accent }]}>
-          {isPartyMode(mode.id) ? (
+          {mode.id === 'kizilkure_parkuru' ? (
+            <Image source={gameModeImages[mode.illustrationKey]} style={styles.heroImage} resizeMode="cover" />
+          ) : isPartyMode(mode.id) ? (
             <>
               <LinearGradient colors={[theme.background, theme.surface, theme.background]} style={styles.heroImage} />
               <Text style={[styles.heroGameGlyph, { color: theme.accent }]}>{theme.heroEmoji}</Text>

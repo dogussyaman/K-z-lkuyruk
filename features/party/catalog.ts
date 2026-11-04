@@ -5,6 +5,7 @@ export const PARTY_IDS = [
   'kayip_kare',
   'gece_pazari',
   'tilki_parkuru',
+  'kizilkure_parkuru',
   'kivilcim_kapisma',
 ] as const;
 export type PartyMode = (typeof PARTY_IDS)[number];
@@ -169,6 +170,28 @@ export const PARTY_GAMES = [
       'Ekranda yanan rengi kendi cihazında seç.',
       'Doğru ve hızlı tepki puan kazandırır; yanlış renk puan düşürür.',
       'Sekiz turun sonunda en yüksek puanlı oyuncu kazanır. Botların tepki süreleri farklıdır.',
+    ],
+  },
+  {
+    id: 'kizilkure_parkuru',
+    name: 'Kızılküre Parkuru',
+    tagline: 'Yuvarlan, zıpla, üç etapta finişe yetiş.',
+    description: 'Herkes aynı renkli platform parkurunu kendi cihazında oynar. Boşlukları atla, sivri tuzaklardan kaç ve üç farklı dünyayı süreye karşı tamamla.',
+    badge: 'PLATFORM YARIŞI',
+    emoji: '🔴',
+    accent: '#FF665C',
+    background: '#10141C',
+    surface: '#242532',
+    min: 2,
+    max: 8,
+    rounds: 3,
+    minutes: '4–8 dk',
+    illustration: 'kizilkure_parkuru',
+    steps: [
+      'Yön tuşları veya ekrandaki düğmelerle topu yuvarla; zıplama düğmesini basılı tut.',
+      'Üç etapta boşlukları, sivri tuzakları ve yükseltileri aş; kontrol noktaları düşüşte seni geri döndürür.',
+      'Bütün oyuncular kendi hızında yarışır; etap süreleri ve toplam bitiriş süresi odada canlı sıralanır.',
+      'Üç etabı en kısa toplam sürede bitiren parkurun şampiyonu olur.',
     ],
   },
 ] as const;

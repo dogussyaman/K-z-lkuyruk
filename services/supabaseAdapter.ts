@@ -8,7 +8,6 @@ import type {
   EmailSignUpResult,
   FriendRequest,
   GameService,
-  PlayerReportCategory,
   LeaderboardScope,
   RelationshipStatus,
   RoomSummary,
@@ -410,42 +409,6 @@ export class SupabaseGameService implements GameService {
     return this.exchangeOAuthCode(code);
   }
 
-  async signInWithApple(): Promise<Player> {
-    const sb = ensureSupabase();
-    const redirectTo = Platform.OS === 'web'
-      ? getWebAppUrl('auth/callback')
-      : Linking.createURL('auth/callback');
-    const { data, error } = await sb.auth.signInWithOAuth({
-      provider: 'apple',
-      options: {
-        redirectTo,
-        skipBrowserRedirect: true,
-        scopes: 'email name',
-      },
-    });
-    if (error) throw new ServiceError('APPLE_AUTH_FAILED', this.authErrorMessage(error.message));
-    if (!data.url) throw new ServiceError('APPLE_AUTH_FAILED', 'Apple giriş bağlantısı oluşturulamadı.');
-
-    if (Platform.OS === 'web') {
-      window.location.assign(data.url);
-      return new Promise<Player>(() => {});
-    }
-
-    const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
-    if (result.type === 'cancel' || result.type === 'dismiss') {
-      throw new ServiceError('AUTH_CANCELLED', 'Apple girişi iptal edildi.');
-    }
-    if (result.type !== 'success' || !result.url) {
-      throw new ServiceError('APPLE_AUTH_FAILED', 'Apple giriş akışı tamamlanamadı.');
-    }
-    const params = new URL(result.url).searchParams;
-    const oauthError = params.get('error_description') ?? params.get('error');
-    if (oauthError) throw new ServiceError('APPLE_AUTH_FAILED', this.authErrorMessage(oauthError));
-    const code = params.get('code');
-    if (!code) throw new ServiceError('APPLE_AUTH_FAILED', 'Apple yanıtında oturum kodu bulunamadı.');
-    return this.exchangeOAuthCode(code);
-  }
-
   async completeOAuthCallback(code: string): Promise<Player> {
     return this.exchangeOAuthCode(code);
   }
@@ -584,28 +547,6 @@ export class SupabaseGameService implements GameService {
     this.emit({ type: 'auth_state', payload: { player: null, isAnonymous: false } });
   }
 
-  async deleteAccount(): Promise<void> {
-    const sb = ensureSupabase();
-    const { error } = await sb.functions.invoke('delete-account', { body: {} });
-    if (error) {
-      let message = error.message;
-      const context = (error as unknown as { context?: Response }).context;
-      if (context && typeof context.clone === 'function') {
-        try {
-          const payload = await context.clone().json() as { error?: string };
-          if (payload.error) message = payload.error;
-        } catch {
-          // Fall back to the Functions error message when the response is not JSON.
-        }
-      }
-      throw new ServiceError('ACCOUNT_DELETE_FAILED', message);
-    }
-
-    await sb.auth.signOut({ scope: 'local' });
-    this.cachedPlayer = null;
-    this.emit({ type: 'auth_state', payload: { player: null, isAnonymous: false } });
-  }
-
   async createRoom(config: {
     hostName: string;
     avatarKey: string;
@@ -626,6 +567,8 @@ export class SupabaseGameService implements GameService {
 
     const createRpc = config.gameMode === 'kivilcim_kapisma'
       ? 'create_kivilcim_room_secure'
+      : config.gameMode === 'kizilkure_parkuru'
+      ? 'create_kizilkure_room_secure'
       : config.gameMode === 'tilki_parkuru'
       ? 'create_parkur_room_secure'
       : isPartyMode(config.gameMode)
@@ -1172,17 +1115,6 @@ export class SupabaseGameService implements GameService {
     const sb = ensureSupabase();
     const { error } = await sb.rpc('block_user_secure', { p_other_id: playerId });
     if (error) throw new ServiceError('USER_BLOCK_FAILED', error.message);
-  }
-
-  async reportPlayer(roomCode: string, playerId: string, category: PlayerReportCategory, description: string): Promise<void> {
-    const sb = ensureSupabase();
-    const { error } = await sb.rpc('report_player_secure', {
-      p_room_code: roomCode,
-      p_reported_player_id: playerId,
-      p_category: category,
-      p_description: description,
-    });
-    if (error) throw new ServiceError('PLAYER_REPORT_FAILED', error.message);
   }
 
   async unblockUser(playerId: string): Promise<void> {

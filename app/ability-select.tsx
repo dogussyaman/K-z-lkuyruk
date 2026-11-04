@@ -284,7 +284,9 @@ export default function AbilitySelectScreen() {
                     </Badge>
                   </View>
                   <Text style={styles.desc}>{ab.description}</Text>
-                    <Text style={styles.unlockDesc}>{ab.id === 'block' ? 'Hedef: bir rakip' : 'Hedef seçimi gerekmez'} · {ab.unlockRule}</Text>
+                  <Text style={styles.unlockDesc}>
+                    {ab.id === 'block' ? 'Hedef: bir rakip' : 'Hedef seçimi gerekmez'} · {ab.unlockRule}
+                  </Text>
                   {!check.allowed ? (
                     <Text style={styles.disabledReason}>{check.reason}</Text>
                   ) : (
@@ -333,7 +335,7 @@ export default function AbilitySelectScreen() {
           label={
             selectedAbility
               ? `${currentAbilityObj?.name} Kullan`
-              : 'Yeteneksiz Devam Et'
+              : 'Yetenek Kullanmadan Devam Et'
           }
           onPress={selectedAbility ? handleConfirm : handleSkip}
           variant={selectedAbility ? 'orange' : 'secondary'}

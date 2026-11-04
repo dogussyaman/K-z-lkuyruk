@@ -142,11 +142,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
+  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', width: '100%' },
   iconWrap: { marginRight: spacing.sm },
   label: {
     ...typography.bodyMedium,
     fontFamily: 'Poppins-Bold',
     letterSpacing: 0.3,
+    flexShrink: 1,
+    textAlign: 'center',
   },
 });
