@@ -35,6 +35,7 @@ import {
   type PartyState,
 } from '@/features/party/catalog';
 import { SceneCrop } from '@/components/party/SceneCrop';
+import { soundService } from '@/services/soundService';
 
 export default function PartyGameScreen() {
   const {
@@ -182,6 +183,7 @@ export default function PartyGameScreen() {
   }, [roomCode, step, isHost, paused, finished, load]);
   const act = async (fn: () => Promise<unknown>) => {
     if (flight.current) return;
+    void soundService.play('click', 0.35);
     flight.current = true;
     setBusy(true);
     setError(null);

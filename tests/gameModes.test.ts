@@ -43,10 +43,10 @@ const choices: RoundChoice[] = [
 
 describe('complete game mode registry', () => {
   it('keeps legacy variants compatible and exposes distinct party families', () => {
-    assert.equal(GAME_MODES.length, 16);
-    assert.equal(FEATURED_GAMES.length,6);
+    assert.equal(GAME_MODES.length, 18);
+    assert.equal(FEATURED_GAMES.length,8);
     assert.equal(CLASSIC_VARIANTS.length,9);
-    assert.equal(getActiveGameModes().length, 16);
+    assert.equal(getActiveGameModes().length, 18);
     assert.equal(getComingSoonGameModes().length, 0);
     assert.equal(isGameModeActive('gizli_tilki'), true);
     assert.equal(isGameModeActive('orman_hazinesi'), true);

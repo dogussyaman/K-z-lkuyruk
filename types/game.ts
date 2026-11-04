@@ -11,6 +11,8 @@ export type GameMode =
   | 'kilit_altinda'
   | 'kayip_kare'
   | 'gece_pazari'
+  | 'tilki_parkuru'
+  | 'kivilcim_kapisma'
   | 'classic'
   | 'survival'
   | 'suspicious'
