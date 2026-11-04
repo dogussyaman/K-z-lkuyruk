@@ -100,7 +100,7 @@ export default function ModeCreateRoomScreen() {
         <View style={styles.statsRow}>
           <Stat icon={<Users color={theme.accent} size={17} />} label={mode.playerCountLabel} />
           <Stat icon={<Clock3 color={theme.accentSecondary} size={17} />} label={mode.estimatedDurationLabel} />
-          <Stat icon={<Sparkles color={theme.accent} size={17} />} label={`${mode.rules.defaultRounds} tur`} />
+          <Stat icon={<Sparkles color={theme.accent} size={17} />} label={mode.id === 'kizilkure_parkuru' ? '3 etap' : `${mode.rules.defaultRounds} tur`} />
         </View>
 
         <View style={[styles.panel, { borderColor: theme.glow }]}>
