@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, Pressable, ScrollView, StyleSheet, ImageBackground } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { ChevronLeft, ArrowUpRight } from 'lucide-react-native';
 import { FEATURED_GAMES, getGameFamilyLabel } from '@/features/game/modes';
 import { getGameModeTheme } from '@/features/game/themes';
+import { gameModeImages } from '@/assets/game-modes';
 import { soundService } from '@/services/soundService';
 import { goBackOrReplace } from '@/lib/backNavigation';
 const groups = [
@@ -84,32 +85,47 @@ export default function GameModesScreen() {
                 pressed && { opacity: 0.8 },
               ]}
             >
-              <View style={s.row}>
-                <View style={[s.typePill, { backgroundColor: `${t.accent}1D`, borderColor: `${t.accent}55` }]}>
-                  <Text style={[s.badge, { color: t.accent }]}>{getGameFamilyLabel(g.id)}</Text>
+              <ImageBackground
+                source={gameModeImages[g.illustrationKey]}
+                style={s.cardImage}
+                imageStyle={s.cardArtwork}
+                resizeMode="cover"
+              >
+                <LinearGradient
+                  pointerEvents="none"
+                  colors={['rgba(8, 9, 18, 0.20)', 'rgba(8, 9, 18, 0.76)', 'rgba(8, 9, 18, 0.96)']}
+                  locations={[0, 0.48, 1]}
+                  style={StyleSheet.absoluteFill}
+                />
+                <View style={s.cardContent}>
+                  <View style={s.row}>
+                    <View style={[s.typePill, { backgroundColor: `${t.accent}1D`, borderColor: `${t.accent}55` }]}>
+                      <Text style={[s.badge, { color: t.accent }]}>{getGameFamilyLabel(g.id)}</Text>
+                    </View>
+                    <ArrowUpRight size={21} color={t.accent} />
+                  </View>
+                  <View style={s.cardHeading}>
+                    <Text style={s.symbol}>{t.heroEmoji}</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={s.name}>{g.name}</Text>
+                      <Text style={[s.tag, { color: t.accent }]}>{g.tagline}</Text>
+                    </View>
+                  </View>
+                  <Text style={s.description}>
+                    {g.id === 'classic'
+                      ? 'Klasik, hızlı, takım, can ve özel tur kurallarını tek yerden seç. Diğer oyunlardan bağımsız soru–blöf deneyimi.'
+                      : g.description}
+                  </Text>
+                  <View style={s.row}>
+                    <View style={s.metaWrap}>
+                      <Text style={s.meta}>{g.playerCountLabel}</Text>
+                      <Text style={[s.metaDot, { color: t.accent }]}>·</Text>
+                      <Text style={s.meta}>{g.estimatedDurationLabel}</Text>
+                    </View>
+                    <Text style={[s.cta, { color: t.accent }]}>EKİBİ TOPLA →</Text>
+                  </View>
                 </View>
-                <ArrowUpRight size={21} color={t.accent} />
-              </View>
-              <View style={s.cardHeading}>
-                <Text style={s.symbol}>{t.heroEmoji}</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={s.name}>{g.name}</Text>
-                  <Text style={[s.tag, { color: t.accent }]}>{g.tagline}</Text>
-                </View>
-              </View>
-              <Text style={s.description}>
-                {g.id === 'classic'
-                  ? 'Klasik, hızlı, takım, can ve özel tur kurallarını tek yerden seç. Diğer oyunlardan bağımsız soru–blöf deneyimi.'
-                  : g.description}
-              </Text>
-              <View style={s.row}>
-                <View style={s.metaWrap}>
-                  <Text style={s.meta}>{g.playerCountLabel}</Text>
-                  <Text style={[s.metaDot, { color: t.accent }]}>·</Text>
-                  <Text style={s.meta}>{g.estimatedDurationLabel}</Text>
-                </View>
-                <Text style={[s.cta, { color: t.accent }]}>EKİBİ TOPLA →</Text>
-              </View>
+              </ImageBackground>
             </Pressable>
           );
         })}
@@ -164,7 +180,10 @@ const s = StyleSheet.create({
   },
   active: { backgroundColor: '#7049a0', borderColor: '#b998e4' },
   text: { color: '#eee7f6', fontSize: 12, fontWeight: '700' },
-  card: { padding: 22, borderRadius: 27, borderWidth: 1, gap: 17 },
+  card: { borderRadius: 27, borderWidth: 1, overflow: 'hidden' },
+  cardImage: { minHeight: 270, justifyContent: 'center' },
+  cardArtwork: { opacity: 0.64 },
+  cardContent: { padding: 22, gap: 17 },
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',

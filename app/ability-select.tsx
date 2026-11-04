@@ -115,6 +115,12 @@ export default function AbilitySelectScreen() {
     isBlockedNextRound: me?.isBlockedNextRound ?? false,
     lastBlockedPlayerId: me?.lastBlockedPlayerId ?? null,
   };
+  const score = me?.score ?? 0;
+  const nextCreditScore = score < 5 ? 5 : score < 10 ? 10 : score < 15 ? 15 : null;
+  const previousCreditScore = nextCreditScore === 15 ? 10 : nextCreditScore === 10 ? 5 : 0;
+  const creditProgress = nextCreditScore === null
+    ? 1
+    : Math.min(1, Math.max(0, (score - previousCreditScore) / (nextCreditScore - previousCreditScore)));
 
   const handleSelectAbility = (id: AbilityId) => {
     const check = canUseAbility(
@@ -124,9 +130,11 @@ export default function AbilitySelectScreen() {
     );
     if (!check.allowed) {
       trigger('heavy');
+      setError(check.reason ?? 'Bu yetenek şu anda kullanılamıyor.');
       return;
     }
     trigger('light');
+    setError(null);
     if (selectedAbility === id) {
       setSelectedAbility(null);
       setTargetId(null);
@@ -200,7 +208,7 @@ export default function AbilitySelectScreen() {
         <Text style={styles.subtitle}>
           {isEliminated
             ? 'Bu maçta elendin. Canlı oyuncular devam ederken sonuçları izleyebilirsin.'
-            : 'Bu tur 1 krediyle bir hamle satın alabilir ya da kredini sonraki turlar için saklayabilirsin.'}
+            : '5, 10 ve 15 puanda kredi kazanırsın. Blok veya kalkan bu tur 1 kredi harcar.'}
         </Text>
         {roomState?.phaseDeadlineAt ? (
           <View style={styles.timer}>
@@ -211,8 +219,23 @@ export default function AbilitySelectScreen() {
         <View style={styles.creditBalance}>
           <Sparkles color={colors.lime} size={16} />
           <Text style={styles.creditBalanceText}>{me?.credits ?? 0} KREDİ</Text>
-          <Text style={styles.creditBalanceHint}>· 1 kredi / yetenek</Text>
+          <Text style={styles.creditBalanceHint}>· Blok veya kalkan 1 kredi</Text>
         </View>
+        {!isEliminated && nextCreditScore !== null ? (
+          <View style={styles.creditProgressWrap}>
+            <View style={styles.creditProgressCopy}>
+              <Text style={styles.creditProgressLabel}>
+                Sonraki kredi: {nextCreditScore} puan
+              </Text>
+              <Text style={styles.creditProgressValue}>{score}/{nextCreditScore}</Text>
+            </View>
+            <View style={styles.creditProgressTrack}>
+              <View style={[styles.creditProgressFill, { width: `${creditProgress * 100}%` }]} />
+            </View>
+          </View>
+        ) : !isEliminated ? (
+          <Text style={styles.creditProgressLabel}>Bu maçın kredi eşikleri tamamlandı · 5 / 10 / 15 puan</Text>
+        ) : null}
         {error ? <Text style={styles.error}>{error}</Text> : null}
       </View>
 
@@ -234,11 +257,12 @@ export default function AbilitySelectScreen() {
               <StaggerRow key={ab.id} index={idx} delay={70}>
                 <Pressable
                   onPress={() => handleSelectAbility(ab.id)}
-                  disabled={isEliminated || !check.allowed || confirmed || loading}
+                  disabled={isEliminated || confirmed || loading}
+                  accessibilityState={{ disabled: isEliminated || confirmed || loading }}
                   style={({ pressed }) => [
                     styles.abilityCard,
                     isSelected && styles.abilityCardSelected,
-                    !check.allowed && styles.abilityCardDisabled,
+                    !check.allowed && styles.abilityCardUnavailable,
                     {
                       transform: [
                         { scale: pressed ? 0.99 : 1 },
@@ -252,11 +276,15 @@ export default function AbilitySelectScreen() {
                       <Text style={styles.name}>{ab.name}</Text>
                     </View>
                     <Badge tone={check.allowed ? (isSelected ? 'orange' : 'lime') : 'neutral'} sticker>
-                      {check.allowed ? `${ab.creditCost} KREDİ` : 'KİLİTLİ'}
+                      {check.allowed
+                        ? `${ab.creditCost} KREDİ`
+                        : abilityState.credits < ab.creditCost
+                          ? `${ab.creditCost} KREDİ GEREK`
+                          : 'UYGUN DEĞİL'}
                     </Badge>
                   </View>
                   <Text style={styles.desc}>{ab.description}</Text>
-                  <Text style={styles.unlockDesc}>🔒 Kural: {ab.unlockRule}</Text>
+                    <Text style={styles.unlockDesc}>{ab.id === 'block' ? 'Hedef: bir rakip' : 'Hedef seçimi gerekmez'} · {ab.unlockRule}</Text>
                   {!check.allowed ? (
                     <Text style={styles.disabledReason}>{check.reason}</Text>
                   ) : (
@@ -304,15 +332,15 @@ export default function AbilitySelectScreen() {
         <Button
           label={
             selectedAbility
-              ? `${currentAbilityObj?.name} ile Onayla`
-              : 'Yetenek Kullanmadan Devam Et'
+              ? `${currentAbilityObj?.name} Kullan`
+              : 'Yeteneksiz Devam Et'
           }
           onPress={selectedAbility ? handleConfirm : handleSkip}
           variant={selectedAbility ? 'orange' : 'secondary'}
           loading={loading}
           disabled={confirmed || isEliminated}
           fullWidth
-          icon={<Sparkles color="#FFF" size={20} />}
+          icon={selectedAbility ? <Sparkles color="#FFF" size={18} /> : undefined}
         />
       </StickyActionBar>
     </Screen>
@@ -338,6 +366,29 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   creditBalanceText: { ...typography.caption, color: colors.lime, fontFamily: 'Poppins-Bold' },
   creditBalanceHint: { ...typography.caption, color: colors.textSecondary },
+  creditProgressWrap: {
+    marginTop: 9,
+    maxWidth: 330,
+  },
+  creditProgressCopy: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  creditProgressLabel: { ...typography.caption, color: colors.textSecondary },
+  creditProgressValue: { ...typography.caption, color: colors.yellow, fontFamily: 'Poppins-Bold' },
+  creditProgressTrack: {
+    height: 6,
+    overflow: 'hidden',
+    borderRadius: radii.pill,
+    backgroundColor: colors.bgSurfaceAlt,
+  },
+  creditProgressFill: {
+    height: '100%',
+    borderRadius: radii.pill,
+    backgroundColor: colors.lime,
+  },
   roundBadge: {
     alignSelf: 'flex-start',
     backgroundColor: colors.bgSurface,
@@ -405,8 +456,8 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: 'rgba(255, 113, 59, 0.15)',
     ...shadows.glowOrange,
   },
-  abilityCardDisabled: {
-    opacity: 0.45,
+  abilityCardUnavailable: {
+    opacity: 0.82,
   },
   abilityTopRow: {
     flexDirection: 'row',

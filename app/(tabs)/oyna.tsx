@@ -12,6 +12,7 @@ import { categoryOptionImages } from '@/assets/categories/options';
 import { FEATURED_GAMES } from '@/features/game/modes';
 import { getGameFamilyLabel } from '@/features/game/modes';
 import { getGameModeTheme } from '@/features/game/themes';
+import { gameModeImages } from '@/assets/game-modes';
 import { soundService } from '@/services/soundService';
 
 export default function OynaScreen() {
@@ -132,10 +133,17 @@ export default function OynaScreen() {
                 else router.push({ pathname: '/mode-create-room', params: { mode: game.id } });
               }}
             >
-              <LinearGradient
-                colors={[getGameModeTheme(game.id).background, getGameModeTheme(game.id).surface, '#0C111B']}
-                start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+              <ImageBackground
+                source={gameModeImages[game.illustrationKey]}
                 style={StyleSheet.absoluteFill}
+                imageStyle={styles.modeShowcaseImage}
+                resizeMode="cover"
+              />
+              <LinearGradient
+                colors={['rgba(7, 10, 18, 0.08)', 'rgba(7, 10, 18, 0.30)', 'rgba(7, 10, 18, 0.94)']}
+                locations={[0, 0.42, 1]}
+                style={StyleSheet.absoluteFill}
+                pointerEvents="none"
               />
               <View style={[styles.modeArtGlow, { backgroundColor: getGameModeTheme(game.id).accent + '22' }]} />
               <Text style={styles.modeShowcaseArt}>{getGameModeTheme(game.id).heroEmoji}</Text>
@@ -411,6 +419,9 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.12)',
     justifyContent: 'flex-end',
     ...shadows.card,
+  },
+  modeShowcaseImage: {
+    opacity: 0.78,
   },
   modeArtGlow: {
     position: 'absolute',
