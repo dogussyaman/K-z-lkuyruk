@@ -123,7 +123,7 @@ BEGIN
   start_at:=now()+interval '3 seconds';
   INSERT INTO kizilkuyruk_private.kizilkure_sessions(room_id,started_at) VALUES(r.id,start_at);
   FOR p IN SELECT player_id FROM public.room_players
-    WHERE room_id=r.id AND is_active AND kicked_at IS NULL ORDER BY seat LOOP
+    WHERE room_id=r.id AND is_active AND kicked_at IS NULL ORDER BY joined_at,player_id LOOP
     INSERT INTO kizilkuyruk_private.kizilkure_players(room_id,player_id,seat,stage_started_at)
     VALUES(r.id,p.player_id,seat_no,start_at);
     seat_no:=seat_no+1;
