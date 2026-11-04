@@ -4,6 +4,8 @@ export const PARTY_IDS = [
   'kilit_altinda',
   'kayip_kare',
   'gece_pazari',
+  'tilki_parkuru',
+  'kivilcim_kapisma',
 ] as const;
 export type PartyMode = (typeof PARTY_IDS)[number];
 export const isPartyMode = (value?: string | null): value is PartyMode =>
@@ -124,6 +126,51 @@ export const PARTY_GAMES = [
       'Satıcı satılan sandıktan 2 + teklifin üçte biri kadar komisyon alır. Finalde para + malların gerçek değeri kazanır.',
     ],
   },
+  {
+    id: 'tilki_parkuru',
+    name: 'Tilki Parkuru',
+    tagline: 'Açını seç, bilyeni fırlat, finişi kap.',
+    description:
+      'Herkes aynı neon parkurda yarışır. Yönünü ve gücünü ayarla; buz, çamur, rampalar ve dar geçitler her hamleyi değiştirir.',
+    badge: 'FİZİKSEL YARIŞ',
+    emoji: '🏁',
+    accent: '#57E7FF',
+    background: '#07151F',
+    surface: '#102B3A',
+    min: 2,
+    max: 8,
+    rounds: 6,
+    minutes: '4–7 dk',
+    illustration: 'team_battle',
+    steps: [
+      'Her turda bilyenin yönünü ve fırlatma gücünü seç.',
+      'Hamleleri sunucu aynı kurallarla simüle eder; herkes aynı sonucu görür.',
+      'Buzda yön kayar, çamur yavaşlatır, rampalar doğru hızda sıçratır.',
+      'İki enerji takviyeni doğru yerde kullan. Finişe ilk ulaşan kazanır.',
+    ],
+  },
+  {
+    id: 'kivilcim_kapisma',
+    name: 'Kıvılcım Kapışması',
+    tagline: 'Sinyali bekle. İlk sen yakala.',
+    description: 'Dört renkten doğru sinyal yandığında dokun. Sahte sinyale erken basarsan puan kaybedersin; doğru tepki veren ne kadar hızlıysa o kadar çok toplar.',
+    badge: 'REFLEKS ARENASI',
+    emoji: '⚡',
+    accent: '#FFE066',
+    background: '#11120C',
+    surface: '#292613',
+    min: 2,
+    max: 8,
+    rounds: 8,
+    minutes: '3–5 dk',
+    illustration: 'blitz',
+    steps: [
+      'Sinyal görünmeden önce bekle; erken dokunuş ceza getirir.',
+      'Ekranda yanan rengi kendi cihazında seç.',
+      'Doğru ve hızlı tepki puan kazandırır; yanlış renk puan düşürür.',
+      'Sekiz turun sonunda en yüksek puanlı oyuncu kazanır. Botların tepki süreleri farklıdır.',
+    ],
+  },
 ] as const;
 export function partyGame(id: PartyMode) {
   return PARTY_GAMES.find((game) => game.id === id)!;
@@ -152,6 +199,7 @@ export const ROLE_NAMES: Record<string, string> = {
   player: 'Ekip Üyesi',
 };
 export const PHASE_NAMES: Record<string, string> = {
+  aim: 'Yönünü ve gücünü ayarla',
   plan: 'Hamleni gizle',
   night: 'Gece başladı',
   vote: 'Şüpheni kilitle',
@@ -173,6 +221,9 @@ export interface PartyPlayer {
   coins: number | null;
   role: string | null;
   submitted: boolean;
+  parkourPosition?: number;
+  parkourLane?: number;
+  finishTurn?: number | null;
 }
 export interface PartyState {
   gameNumber: number;
@@ -201,6 +252,9 @@ export interface PartyState {
     claims?: { playerId: string; site: string }[];
     clues?: { playerId: string; text: string }[];
     details?: { playerId: string; text: string }[];
+    course?: { kind: 'mud' | 'ice' | 'ramp' | 'gate'; lane: number; label: string }[];
+    trackLength?: number;
+    finishedPlayers?: string[];
   };
   me: {
     role: string;
@@ -215,6 +269,9 @@ export interface PartyState {
     allies?: string[];
     exposed: boolean;
     detained: number;
+    boosts?: number;
+    parkourPosition?: number;
+    parkourLane?: number;
   };
   players: PartyPlayer[];
   report: { message?: string; details?: unknown };

@@ -9,7 +9,10 @@ import { colors, spacing, typography, radii, shadows } from '@/theme';
 import { CATEGORY_GROUPS, CATEGORY_OPTIONS } from '@/features/game/categories';
 import { mascotImages } from '@/assets/illustrations';
 import { categoryOptionImages } from '@/assets/categories/options';
-import { gameModeImages } from '@/assets/game-modes';
+import { FEATURED_GAMES } from '@/features/game/modes';
+import { getGameFamilyLabel } from '@/features/game/modes';
+import { getGameModeTheme } from '@/features/game/themes';
+import { soundService } from '@/services/soundService';
 
 export default function OynaScreen() {
   const { colors } = useTheme();
@@ -19,7 +22,7 @@ export default function OynaScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
         <ScreenHeader
           title="Oyna"
-          subtitle="Arkadaşlarını topla, blöfünle tuzağa düşür!"
+          subtitle="Arkadaşlarını topla; yarış, çıkarım ve blöf modlarından birini seç."
           right={<Badge tone="orange" sticker>2–10 OYUNCU</Badge>}
         />
 
@@ -39,7 +42,7 @@ export default function OynaScreen() {
               </View>
               <Text style={styles.heroTitle}>Oyununu Seç,{'\n'}Ortamı Isıt!</Text>
               <Text style={styles.heroCopy}>
-                Oda açarak arkadaşlarını davet et veya paylaşılan 5 haneli kodla odaya katıl.
+                Blöf, gizli rol, takım ve refleks yarışını arkadaşlarınla oyna.
               </Text>
 
               <View style={styles.tags}>
@@ -49,7 +52,7 @@ export default function OynaScreen() {
                 </View>
                 <View style={styles.tag}>
                   <Shield color={colors.lime} size={13} />
-                  <Text style={styles.tagText}>Kalkan & Blok</Text>
+                  <Text style={styles.tagText}>Gizli Roller</Text>
                 </View>
               </View>
             </View>
@@ -108,7 +111,7 @@ export default function OynaScreen() {
             accessibilityLabel="Tüm modları gör"
             onPress={() => router.push('/game-modes')}
           >
-            <Text style={styles.sectionMeta}>Tümü (11) →</Text>
+            <Text style={styles.sectionMeta}>Tümü ({FEATURED_GAMES.length}) →</Text>
           </Pressable>
         </View>
 
@@ -117,81 +120,34 @@ export default function OynaScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.modesScroll}
         >
-          {/* Herkes Şüpheli */}
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Tilki Aramızda modunu seç"
-            style={styles.modeShowcaseCard}
-            onPress={() => router.push('/tilki-aramizda')}
-          >
-            <Image source={gameModeImages.suspicious} style={styles.modeShowcaseImage} />
-            <LinearGradient
-              colors={['transparent', 'rgba(17, 13, 27, 0.92)']}
-              style={StyleSheet.absoluteFill}
-            />
-            <View style={styles.modeShowcaseContent}>
-              <Badge tone="purple" style={styles.modeShowcaseBadge}>YENİ MOD</Badge>
-              <Text style={styles.modeShowcaseTitle}>Tilki Aramızda</Text>
-              <Text style={styles.modeShowcaseSub}>Tek Telefon · Gizli Soru</Text>
-            </View>
-          </Pressable>
-
-          {/* Fırtına Turu */}
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Fırtına Turu modunu seç"
-            style={styles.modeShowcaseCard}
-            onPress={() => router.push({ pathname: '/create-room', params: { mode: 'blitz' } })}
-          >
-            <Image source={gameModeImages.blitz} style={styles.modeShowcaseImage} />
-            <LinearGradient
-              colors={['transparent', 'rgba(17, 13, 27, 0.92)']}
-              style={StyleSheet.absoluteFill}
-            />
-            <View style={styles.modeShowcaseContent}>
-              <Badge tone="yellow" style={styles.modeShowcaseBadge}>7 SANİYE</Badge>
-              <Text style={styles.modeShowcaseTitle}>Fırtına Turu</Text>
-              <Text style={styles.modeShowcaseSub}>Yıldırım Hızlı Yarış</Text>
-            </View>
-          </Pressable>
-
-          {/* Hayatta Kalma */}
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Hayatta Kalma modunu seç"
-            style={styles.modeShowcaseCard}
-            onPress={() => router.push({ pathname: '/create-room', params: { mode: 'survival' } })}
-          >
-            <Image source={gameModeImages.survival} style={styles.modeShowcaseImage} />
-            <LinearGradient
-              colors={['transparent', 'rgba(17, 13, 27, 0.92)']}
-              style={StyleSheet.absoluteFill}
-            />
-            <View style={styles.modeShowcaseContent}>
-              <Badge tone="danger" style={styles.modeShowcaseBadge}>3 CAN</Badge>
-              <Text style={styles.modeShowcaseTitle}>Hayatta Kalma</Text>
-              <Text style={styles.modeShowcaseSub}>Son Kalan Tilki</Text>
-            </View>
-          </Pressable>
-
-          {/* Klasik Blöf */}
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Klasik Blöf modunu seç"
-            style={styles.modeShowcaseCard}
-            onPress={() => router.push({ pathname: '/create-room', params: { mode: 'classic' } })}
-          >
-            <Image source={gameModeImages.classic} style={styles.modeShowcaseImage} />
-            <LinearGradient
-              colors={['transparent', 'rgba(17, 13, 27, 0.92)']}
-              style={StyleSheet.absoluteFill}
-            />
-            <View style={styles.modeShowcaseContent}>
-              <Badge tone="orange" style={styles.modeShowcaseBadge}>KLASİK</Badge>
-              <Text style={styles.modeShowcaseTitle}>Klasik Blöf</Text>
-              <Text style={styles.modeShowcaseSub}>Tuzak & Puan Avı</Text>
-            </View>
-          </Pressable>
+          {FEATURED_GAMES.map((game) => (
+            <Pressable
+              key={game.id}
+              accessibilityRole="button"
+              accessibilityLabel={`${game.name} oyununu seç`}
+              style={[styles.modeShowcaseCard, { borderColor: getGameModeTheme(game.id).accent + '66' }]}
+              onPress={() => {
+                soundService.play('click', 0.4);
+                if (game.id === 'classic') router.push('/create-room');
+                else router.push({ pathname: '/mode-create-room', params: { mode: game.id } });
+              }}
+            >
+              <LinearGradient
+                colors={[getGameModeTheme(game.id).background, getGameModeTheme(game.id).surface, '#0C111B']}
+                start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                style={StyleSheet.absoluteFill}
+              />
+              <View style={[styles.modeArtGlow, { backgroundColor: getGameModeTheme(game.id).accent + '22' }]} />
+              <Text style={styles.modeShowcaseArt}>{getGameModeTheme(game.id).heroEmoji}</Text>
+              <View style={styles.modeShowcaseContent}>
+                <Badge tone={game.id === 'classic' ? 'orange' : 'purple'} style={styles.modeShowcaseBadge}>
+                  {getGameFamilyLabel(game.id)}
+                </Badge>
+                <Text style={styles.modeShowcaseTitle}>{game.name}</Text>
+                <Text style={styles.modeShowcaseSub}>{game.tagline}</Text>
+              </View>
+            </Pressable>
+          ))}
         </ScrollView>
 
         {/* Categories Grid */}
@@ -456,14 +412,20 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     justifyContent: 'flex-end',
     ...shadows.card,
   },
-  modeShowcaseImage: {
+  modeArtGlow: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    width: '100%',
-    height: '100%',
+    width: 116,
+    height: 116,
+    borderRadius: 99,
+    top: -26,
+    right: -28,
+  },
+  modeShowcaseArt: {
+    position: 'absolute',
+    top: 27,
+    right: 8,
+    fontSize: 67,
+    opacity: 0.94,
   },
   modeShowcaseContent: {
     padding: 10,

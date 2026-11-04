@@ -80,3 +80,16 @@ export function getAllGameModes(): GameModeDefinition[] { return GAME_MODES; }
 
 export const CLASSIC_VARIANTS = GAME_MODES.filter(mode => ['classic','survival','suspicious','blitz','team_battle','secret_missions','double_trap','golden_question','detective_fox'].includes(mode.id));
 export const FEATURED_GAMES = GAME_MODES.filter(mode => ['classic',...PARTY_GAMES.map(g=>g.id)].includes(mode.id));
+export const STANDALONE_GAMES = FEATURED_GAMES.filter(mode => mode.id !== 'classic');
+
+export function getGameFamilyLabel(id: string): string {
+  if (id === 'classic') return 'SORU & BLÖF';
+  if (id === 'tilki_parkuru') return 'FİZİKSEL YARIŞ';
+  if (id === 'kivilcim_kapisma') return 'REFLEKS';
+  if (id === 'kizil_pakt') return 'GİZLİ ROL';
+  if (id === 'kilit_altinda') return 'İŞ BİRLİĞİ';
+  if (id === 'gece_pazari') return 'PAZARLIK';
+  if (id === 'kayip_kare') return 'GÖRSEL ÇIKARIM';
+  if (id === 'tilki_soygunu') return 'TAKIM TAKTİĞİ';
+  return 'KLASİK MOD';
+}

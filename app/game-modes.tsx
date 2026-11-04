@@ -3,8 +3,9 @@ import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { ChevronLeft, ArrowUpRight } from 'lucide-react-native';
-import { FEATURED_GAMES } from '@/features/game/modes';
+import { FEATURED_GAMES, getGameFamilyLabel } from '@/features/game/modes';
 import { getGameModeTheme } from '@/features/game/themes';
+import { soundService } from '@/services/soundService';
 import { goBackOrReplace } from '@/lib/backNavigation';
 const groups = [
   ['all', 'Hepsi'],
@@ -12,12 +13,16 @@ const groups = [
   ['coop', 'İş birliği'],
   ['social', 'Gizli roller'],
   ['market', 'Pazarlık'],
+  ['race', 'Yarış'],
+  ['reflex', 'Refleks'],
 ] as const;
 const ids: Record<string, string[]> = {
   bluff: ['classic', 'tilki_soygunu', 'kayip_kare'],
   coop: ['kilit_altinda'],
   social: ['kizil_pakt'],
   market: ['gece_pazari'],
+  race: ['tilki_parkuru'],
+  reflex: ['kivilcim_kapisma'],
 };
 export default function GameModesScreen() {
   const [filter, setFilter] = useState('all');
@@ -45,8 +50,7 @@ export default function GameModesScreen() {
         </View>
         <Text style={s.title}>{'Aynı ekip.\nBaşka bir oyun.'}</Text>
         <Text style={s.lead}>
-          Bir gece güvenini riske at. Bir gece birlikte kaç. Herkes kendi
-          cihazında; aynı odada olmanız gerekmez.
+          Refleks yarışından gizli rollere; aynı ekipte her seferinde başka bir oyun. Herkes kendi cihazında oynar.
         </Text>
         <ScrollView
           horizontal
@@ -56,7 +60,7 @@ export default function GameModesScreen() {
           {groups.map(([id, label]) => (
             <Pressable
               key={id}
-              onPress={() => setFilter(id)}
+              onPress={() => { soundService.play('click', 0.35); setFilter(id); }}
               style={[s.filter, filter === id && s.active]}
             >
               <Text style={s.text}>{label}</Text>
@@ -69,14 +73,11 @@ export default function GameModesScreen() {
             <Pressable
               key={g.id}
               accessibilityRole="button"
-              onPress={() =>
-                g.id === 'classic'
-                  ? router.push('/create-room')
-                  : router.push({
-                      pathname: '/mode-create-room',
-                      params: { mode: g.id },
-                    })
-              }
+              onPress={() => {
+                soundService.play('click', 0.45);
+                if (g.id === 'classic') router.push('/create-room');
+                else router.push({ pathname: '/mode-create-room', params: { mode: g.id } });
+              }}
               style={({ pressed }) => [
                 s.card,
                 { backgroundColor: t.surface, borderColor: t.accent + '55' },
@@ -84,9 +85,9 @@ export default function GameModesScreen() {
               ]}
             >
               <View style={s.row}>
-                <Text style={[s.badge, { color: t.accent }]}>
-                  {g.id === 'classic' ? 'BİLGİ & BLÖF · MAÇ AYARLARI' : g.badge}
-                </Text>
+                <View style={[s.typePill, { backgroundColor: `${t.accent}1D`, borderColor: `${t.accent}55` }]}>
+                  <Text style={[s.badge, { color: t.accent }]}>{getGameFamilyLabel(g.id)}</Text>
+                </View>
                 <ArrowUpRight size={21} color={t.accent} />
               </View>
               <View style={s.cardHeading}>
@@ -102,9 +103,11 @@ export default function GameModesScreen() {
                   : g.description}
               </Text>
               <View style={s.row}>
-                <Text style={s.meta}>
-                  {g.playerCountLabel} · {g.estimatedDurationLabel}
-                </Text>
+                <View style={s.metaWrap}>
+                  <Text style={s.meta}>{g.playerCountLabel}</Text>
+                  <Text style={[s.metaDot, { color: t.accent }]}>·</Text>
+                  <Text style={s.meta}>{g.estimatedDurationLabel}</Text>
+                </View>
                 <Text style={[s.cta, { color: t.accent }]}>EKİBİ TOPLA →</Text>
               </View>
             </Pressable>
@@ -112,7 +115,7 @@ export default function GameModesScreen() {
         })}
         <Pressable
           accessibilityRole="button"
-          onPress={() => router.push('/tilki-aramizda')}
+            onPress={() => { soundService.play('click', 0.4); router.push('/tilki-aramizda'); }}
           style={s.local}
         >
           <Text style={s.text}>
@@ -170,12 +173,15 @@ const s = StyleSheet.create({
     flexWrap: 'wrap',
   },
   badge: { fontSize: 10, letterSpacing: 1, fontWeight: '900' },
+  typePill: { paddingHorizontal: 10, paddingVertical: 7, borderRadius: 99, borderWidth: 1 },
   cardHeading: { flexDirection: 'row', gap: 18, alignItems: 'center' },
   symbol: { fontSize: 46 },
   name: { color: '#fff', fontSize: 25, fontWeight: '900' },
   tag: { fontSize: 13, lineHeight: 19, marginTop: 5, fontWeight: '700' },
   description: { color: '#d7cedf', fontSize: 14, lineHeight: 22 },
   meta: { color: '#a99db7', fontSize: 11 },
+  metaWrap: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  metaDot: { fontSize: 15, fontWeight: '900' },
   cta: { fontSize: 10, fontWeight: '900', letterSpacing: 1 },
   local: {
     padding: 20,

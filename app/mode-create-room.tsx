@@ -81,7 +81,12 @@ export default function ModeCreateRoomScreen() {
         </View>
 
         <View style={[styles.hero, { borderColor: theme.accent }]}>
-          <Image source={gameModeImages[mode.illustrationKey]} style={styles.heroImage} resizeMode="cover" />
+          {isPartyMode(mode.id) ? (
+            <>
+              <LinearGradient colors={[theme.background, theme.surface, theme.background]} style={styles.heroImage} />
+              <Text style={[styles.heroGameGlyph, { color: theme.accent }]}>{theme.heroEmoji}</Text>
+            </>
+          ) : <Image source={gameModeImages[mode.illustrationKey]} style={styles.heroImage} resizeMode="cover" />}
           <LinearGradient colors={['transparent', theme.background]} style={styles.heroShade} />
           <View style={styles.heroText}>
             <Text style={[styles.badge, { color: theme.accent }]}>{mode.badge}</Text>
@@ -143,6 +148,7 @@ const styles = StyleSheet.create({
   topTitle: { color: '#FFF', fontSize: 16, fontWeight: '800' },
   hero: { height: 300, overflow: 'hidden', borderRadius: 30, borderWidth: 1.2, backgroundColor: 'rgba(255,255,255,0.05)' },
   heroImage: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, width: '100%', height: '100%' },
+  heroGameGlyph: { position: 'absolute', right: 30, top: 48, fontSize: 120, opacity: 0.85 },
   heroShade: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 },
   heroText: { position: 'absolute', left: 22, right: 22, bottom: 22 },
   badge: { fontSize: 12, fontWeight: '900', letterSpacing: 1.6, marginBottom: 6 },

@@ -106,7 +106,12 @@ export default function LobbyScreen() {
 
   useEffect(() => {
     if (isPartyMode(roomState?.config.gameMode)) {
-      if (roomState?.phase !== 'lobby') router.replace('/party-game');
+      if (roomState?.phase !== 'lobby') {
+        const route = roomState?.config.gameMode === 'tilki_parkuru' ? '/tilki-parkuru'
+          : roomState?.config.gameMode === 'kivilcim_kapisma' ? '/kivilcim-kapisma'
+            : '/party-game';
+        router.replace(route);
+      }
       return;
     }
     if (roomState?.phase === 'ability_select') {
@@ -203,10 +208,17 @@ export default function LobbyScreen() {
     setError(null);
     try {
       if (isPartyMode(roomState?.config.gameMode)) {
-        const {error:startError}=await ensureSupabase().rpc('party_start_secure',{p_room_code:roomCode});
+        const mode = roomState?.config.gameMode;
+        const rpc = mode === 'tilki_parkuru' ? 'parkur_start_secure'
+          : mode === 'kivilcim_kapisma' ? 'kivilcim_start_secure'
+            : 'party_start_secure';
+        const route = mode === 'tilki_parkuru' ? '/tilki-parkuru'
+          : mode === 'kivilcim_kapisma' ? '/kivilcim-kapisma'
+            : '/party-game';
+        const {error:startError}=await ensureSupabase().rpc(rpc,{p_room_code:roomCode});
         if(startError) throw startError;
         await refreshRoom();
-        router.replace('/party-game');
+        router.replace(route);
         return;
       }
       if (roomState?.config.gameMode === 'gizli_tilki' || roomState?.config.gameMode === 'orman_hazinesi') {

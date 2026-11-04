@@ -565,7 +565,14 @@ export class SupabaseGameService implements GameService {
     let code = '';
     for (let i = 0; i < 5; i++) code += chars[Math.floor(Math.random() * chars.length)];
 
-    const { data, error } = await sb.rpc(isPartyMode(config.gameMode) ? 'create_party_room_secure' : 'create_room_with_mode_secure', {
+    const createRpc = config.gameMode === 'kivilcim_kapisma'
+      ? 'create_kivilcim_room_secure'
+      : config.gameMode === 'tilki_parkuru'
+      ? 'create_parkur_room_secure'
+      : isPartyMode(config.gameMode)
+        ? 'create_party_room_secure'
+        : 'create_room_with_mode_secure';
+    const { data, error } = await sb.rpc(createRpc, {
       p_code: code,
       p_name: config.hostName.trim() || 'Ev Sahibi',
       p_avatar_key: config.avatarKey,
