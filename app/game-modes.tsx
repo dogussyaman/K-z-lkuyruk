@@ -22,7 +22,7 @@ const ids: Record<string, string[]> = {
   coop: ['kilit_altinda'],
   social: ['kizil_pakt'],
   market: ['gece_pazari'],
-  race: ['tilki_parkuru'],
+  race: ['tilki_parkuru', 'kizilkure_parkuru'],
   reflex: ['kivilcim_kapisma'],
 };
 export default function GameModesScreen() {

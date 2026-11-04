@@ -81,7 +81,9 @@ export default function ModeCreateRoomScreen() {
         </View>
 
         <View style={[styles.hero, { borderColor: theme.accent }]}>
-          {isPartyMode(mode.id) ? (
+          {mode.id === 'kizilkure_parkuru' ? (
+            <Image source={gameModeImages[mode.illustrationKey]} style={styles.heroImage} resizeMode="cover" />
+          ) : isPartyMode(mode.id) ? (
             <>
               <LinearGradient colors={[theme.background, theme.surface, theme.background]} style={styles.heroImage} />
               <Text style={[styles.heroGameGlyph, { color: theme.accent }]}>{theme.heroEmoji}</Text>
@@ -98,7 +100,7 @@ export default function ModeCreateRoomScreen() {
         <View style={styles.statsRow}>
           <Stat icon={<Users color={theme.accent} size={17} />} label={mode.playerCountLabel} />
           <Stat icon={<Clock3 color={theme.accentSecondary} size={17} />} label={mode.estimatedDurationLabel} />
-          <Stat icon={<Sparkles color={theme.accent} size={17} />} label={`${mode.rules.defaultRounds} tur`} />
+          <Stat icon={<Sparkles color={theme.accent} size={17} />} label={mode.id === 'kizilkure_parkuru' ? '3 etap' : `${mode.rules.defaultRounds} tur`} />
         </View>
 
         <View style={[styles.panel, { borderColor: theme.glow }]}>

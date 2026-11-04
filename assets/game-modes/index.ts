@@ -8,6 +8,7 @@ export const gameModeImages = {
   double_trap: require('./double_trap.jpg'),
   golden_question: require('./golden_question.jpg'),
   detective_fox: require('./detective_fox.jpg'),
+  kizilkure_parkuru: require('./kizilkure_parkuru.jpg'),
   gizli_tilki: require('./detective_fox.jpg'),
   orman_hazinesi: require('./survival.jpg'),
 } as const;

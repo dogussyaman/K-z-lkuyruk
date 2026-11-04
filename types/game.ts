@@ -12,6 +12,7 @@ export type GameMode =
   | 'kayip_kare'
   | 'gece_pazari'
   | 'tilki_parkuru'
+  | 'kizilkure_parkuru'
   | 'kivilcim_kapisma'
   | 'classic'
   | 'survival'

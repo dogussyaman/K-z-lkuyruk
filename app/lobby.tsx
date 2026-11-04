@@ -108,6 +108,7 @@ export default function LobbyScreen() {
     if (isPartyMode(roomState?.config.gameMode)) {
       if (roomState?.phase !== 'lobby') {
         const route = roomState?.config.gameMode === 'tilki_parkuru' ? '/tilki-parkuru'
+          : roomState?.config.gameMode === 'kizilkure_parkuru' ? '/kizilkure-parkuru'
           : roomState?.config.gameMode === 'kivilcim_kapisma' ? '/kivilcim-kapisma'
             : '/party-game';
         router.replace(route);
@@ -210,9 +211,11 @@ export default function LobbyScreen() {
       if (isPartyMode(roomState?.config.gameMode)) {
         const mode = roomState?.config.gameMode;
         const rpc = mode === 'tilki_parkuru' ? 'parkur_start_secure'
+          : mode === 'kizilkure_parkuru' ? 'kizilkure_start_secure'
           : mode === 'kivilcim_kapisma' ? 'kivilcim_start_secure'
             : 'party_start_secure';
         const route = mode === 'tilki_parkuru' ? '/tilki-parkuru'
+          : mode === 'kizilkure_parkuru' ? '/kizilkure-parkuru'
           : mode === 'kivilcim_kapisma' ? '/kivilcim-kapisma'
             : '/party-game';
         const {error:startError}=await ensureSupabase().rpc(rpc,{p_room_code:roomCode});

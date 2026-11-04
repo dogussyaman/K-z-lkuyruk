@@ -85,6 +85,7 @@ export const STANDALONE_GAMES = FEATURED_GAMES.filter(mode => mode.id !== 'class
 export function getGameFamilyLabel(id: string): string {
   if (id === 'classic') return 'SORU & BLÖF';
   if (id === 'tilki_parkuru') return 'FİZİKSEL YARIŞ';
+  if (id === 'kizilkure_parkuru') return 'PLATFORM YARIŞI';
   if (id === 'kivilcim_kapisma') return 'REFLEKS';
   if (id === 'kizil_pakt') return 'GİZLİ ROL';
   if (id === 'kilit_altinda') return 'İŞ BİRLİĞİ';
