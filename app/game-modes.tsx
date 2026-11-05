@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, ImageBackground } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
@@ -8,28 +7,8 @@ import { getGameModeTheme } from '@/features/game/themes';
 import { gameModeImages } from '@/assets/game-modes';
 import { soundService } from '@/services/soundService';
 import { goBackOrReplace } from '@/lib/backNavigation';
-const groups = [
-  ['all', 'Hepsi'],
-  ['bluff', 'Blöf'],
-  ['coop', 'İş birliği'],
-  ['social', 'Gizli roller'],
-  ['market', 'Pazarlık'],
-  ['race', 'Yarış'],
-  ['reflex', 'Refleks'],
-] as const;
-const ids: Record<string, string[]> = {
-  bluff: ['classic', 'tilki_soygunu', 'kayip_kare'],
-  coop: ['kilit_altinda'],
-  social: ['kizil_pakt'],
-  market: ['gece_pazari'],
-  race: ['tilki_parkuru', 'kizilkure_parkuru'],
-  reflex: ['kivilcim_kapisma'],
-};
 export default function GameModesScreen() {
-  const [filter, setFilter] = useState('all');
-  const games = FEATURED_GAMES.filter(
-    (g) => filter === 'all' || ids[filter]?.includes(g.id),
-  );
+  const games = FEATURED_GAMES;
   return (
     <View style={s.root}>
       <LinearGradient
@@ -49,25 +28,10 @@ export default function GameModesScreen() {
           </Pressable>
           <Text style={s.eyebrow}>KIZILKUYRUK · OYUN EVRENİ</Text>
         </View>
-        <Text style={s.title}>{'Aynı ekip.\nBaşka bir oyun.'}</Text>
+        <Text style={s.title}>{'Klasik Blöf.\nHer tur başka bir tuzak.'}</Text>
         <Text style={s.lead}>
-          Refleks yarışından gizli rollere; aynı ekipte her seferinde başka bir oyun. Herkes kendi cihazında oynar.
+          Sahte cevaplarını yaz, arkadaşlarını tuzağa düşür ve doğru cevabı bul. Klasik Kızılkuyruk deneyimi, herkes kendi cihazında.
         </Text>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={s.filters}
-        >
-          {groups.map(([id, label]) => (
-            <Pressable
-              key={id}
-              onPress={() => { soundService.play('click', 0.35); setFilter(id); }}
-              style={[s.filter, filter === id && s.active]}
-            >
-              <Text style={s.text}>{label}</Text>
-            </Pressable>
-          ))}
-        </ScrollView>
         {games.map((g, i) => {
           const t = getGameModeTheme(g.id);
           return (
