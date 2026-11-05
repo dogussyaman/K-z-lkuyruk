@@ -3,11 +3,11 @@ import { useGameStore } from '@/store/gameStore';
 import { advanceArcadeGame, getArcadeState, submitArcadeAction } from '@/features/arcade/client';
 import { KITCHEN_ACTIONS, SIGNAL_COLORS, isArcadeGameMode } from '@/features/arcade/catalog';
 import type { ArcadeAction, ArcadeState } from '@/features/arcade/types';
-import { Fragment, useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import Svg, { Circle, Polyline } from 'react-native-svg';
 import { router } from 'expo-router';
 import type * as PhaserTypes from 'phaser';
+import { subscribeToArcadeDrawingDraft, type DrawingStrokes } from '@/features/arcade/drawingSync';
 
 type DraftStroke = number[][];
 type DrawBridge = { setState: (state: ArcadeState | null) => void; setDraft: (strokes: DraftStroke[]) => void; clearDraft: () => void };
@@ -26,6 +26,7 @@ export default function ArcadeGameScreen() {
   const liveStrokeRef = useRef<number[][] | null>(null);
   const [state, setState] = useState<ArcadeState | null>(null);
   const [draft, setDraft] = useState<DraftStroke[]>([]);
+  const [remoteDraft, setRemoteDraft] = useState<DraftStroke[]>([]);
   const [chatText, setChatText] = useState('');
   const [answer, setAnswer] = useState<string[]>([]);
   const [guessText, setGuessText] = useState('');
@@ -34,6 +35,9 @@ export default function ArcadeGameScreen() {
   const [power, setPower] = useState(60);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const stateRef = useRef(state);
+  const drawingSyncRef = useRef<ReturnType<typeof subscribeToArcadeDrawingDraft> | null>(null);
+  const remoteSequenceRef = useRef({ step: -1, sequence: -1 });
 
   useEffect(() => {
     if (!roomCode) { router.replace('/(tabs)'); return; }
@@ -42,6 +46,7 @@ export default function ArcadeGameScreen() {
       try {
         const next = await getArcadeState(roomCode);
         if (!mounted || !next) return;
+        stateRef.current = next;
         setState(next);
         bridgeRef.current?.setState(next);
         if (next.phase === 'finished') return;
@@ -56,6 +61,40 @@ export default function ArcadeGameScreen() {
     const timer = setInterval(() => { void poll(); }, 1200);
     return () => { mounted = false; clearInterval(timer); };
   }, [roomCode]);
+
+  useEffect(() => {
+    if (!roomCode || !hostId) return;
+    let active = true;
+    const sync = subscribeToArcadeDrawingDraft(roomCode, (incoming) => {
+      const current = stateRef.current;
+      if (
+        !active ||
+        !current ||
+        current.mode !== 'drawing_chain' ||
+        current.phase !== 'draw' ||
+        current.step !== incoming.step ||
+        current.currentPlayerId !== incoming.playerId ||
+        current.currentPlayerId === hostId ||
+        (remoteSequenceRef.current.step === incoming.step && incoming.sequence <= remoteSequenceRef.current.sequence)
+      ) return;
+      remoteSequenceRef.current = { step: incoming.step, sequence: incoming.sequence };
+      setRemoteDraft(incoming.strokes);
+    }, (message) => {
+      if (active) setError(message);
+    });
+    drawingSyncRef.current = sync;
+    return () => {
+      active = false;
+      drawingSyncRef.current = null;
+      sync.dispose();
+    };
+  }, [roomCode, hostId]);
+
+  useEffect(() => {
+    if (state?.mode === 'drawing_chain' && state.phase === 'draw' && state.canAct && hostId) {
+      drawingSyncRef.current?.publish(state.step, hostId, draft);
+    }
+  }, [draft, hostId, state?.canAct, state?.mode, state?.phase, state?.step]);
 
   useEffect(() => {
     if (!canvasRef.current || !roomCode) return;
@@ -73,62 +112,6 @@ export default function ArcadeGameScreen() {
         constructor() { super('ArcadeArena'); }
         create() {
           this.graphics = this.add.graphics();
-          const canvas = this.game.canvas;
-          canvas.style.touchAction = 'none';
-          canvas.style.cursor = 'crosshair';
-          const getPoint = (event: PointerEvent) => {
-            const bounds = canvas.getBoundingClientRect();
-            if (!bounds.width || !bounds.height) return null;
-            const x = ((event.clientX - bounds.left) / bounds.width) * 1000;
-            const y = ((event.clientY - bounds.top) / bounds.height) * 560;
-            const left = 80; const right = 920; const top = 72.8; const bottom = 481.6;
-            if (x < left || x > right || y < top || y > bottom) return null;
-            return [Math.round(((x - left) / (right - left)) * 1000), Math.round(((y - top) / (bottom - top)) * 700)];
-          };
-          const onPointerDown = (event: PointerEvent) => {
-            if (this.snapshot?.mode !== 'drawing_chain' || this.snapshot.phase !== 'draw' || !this.snapshot.canAct) return;
-            const point = getPoint(event);
-            if (!point) return;
-            event.preventDefault();
-            event.stopPropagation();
-            drawingPointer.current = event.pointerId;
-            liveStrokeRef.current = [point];
-            try { canvas.setPointerCapture(event.pointerId); } catch {}
-            setDraft([...strokesRef.current, liveStrokeRef.current]);
-            bridgeRef.current?.setDraft([...strokesRef.current, liveStrokeRef.current]);
-          };
-          const onPointerMove = (event: PointerEvent) => {
-            if (drawingPointer.current !== event.pointerId || !liveStrokeRef.current) return;
-            const point = getPoint(event);
-            if (!point) return;
-            event.preventDefault();
-            event.stopPropagation();
-            const previous = liveStrokeRef.current[liveStrokeRef.current.length - 1];
-            if (!previous || previous[0] !== point[0] || previous[1] !== point[1]) liveStrokeRef.current.push(point);
-            setDraft([...strokesRef.current, liveStrokeRef.current]);
-            bridgeRef.current?.setDraft([...strokesRef.current, liveStrokeRef.current]);
-          };
-          const onPointerUp = (event: PointerEvent) => {
-            if (drawingPointer.current !== event.pointerId) return;
-            event.preventDefault();
-            event.stopPropagation();
-            drawingPointer.current = null;
-            if (liveStrokeRef.current) strokesRef.current = [...strokesRef.current, liveStrokeRef.current];
-            liveStrokeRef.current = null;
-            setDraft(strokesRef.current);
-            bridgeRef.current?.setDraft(strokesRef.current);
-            try { canvas.releasePointerCapture(event.pointerId); } catch {}
-          };
-          canvas.addEventListener('pointerdown', onPointerDown, { passive: false });
-          canvas.addEventListener('pointermove', onPointerMove, { passive: false });
-          canvas.addEventListener('pointerup', onPointerUp, { passive: false });
-          canvas.addEventListener('pointercancel', onPointerUp, { passive: false });
-          this.events.once('destroy', () => {
-            canvas.removeEventListener('pointerdown', onPointerDown);
-            canvas.removeEventListener('pointermove', onPointerMove);
-            canvas.removeEventListener('pointerup', onPointerUp);
-            canvas.removeEventListener('pointercancel', onPointerUp);
-          });
           this.scale.on('resize', () => this.paint());
           this.paint();
         }
@@ -188,7 +171,8 @@ export default function ArcadeGameScreen() {
           g.lineStyle(1,0xd9dee7,.9);
           for(let i=1;i<10;i++) g.lineBetween(x+bw*i/10,y,x+bw*i/10,y+bh);
           for(let i=1;i<7;i++) g.lineBetween(x,y+bh*i/7,x+bw,y+bh*i/7);
-          for(const stroke of this.strokes) {
+          const strokes = s.phase === 'guess' ? ((item.strokes ?? []) as DraftStroke[]) : this.strokes;
+          for(const stroke of strokes) {
             g.lineStyle(9,0xe11d48,1);
             if(stroke.length===1)g.fillCircle(x+bw*stroke[0][0]/1000,y+bh*stroke[0][1]/700,5);
             for(let i=1;i<stroke.length;i++){const a=stroke[i-1],b=stroke[i];g.lineBetween(x+bw*a[0]/1000,y+bh*a[1]/700,x+bw*b[0]/1000,y+bh*b[1]/700);}
@@ -250,17 +234,66 @@ export default function ArcadeGameScreen() {
   const publicState=state.public as any; const myPlayer=state.players.find((p)=>p.id===hostId); const remaining=state.deadline?Math.max(0,Math.ceil((new Date(state.deadline).getTime()-Date.now())/1000)):0;
   const ticketOrder=publicState.orders?.[ticket];
   const canAct=state.canAct&&!busy;
+  const drawingStrokes: DrawingStrokes = state.phase === 'draw'
+    ? (canAct ? draft : remoteDraft)
+    : ((state.me as { strokes?: DrawingStrokes }).strokes ?? []);
+  const getDrawingPoint = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const bounds = event.currentTarget.getBoundingClientRect();
+    if (!bounds.width || !bounds.height) return null;
+    const x = ((event.clientX - bounds.left) / bounds.width) * 1000;
+    const y = ((event.clientY - bounds.top) / bounds.height) * 560;
+    if (x < 80 || x > 920 || y < 72.8 || y > 481.6) return null;
+    return [Math.round(((x - 80) / 840) * 1000), Math.round(((y - 72.8) / 408.8) * 700)];
+  };
+  const startDrawing = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (state.mode !== 'drawing_chain' || state.phase !== 'draw' || !canAct) return;
+    const point = getDrawingPoint(event);
+    if (!point) return;
+    event.preventDefault();
+    drawingPointer.current = event.pointerId;
+    liveStrokeRef.current = [point];
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setDraft([...strokesRef.current, liveStrokeRef.current]);
+  };
+  const continueDrawing = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (drawingPointer.current !== event.pointerId || !liveStrokeRef.current) return;
+    const point = getDrawingPoint(event);
+    if (!point) return;
+    event.preventDefault();
+    const previous = liveStrokeRef.current[liveStrokeRef.current.length - 1];
+    if (!previous || previous[0] !== point[0] || previous[1] !== point[1]) liveStrokeRef.current.push(point);
+    setDraft([...strokesRef.current, liveStrokeRef.current]);
+  };
+  const finishDrawing = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (drawingPointer.current !== event.pointerId) return;
+    event.preventDefault();
+    drawingPointer.current = null;
+    if (liveStrokeRef.current) strokesRef.current = [...strokesRef.current, liveStrokeRef.current];
+    liveStrokeRef.current = null;
+    setDraft(strokesRef.current);
+  };
 
   return <Screen><ScrollView contentContainerStyle={styles.page}>
     <View style={styles.header}><Text style={styles.back}>ODA {roomCode}</Text><Text style={styles.title}>{labels[state.mode]}</Text><Text style={styles.timer}>{state.phase==='finished'?'MAÇ SONU':`${remaining} SN`}</Text></View>
     <View style={styles.stage}>
       <div ref={canvasRef} style={{ width: '100%', height: '100%', touchAction: 'none', userSelect: 'none' }}/>
-      {state.mode==='drawing_chain'&&state.phase==='draw'&&<Svg pointerEvents="none" viewBox="0 0 1000 560" style={styles.drawPreview}>
-        {draft.map((stroke,index)=><Fragment key={index}>
-          {stroke.length===1&&<Circle cx={80+840*stroke[0][0]/1000} cy={72.8+408.8*stroke[0][1]/700} r="6" fill="#E11D48"/>}
-          <Polyline points={stroke.map(point=>`${80+840*point[0]/1000},${72.8+408.8*point[1]/700}`).join(' ')} fill="none" stroke="#E11D48" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round"/>
-        </Fragment>)}
-      </Svg>}
+      {state.mode==='drawing_chain'&&state.phase!=='finished'&&<div
+        onPointerDown={startDrawing}
+        onPointerMove={continueDrawing}
+        onPointerUp={finishDrawing}
+        onPointerCancel={finishDrawing}
+        style={{position:'absolute',inset:0,zIndex:2,touchAction:'none',userSelect:'none',cursor:canAct&&state.phase==='draw'?'crosshair':'default'}}
+      >
+        <svg viewBox="0 0 1000 560" preserveAspectRatio="none" style={{width:'100%',height:'100%',display:'block'}}>
+          <rect x="80" y="72.8" width="840" height="408.8" rx="14" fill="#FFFFFF"/>
+          {Array.from({length:9},(_,i)=><line key={`v${i}`} x1={80+84*(i+1)} y1="72.8" x2={80+84*(i+1)} y2="481.6" stroke="#D9DEE7" strokeWidth="1.5"/>)}
+          {Array.from({length:6},(_,i)=><line key={`h${i}`} x1="80" y1={72.8+408.8*(i+1)/7} x2="920" y2={72.8+408.8*(i+1)/7} stroke="#D9DEE7" strokeWidth="1.5"/>)}
+          {drawingStrokes.map((stroke,index)=><Fragment key={index}>
+            {stroke.length===1&&<circle cx={80+840*stroke[0][0]/1000} cy={72.8+408.8*stroke[0][1]/700} r="6" fill="#E11D48"/>}
+            <polyline points={stroke.map(point=>`${80+840*point[0]/1000},${72.8+408.8*point[1]/700}`).join(' ')} fill="none" stroke="#E11D48" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round"/>
+          </Fragment>)}
+        </svg>
+      </div>}
     </View>
     <View style={styles.playerRow}>{state.players.map(p=><View key={p.id} style={[styles.playerChip,{borderColor:p.id===state.currentPlayerId?palette.cyan:palette.border}]}><Text style={styles.playerName}>{p.name}{p.isHost?' 👑':''}</Text><Text style={styles.playerMeta}>{p.score} P{p.team!==undefined?` · ${p.team===0?'KIRMIZI':'MAVİ'}`:''}{p.submitted?' · HAZIR':''}</Text></View>)}</View>
     {state.phase==='finished' ? <Card style={styles.panel}><Text style={styles.panelTitle}>Maç tamamlandı</Text><Text style={styles.muted}>{state.result}</Text><Button label="Oyun seçimine dön" onPress={()=>void leaveGame()}/></Card> : null}
@@ -271,7 +304,7 @@ export default function ArcadeGameScreen() {
       </View>
       {myPlayer?.isHost&&<View style={styles.panel}><Text style={styles.panelTitle}>Defuser paneli · renk dizisi</Text><View style={styles.colorRow}>{Array.from({length:4},(_,i)=>{const color=SIGNAL_COLORS.find(c=>c.id===answer[i]);return <Pressable key={i} onPress={()=>setAnswer((a)=>{const n=[...a];const current=SIGNAL_COLORS.findIndex(c=>c.id===n[i]);n[i]=SIGNAL_COLORS[(current+1)%SIGNAL_COLORS.length].id;return n;})} style={[styles.colorSlot,{backgroundColor:color?.color??'#26384A'}]}><Text style={styles.slotText}>{i+1}</Text></Pressable>})}</View><Button label="Diziyi kilitle" disabled={!canAct||answer.length!==4} onPress={()=>{void act({action:'guess',answer});setAnswer([]);}}/></View>}
     </View>}
-    {state.mode==='drawing_chain'&&state.phase!=='finished'&&<View style={styles.panel}><Text style={styles.panelTitle}>{state.phase==='draw'?(canAct?'Tuval sende':'Sıra bekleniyor'):'Çizimi tahmin et'}</Text>{state.phase==='draw'?canAct?<><Text style={styles.muted}>Yalnızca sana görünen ipucu: <Text style={styles.cyan}>{(state.me as any).text}</Text> · Tuvale parmağınla/farenle çiz.</Text><Text style={[styles.drawStatus,{color:draft.length?'#53D7A2':palette.muted}]}>{draft.length?'✓ Çizim alındı · '+draft.length+' çizgi':'Çizgiler tuvalde kırmızı olarak anında görünür.'}</Text><View style={styles.inline}><Button label="Temizle" disabled={!canAct} onPress={clearDraft}/><Button label="Çizimi devret" disabled={!canAct||draft.length===0} onPress={()=>void act({action:'draw',strokes:draft})}/></View></>:<Text style={styles.muted}>{state.players.find(p=>p.id===state.currentPlayerId)?.name??'Başka bir oyuncu'} çiziyor. Sıra sana gelince ipucun açılacak.</Text>:<><Text style={styles.muted}>Gördüğünü tek cümleyle tahmin et.</Text><View style={styles.inline}><TextInput value={guessText} onChangeText={setGuessText} placeholder="Bu çizim ne anlatıyor?" placeholderTextColor="#71879B" style={styles.input}/><Button label="Tahmini gönder" disabled={!canAct||guessText.trim().length<2} onPress={()=>{const text=guessText.trim();setGuessText('');void act({action:'guess',text});}}/></View></>}</View>}
+    {state.mode==='drawing_chain'&&state.phase!=='finished'&&<View style={styles.panel}><Text style={styles.panelTitle}>{state.phase==='draw'?(canAct?'Tuval sende':'Sıra bekleniyor'):'Çizimi tahmin et'}</Text>{state.phase==='draw'?canAct?<><Text style={styles.muted}>Yalnızca sana görünen ipucu: <Text style={styles.cyan}>{(state.me as any).text}</Text> · Tuvale parmağınla/farenle çiz.</Text><Text style={[styles.drawStatus,{color:draft.length?'#53D7A2':palette.muted}]}>{draft.length?'✓ Çizim alındı · '+draft.length+' çizgi':'Çizgiler tüm oyunculara anında görünür.'}</Text><View style={styles.inline}><Button label="Temizle" disabled={!canAct} onPress={clearDraft}/><Button label="Çizimi devret" disabled={!canAct||draft.length===0} onPress={()=>void act({action:'draw',strokes:draft})}/></View></>:<Text style={styles.muted}>{state.players.find(p=>p.id===state.currentPlayerId)?.name??'Başka bir oyuncu'} çiziyor. Sıra sana gelince ipucun açılacak.</Text>:<><Text style={styles.muted}>Gördüğünü tek cümleyle tahmin et.</Text><View style={styles.inline}><TextInput value={guessText} onChangeText={setGuessText} placeholder="Bu çizim ne anlatıyor?" placeholderTextColor="#71879B" style={styles.input}/><Button label="Tahmini gönder" disabled={!canAct||guessText.trim().length<2} onPress={()=>{const text=guessText.trim();setGuessText('');void act({action:'guess',text});}}/></View></>}</View>}
     {state.mode==='kitchen_chaos'&&state.phase!=='finished'&&<View style={styles.panel}><Text style={styles.panelTitle}>İstasyon seçimi</Text><Text style={styles.muted}>Sipariş: {ticketOrder?.emoji} {ticketOrder?.name} · aşama: {ticketOrder?.status}</Text><View style={styles.ticketRow}>{(publicState.orders??[]).map((o:any,i:number)=><Pressable key={i} onPress={()=>setTicket(i)} style={[styles.ticket,{borderColor:ticket===i?palette.cyan:palette.border}]}><Text style={styles.muted}>{o.emoji} {o.name}</Text></Pressable>)}</View><View style={styles.stationRow}>{KITCHEN_ACTIONS.map(a=><Pressable disabled={!canAct||myPlayer?.submitted} key={a.id} onPress={()=>void act({action:a.id,ticket})} style={[styles.station,{backgroundColor:`${a.color}22`,borderColor:a.color}]}><Text style={styles.stationEmoji}>{a.emoji}</Text><Text style={styles.stationText}>{a.label}</Text></Pressable>)}</View><Text style={styles.muted}>Her oyuncu aynı anda bir istasyon hamlesi seçer; mutfak bütün hamleleri birlikte çözer.</Text></View>}
     {state.mode==='pirate_cannon'&&state.phase!=='finished'&&<View style={styles.panel}><Text style={styles.panelTitle}>{state.canAct?'Nişan al ve ateş et':`${state.players.find(p=>p.id===state.currentPlayerId)?.name??'Rakip'} nişan alıyor`}</Text><Text style={styles.muted}>Top açısı ve barut gücü merminin yörüngesini belirler. Rüzgâr her atışta değişir.</Text><View style={styles.adjustRow}><View style={styles.adjust}><Text style={styles.adjustLabel}>AÇI · {angle}°</Text><View style={styles.inline}><Button label="−" disabled={!canAct} onPress={()=>setAngle((v)=>Math.max(15,v-5))}/><Button label="+" disabled={!canAct} onPress={()=>setAngle((v)=>Math.min(75,v+5))}/></View></View><View style={styles.adjust}><Text style={styles.adjustLabel}>BARUT · {power}%</Text><View style={styles.inline}><Button label="−" disabled={!canAct} onPress={()=>setPower((v)=>Math.max(30,v-5))}/><Button label="+" disabled={!canAct} onPress={()=>setPower((v)=>Math.min(100,v+5))}/></View></View></View><Button label="💥 Ateş et" disabled={!canAct} onPress={()=>void act({action:'fire',angle,power})}/></View>}
     {error&&<Text style={styles.error}>{error}</Text>}
