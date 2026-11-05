@@ -73,6 +73,8 @@ export default function ArcadeGameScreen() {
         constructor() { super('ArcadeArena'); }
         create() {
           this.graphics = this.add.graphics();
+          this.game.canvas.style.touchAction = 'none';
+          this.game.canvas.style.cursor = 'crosshair';
           this.scale.on('resize', () => this.paint());
           this.paint();
         }
@@ -128,11 +130,11 @@ export default function ArcadeGameScreen() {
             return;
           }
           const x=w*.08,y=h*.13,bw=w*.84,bh=h*.73;
-          g.fillStyle(0xf7f4ed,1); g.fillRoundedRect(x,y,bw,bh,14);
-          g.lineStyle(1,0xd7d2c9,.65);
+          g.fillStyle(0xffffff,1); g.fillRoundedRect(x,y,bw,bh,14);
+          g.lineStyle(1,0xd9dee7,.9);
           for(let i=1;i<10;i++) g.lineBetween(x+bw*i/10,y,x+bw*i/10,y+bh);
           for(let i=1;i<7;i++) g.lineBetween(x,y+bh*i/7,x+bw,y+bh*i/7);
-          for(const stroke of this.strokes) { g.lineStyle(5,0x212b3b,1); for(let i=1;i<stroke.length;i++){const a=stroke[i-1],b=stroke[i];g.lineBetween(x+bw*a[0]/1000,y+bh*a[1]/700,x+bw*b[0]/1000,y+bh*b[1]/700);} }
+          for(const stroke of this.strokes) { g.lineStyle(9,0xe11d48,1); for(let i=1;i<stroke.length;i++){const a=stroke[i-1],b=stroke[i];g.lineBetween(x+bw*a[0]/1000,y+bh*a[1]/700,x+bw*b[0]/1000,y+bh*b[1]/700);} }
           this.addText(w*.09,h*.035,s.phase==='draw'?'ÇİZİM MASASI':'TAHMİN SIRASI',14,'#8DEEFF');
           this.addText(w*.09,h*.89,s.phase==='draw'?(item.text ?? 'İPUCUNU ÇİZ'):(`ZİNCİR ${pub.chainStep ?? 0} / ${pub.totalSteps ?? 0}`),13,'#F6FBFF');
         }
