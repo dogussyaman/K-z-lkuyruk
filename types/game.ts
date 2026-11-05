@@ -24,7 +24,11 @@ export type GameMode =
   | 'golden_question'
   | 'detective_fox'
   | 'gizli_tilki'
-  | 'orman_hazinesi';
+  | 'orman_hazinesi'
+  | 'critical_signal'
+  | 'drawing_chain'
+  | 'kitchen_chaos'
+  | 'pirate_cannon';
 
 export interface Player {
   id: PlayerId;

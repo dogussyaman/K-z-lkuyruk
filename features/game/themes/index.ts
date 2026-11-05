@@ -50,6 +50,10 @@ export const GAME_MODE_THEMES: Record<GameMode, GameModeTheme> = {
   orman_hazinesi: {
     id: 'orman_hazinesi', accent: '#7BC96F', accentSecondary: '#D9AD62', background: '#091812', surface: '#142A20', glow: 'rgba(123,201,111,0.27)', heroEmoji: '🗺️', atmosphere: 'survival', lobbyTitle: 'Kayıp Orman Seferi', roundTitle: 'Bir Sonraki Adım', victoryTitle: 'Hazineyi Bulan Ekip',
   },
+  critical_signal: { id:'critical_signal', accent:'#38D9FF', accentSecondary:'#7BFFEA', background:'#061726', surface:'#0B3B55', glow:'rgba(56,217,255,0.24)', heroEmoji:'📡', atmosphere:'versus', lobbyTitle:'Gemi Kontrol Odası', roundTitle:'Sinyali Çöz', victoryTitle:'Mürettebat Kurtuldu' },
+  drawing_chain: { id:'drawing_chain', accent:'#FF9D4D', accentSecondary:'#FFD166', background:'#21130E', surface:'#3B2017', glow:'rgba(255,157,77,0.24)', heroEmoji:'🎨', atmosphere:'chaos', lobbyTitle:'Çizim Atölyesi', roundTitle:'Zinciri Devret', victoryTitle:'Zincirin Son Hali' },
+  kitchen_chaos: { id:'kitchen_chaos', accent:'#FFB84D', accentSecondary:'#FF6B54', background:'#21140F', surface:'#3A1D10', glow:'rgba(255,184,77,0.24)', heroEmoji:'🍳', atmosphere:'gold', lobbyTitle:'Servis Başlıyor', roundTitle:'Siparişi Yetiştir', victoryTitle:'Servis Rekoru' },
+  pirate_cannon: { id:'pirate_cannon', accent:'#FFD166', accentSecondary:'#38D9FF', background:'#101C29', surface:'#1C3544', glow:'rgba(255,209,102,0.24)', heroEmoji:'🏴‍☠️', atmosphere:'storm', lobbyTitle:'Top Güvertesi', roundTitle:'Hedefe Kilitlen', victoryTitle:'Denizlerin Hakimi' },
 };
 
 export function getGameModeTheme(mode?: GameMode | null): GameModeTheme {

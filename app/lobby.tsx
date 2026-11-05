@@ -1,4 +1,6 @@
 import { isPartyMode } from '@/features/party/catalog';
+import { isArcadeGameMode } from '@/features/arcade/catalog';
+import { startArcadeGame } from '@/features/arcade/client';
 import { getGameMode } from '@/features/game/modes';
 import { useTheme, useThemeStyles } from '@/theme/ThemeProvider';
 import type { ThemeColors } from '@/theme/ThemeProvider';
@@ -105,6 +107,10 @@ export default function LobbyScreen() {
   }, [roomCode, roomState?.config.gameMode]);
 
   useEffect(() => {
+    if (isArcadeGameMode(roomState?.config.gameMode)) {
+      if (roomState?.phase !== 'lobby') router.replace('/arcade-game');
+      return;
+    }
     if (isPartyMode(roomState?.config.gameMode)) {
       if (roomState?.phase !== 'lobby') {
         const route = roomState?.config.gameMode === 'tilki_parkuru' ? '/tilki-parkuru'
@@ -208,6 +214,13 @@ export default function LobbyScreen() {
     setStarting(true);
     setError(null);
     try {
+      const gameMode = roomState?.config.gameMode;
+      if (isArcadeGameMode(gameMode)) {
+        await startArcadeGame(roomCode, gameMode);
+        await refreshRoom();
+        router.replace('/arcade-game');
+        return;
+      }
       if (isPartyMode(roomState?.config.gameMode)) {
         const mode = roomState?.config.gameMode;
         const rpc = mode === 'tilki_parkuru' ? 'parkur_start_secure'
