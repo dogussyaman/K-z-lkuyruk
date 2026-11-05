@@ -23,7 +23,7 @@ export default function OynaScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
         <ScreenHeader
           title="Oyna"
-          subtitle="Arkadaşlarını topla; yarış, çıkarım ve blöf modlarından birini seç."
+          subtitle="Arkadaşlarını topla ve Klasik Blöf odanı kur."
           right={<Badge tone="orange" sticker>2–10 OYUNCU</Badge>}
         />
 
@@ -43,7 +43,7 @@ export default function OynaScreen() {
               </View>
               <Text style={styles.heroTitle}>Oyununu Seç,{'\n'}Ortamı Isıt!</Text>
               <Text style={styles.heroCopy}>
-                Blöf, gizli rol, takım ve refleks yarışını arkadaşlarınla oyna.
+                Sahte cevap yaz, arkadaşlarını tuzağa düşür ve doğru cevabı bul.
               </Text>
 
               <View style={styles.tags}>
