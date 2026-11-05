@@ -15,7 +15,7 @@ const palette = { bg: '#080D18', panel: '#111B2A', border: '#25364A', text: '#F4
 const labels: Record<string, string> = { critical_signal: 'Kritik Sinyal', drawing_chain: 'Çizgi Zinciri', kitchen_chaos: 'Mutfak Kaosu', pirate_cannon: 'Korsan Topu' };
 
 export default function ArcadeGameScreen() {
-  const { roomCode, currentPlayer } = useGameStore();
+  const { roomCode, currentPlayer, service, setRoomCode, setRoomState } = useGameStore();
   const hostId = currentPlayer?.id;
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const bridgeRef = useRef<DrawBridge | null>(null);
@@ -198,6 +198,13 @@ export default function ArcadeGameScreen() {
     finally { actionLock.current = false; setBusy(false); }
   };
 
+  const leaveGame = async () => {
+    if (roomCode) {
+      try { await service.leaveRoom(roomCode); } catch (cause) { setError(cause instanceof Error ? cause.message : 'Odadan ayrılamadın.'); return; }
+    }
+    setRoomCode(null); setRoomState(null); router.replace('/game-modes');
+  };
+
   if (!roomCode || !state) return <Screen><View style={styles.center}><ActivityIndicator color={palette.cyan}/><Text style={styles.muted}>Oyun arenası yükleniyor…</Text></View></Screen>;
   if (!isArcadeGameMode(state.mode)) return <Screen><View style={styles.center}><Text style={styles.title}>Oyun modu bulunamadı</Text><Button label="Lobiye dön" onPress={() => router.replace('/lobby')} /></View></Screen>;
   const publicState=state.public as any; const myPlayer=state.players.find((p)=>p.id===hostId); const remaining=state.deadline?Math.max(0,Math.ceil((new Date(state.deadline).getTime()-Date.now())/1000)):0;
@@ -205,10 +212,10 @@ export default function ArcadeGameScreen() {
   const canAct=state.canAct&&!busy;
 
   return <Screen><ScrollView contentContainerStyle={styles.page}>
-    <View style={styles.header}><Pressable onPress={()=>router.replace('/lobby')}><Text style={styles.back}>‹ ODA {roomCode}</Text></Pressable><Text style={styles.title}>{labels[state.mode]}</Text><Text style={styles.timer}>{state.phase==='finished'?'MAÇ SONU':`${remaining} SN`}</Text></View>
+    <View style={styles.header}><Text style={styles.back}>ODA {roomCode}</Text><Text style={styles.title}>{labels[state.mode]}</Text><Text style={styles.timer}>{state.phase==='finished'?'MAÇ SONU':`${remaining} SN`}</Text></View>
     <View style={styles.stage}><div ref={canvasRef} style={{ width: '100%', height: '100%' }}/></View>
     <View style={styles.playerRow}>{state.players.map(p=><View key={p.id} style={[styles.playerChip,{borderColor:p.id===state.currentPlayerId?palette.cyan:palette.border}]}><Text style={styles.playerName}>{p.name}{p.isHost?' 👑':''}</Text><Text style={styles.playerMeta}>{p.score} P{p.team!==undefined?` · ${p.team===0?'KIRMIZI':'MAVİ'}`:''}{p.submitted?' · HAZIR':''}</Text></View>)}</View>
-    {state.phase==='finished' ? <Card style={styles.panel}><Text style={styles.panelTitle}>Tur tamamlandı</Text><Text style={styles.muted}>{state.result}</Text><Button label="Lobiye dön" onPress={()=>router.replace('/lobby')}/></Card> : null}
+    {state.phase==='finished' ? <Card style={styles.panel}><Text style={styles.panelTitle}>Maç tamamlandı</Text><Text style={styles.muted}>{state.result}</Text><Button label="Oyun seçimine dön" onPress={()=>void leaveGame()}/></Card> : null}
     {state.mode==='critical_signal'&&state.phase!=='finished'&&<View style={styles.controls}>
       <View style={styles.panel}><Text style={styles.panelTitle}>Mürettebat hattı</Text><Text style={styles.muted}>İpucunu sesli/sohbetten paylaşın. Defuser renk sırasını girsin.</Text>
         <View style={styles.chat}>{(publicState.chat??[]).slice(-4).map((m:any,i:number)=><Text key={`${m.at}-${i}`} style={styles.chatLine}><Text style={styles.cyan}>{state.players.find(p=>p.id===m.playerId)?.name??'Mürettebat'}: </Text>{m.text}</Text>)}</View>
