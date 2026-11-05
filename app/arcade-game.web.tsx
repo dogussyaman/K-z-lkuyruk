@@ -1,3 +1,5 @@
+import { DrawingTeams } from '@/features/arcade/DrawingTeams';
+import { useTeamDrawing } from '@/features/arcade/useTeamDrawing';
 import { Screen, Button, Card } from '@/components/ui';
 import { useGameStore } from '@/store/gameStore';
 import { advanceArcadeGame, getArcadeState, submitArcadeAction } from '@/features/arcade/client';
@@ -7,8 +9,7 @@ import { Fragment, useEffect, useRef, useState, type PointerEvent as ReactPointe
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import type * as PhaserTypes from 'phaser';
-import { subscribeToArcadeDrawingDraft, type DrawingStrokes } from '@/features/arcade/drawingSync';
-import { FoxTeamsDisplay } from '@/features/arcade/FoxTeamsDisplay';
+import type { DrawingStrokes } from '@/features/arcade/drawingSync';
 
 type DraftStroke = number[][];
 type DrawBridge = { setState: (state: ArcadeState | null) => void; setDraft: (strokes: DraftStroke[]) => void; clearDraft: () => void };
@@ -27,7 +28,6 @@ export default function ArcadeGameScreen() {
   const liveStrokeRef = useRef<number[][] | null>(null);
   const [state, setState] = useState<ArcadeState | null>(null);
   const [draft, setDraft] = useState<DraftStroke[]>([]);
-  const [remoteDraft, setRemoteDraft] = useState<DraftStroke[]>([]);
   const [chatText, setChatText] = useState('');
   const [answer, setAnswer] = useState<string[]>([]);
   const [guessText, setGuessText] = useState('');
@@ -36,66 +36,32 @@ export default function ArcadeGameScreen() {
   const [power, setPower] = useState(60);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const stateRef = useRef(state);
-  const drawingSyncRef = useRef<ReturnType<typeof subscribeToArcadeDrawingDraft> | null>(null);
-  const remoteSequenceRef = useRef({ step: -1, sequence: -1 });
+  useTeamDrawing(roomCode, state, draft, (next) => { strokesRef.current=next; liveStrokeRef.current=null; drawingPointer.current=null; setDraft(next); bridgeRef.current?.setDraft(next); }, setError);
 
   useEffect(() => {
     if (!roomCode) { router.replace('/(tabs)'); return; }
     let mounted = true;
+    let polling = false;
     const poll = async () => {
+      if (polling) return;
+      polling = true;
       try {
         const next = await getArcadeState(roomCode);
         if (!mounted || !next) return;
-        stateRef.current = next;
         setState(next);
         bridgeRef.current?.setState(next);
         if (next.phase === 'finished') return;
-        if (next.isHost && next.deadline && new Date(next.deadline).getTime() < Date.now()) {
-          await advanceArcadeGame(roomCode, next.step, next.mode);
+        if ((next.isHost || (next.mode==='drawing_chain' && next.public.rulesVersion===2)) && next.deadline && new Date(next.deadline).getTime() < Date.now()) {
+          await advanceArcadeGame(roomCode, next.step);
         }
       } catch (cause) {
         if (mounted) setError(cause instanceof Error ? cause.message : 'Oyun durumu alınamadı.');
-      }
+      } finally { polling = false; }
     };
     void poll();
-    const timer = setInterval(() => { void poll(); }, 1200);
+    const timer = setInterval(() => { void poll(); }, 500);
     return () => { mounted = false; clearInterval(timer); };
   }, [roomCode]);
-
-  useEffect(() => {
-    if (!roomCode || !hostId) return;
-    let active = true;
-    const sync = subscribeToArcadeDrawingDraft(roomCode, (incoming) => {
-      const current = stateRef.current;
-      if (
-        !active ||
-        !current ||
-        current.mode !== 'drawing_chain' ||
-        current.phase !== 'draw' ||
-        current.step !== incoming.step ||
-        current.currentPlayerId !== incoming.playerId ||
-        current.currentPlayerId === hostId ||
-        (remoteSequenceRef.current.step === incoming.step && incoming.sequence <= remoteSequenceRef.current.sequence)
-      ) return;
-      remoteSequenceRef.current = { step: incoming.step, sequence: incoming.sequence };
-      setRemoteDraft(incoming.strokes);
-    }, (message) => {
-      if (active) setError(message);
-    });
-    drawingSyncRef.current = sync;
-    return () => {
-      active = false;
-      drawingSyncRef.current = null;
-      sync.dispose();
-    };
-  }, [roomCode, hostId]);
-
-  useEffect(() => {
-    if (state?.mode === 'drawing_chain' && state.phase === 'draw' && state.canAct && hostId) {
-      drawingSyncRef.current?.publish(state.step, hostId, draft);
-    }
-  }, [draft, hostId, state?.canAct, state?.mode, state?.phase, state?.step]);
 
   useEffect(() => {
     if (!canvasRef.current || !roomCode) return;
@@ -152,7 +118,7 @@ export default function ArcadeGameScreen() {
         addText(x:number,y:number,text:string,size:number,color:string) { this.texts.push(this.add.text(x,y,text,{fontFamily:'Arial, sans-serif',fontSize:`${size}px`,fontStyle:'bold',color,wordWrap:{width:this.scale.width*.7}})); }
         paintDrawing(g: Phaser.GameObjects.Graphics,w:number,h:number,s:ArcadeState) {
           const pub=s.public as any; const item=s.me as any;
-          if(s.phase==='finished') {
+          if(s.phase==='finished' && s.public.rulesVersion!==2) {
             const chain=pub.chain??[];
             this.addText(w*.08,h*.035,'ZİNCİRİN AÇILIMI',14,'#8DEEFF');
             const cols=3, gap=w*.025, cardW=(w*.84-gap*2)/cols, cardH=h*.29;
@@ -179,7 +145,7 @@ export default function ArcadeGameScreen() {
             for(let i=1;i<stroke.length;i++){const a=stroke[i-1],b=stroke[i];g.lineBetween(x+bw*a[0]/1000,y+bh*a[1]/700,x+bw*b[0]/1000,y+bh*b[1]/700);}
           }
           this.addText(w*.09,h*.035,s.phase==='draw'?'ÇİZİM MASASI':'TAHMİN SIRASI',14,'#8DEEFF');
-          this.addText(w*.09,h*.89,s.phase==='draw'?(item.text ?? 'İPUCUNU ÇİZ'):(`ZİNCİR ${pub.chainStep ?? 0} / ${pub.totalSteps ?? 0}`),13,'#F6FBFF');
+          this.addText(w*.09,h*.89,s.phase==='draw'?(item.text ?? 'CANLI ÇİZİM'):(`ZİNCİR ${pub.chainStep ?? 0} / ${pub.totalSteps ?? 0}`),13,'#F6FBFF');
         }
         paintKitchen(g:Phaser.GameObjects.Graphics,w:number,h:number,s:ArcadeState) {
           const pub=s.public as any; const orders=pub.orders ?? [];
@@ -216,7 +182,7 @@ export default function ArcadeGameScreen() {
   const act = async (payload: ArcadeAction) => {
     if (!roomCode || !state || actionLock.current) return;
     actionLock.current = true; setBusy(true); setError(null);
-    try { await submitArcadeAction(roomCode, { ...payload, step: state.step }, state.mode); if(payload.action==='draw'){strokesRef.current=[];liveStrokeRef.current=null;} setDraft([]); bridgeRef.current?.clearDraft(); }
+    try { await submitArcadeAction(roomCode, { ...payload, step: state.step }); if(payload.action==='draw'){strokesRef.current=[];liveStrokeRef.current=null;} setDraft([]); bridgeRef.current?.clearDraft(); }
     catch (cause) { setError(cause instanceof Error ? cause.message : 'Hamle gönderilemedi.'); }
     finally { actionLock.current = false; setBusy(false); }
   };
@@ -235,11 +201,9 @@ export default function ArcadeGameScreen() {
   const publicState=state.public as any; const myPlayer=state.players.find((p)=>p.id===hostId); const remaining=state.deadline?Math.max(0,Math.ceil((new Date(state.deadline).getTime()-Date.now())/1000)):0;
   const ticketOrder=publicState.orders?.[ticket];
   const canAct=state.canAct&&!busy;
-  const drawingStrokes: DrawingStrokes = state.phase === 'draw'
-    ? (state.canAct ? draft : remoteDraft)
-    : state.phase === 'guess'
-      ? ((publicState.currentDrawing?.strokes ?? []) as DrawingStrokes)
-      : [];
+  const drawingStrokes: DrawingStrokes = state.phase === 'draw' && state.canAct
+    ? draft
+    : ((publicState.strokes ?? (state.me as { strokes?: DrawingStrokes }).strokes ?? []) as DrawingStrokes);
   const getDrawingPoint = (event: ReactPointerEvent<HTMLDivElement>) => {
     const bounds = event.currentTarget.getBoundingClientRect();
     if (!bounds.width || !bounds.height) return null;
@@ -250,6 +214,7 @@ export default function ArcadeGameScreen() {
   };
   const startDrawing = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (state.mode !== 'drawing_chain' || state.phase !== 'draw' || !canAct) return;
+    if (strokesRef.current.length >= 80) { setError('80 çizgi sınırına ulaştın. İstersen tuvali temizleyebilirsin.'); return; }
     const point = getDrawingPoint(event);
     if (!point) return;
     event.preventDefault();
@@ -259,7 +224,7 @@ export default function ArcadeGameScreen() {
     setDraft([...strokesRef.current, liveStrokeRef.current]);
   };
   const continueDrawing = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (drawingPointer.current !== event.pointerId || !liveStrokeRef.current) return;
+    if (drawingPointer.current !== event.pointerId || !liveStrokeRef.current || liveStrokeRef.current.length >= 2500 || !state.canAct || state.phase!=='draw') return;
     const point = getDrawingPoint(event);
     if (!point) return;
     event.preventDefault();
@@ -278,11 +243,11 @@ export default function ArcadeGameScreen() {
 
   return <Screen><ScrollView contentContainerStyle={styles.page}>
     <View style={styles.header}><Text style={styles.back}>ODA {roomCode}</Text><Text style={styles.title}>{labels[state.mode]}</Text><Text style={styles.timer}>{state.phase==='finished'?'MAÇ SONU':`${remaining} SN`}</Text></View>
-    {state.mode==='drawing_chain'&&<FoxTeamsDisplay players={state.players} scores={publicState.teamScores} animated={state.phase==='teams'} activeTeam={state.players.find((player)=>player.id===state.currentPlayerId)?.team} currentPlayerId={state.currentPlayerId}/>}
-    {state.mode==='drawing_chain'&&state.phase==='teams'&&<View style={styles.panel}><Text style={styles.panelTitle}>Tilki takımları kuruluyor</Text><Text style={styles.muted}>Takımlar sırayla çizim yapacak. Her çizim için 2 dakika, takım tahmini için 1 dakika var.</Text></View>}
+    {state.mode==='drawing_chain'&&state.public.rulesVersion===2&&<DrawingTeams state={state} playerId={hostId}/>}
     <View style={styles.stage}>
       <div ref={canvasRef} style={{ width: '100%', height: '100%', touchAction: 'none', userSelect: 'none' }}/>
-      {state.mode==='drawing_chain'&&(state.phase==='draw'||state.phase==='guess')&&<div
+      {state.mode==='drawing_chain'&&state.phase!=='finished'&&<div
+        data-testid="drawing-surface"
         onPointerDown={startDrawing}
         onPointerMove={continueDrawing}
         onPointerUp={finishDrawing}
@@ -300,7 +265,7 @@ export default function ArcadeGameScreen() {
         </svg>
       </div>}
     </View>
-    <View style={styles.playerRow}>{state.players.map(p=><View key={p.id} style={[styles.playerChip,{borderColor:p.id===state.currentPlayerId?palette.cyan:palette.border}]}><Text style={styles.playerName}>{p.name}{p.isHost?' 👑':''}</Text><Text style={styles.playerMeta}>{p.score} P{p.team!==undefined?` · ${p.team===0?'KIRMIZI':'MAVİ'}`:''}{p.submitted?' · HAZIR':''}</Text></View>)}</View>
+    <View style={styles.playerRow}>{state.players.map(p=><View key={p.id} style={[styles.playerChip,{borderColor:p.id===state.currentPlayerId?palette.cyan:palette.border}]}><Text style={styles.playerName}>{p.name}{p.isHost?' 👑':''}</Text><Text style={styles.playerMeta}>{p.score} P{typeof p.team==='number'?` · ${p.team===0?'KIRMIZI':'MAVİ'}`:''}{p.submitted?' · HAZIR':''}</Text></View>)}</View>
     {state.phase==='finished' ? <Card style={styles.panel}><Text style={styles.panelTitle}>Maç tamamlandı</Text><Text style={styles.muted}>{state.result}</Text><Button label="Oyun seçimine dön" onPress={()=>void leaveGame()}/></Card> : null}
     {state.mode==='critical_signal'&&state.phase!=='finished'&&<View style={styles.controls}>
       <View style={styles.panel}><Text style={styles.panelTitle}>Mürettebat hattı</Text><Text style={styles.muted}>İpucunu sesli/sohbetten paylaşın. Defuser renk sırasını girsin.</Text>
@@ -309,8 +274,9 @@ export default function ArcadeGameScreen() {
       </View>
       {myPlayer?.isHost&&<View style={styles.panel}><Text style={styles.panelTitle}>Defuser paneli · renk dizisi</Text><View style={styles.colorRow}>{Array.from({length:4},(_,i)=>{const color=SIGNAL_COLORS.find(c=>c.id===answer[i]);return <Pressable key={i} onPress={()=>setAnswer((a)=>{const n=[...a];const current=SIGNAL_COLORS.findIndex(c=>c.id===n[i]);n[i]=SIGNAL_COLORS[(current+1)%SIGNAL_COLORS.length].id;return n;})} style={[styles.colorSlot,{backgroundColor:color?.color??'#26384A'}]}><Text style={styles.slotText}>{i+1}</Text></Pressable>})}</View><Button label="Diziyi kilitle" disabled={!canAct||answer.length!==4} onPress={()=>{void act({action:'guess',answer});setAnswer([]);}}/></View>}
     </View>}
-    {state.mode==='drawing_chain'&&state.phase==='draw'&&<View style={styles.panel}><Text style={styles.panelTitle}>{canAct?'Takımın için çiz':'Takım arkadaşını izliyorsun'}</Text>{canAct?<><Text style={styles.muted}>İpucunu sadece sen görürsün: <Text style={styles.cyan}>{(state.me as any).prompt}</Text>. Rakip takım çizimini canlı izliyor.</Text><Text style={[styles.drawStatus,{color:draft.length?'#53D7A2':palette.muted}]}>{draft.length?'✓ Çizim anında iki takıma da aktarılıyor':'2 dakika içinde çizimini tamamla.'}</Text><View style={styles.inline}><Button label="Temizle" disabled={!canAct} onPress={clearDraft}/><Button label="Çizimi gönder" disabled={!canAct||draft.length===0} onPress={()=>void act({action:'draw',strokes:draft})}/></View></>:<Text style={styles.muted}>{state.players.find(p=>p.id===state.currentPlayerId)?.name??'Takım arkadaşın'} çiziyor; tüm oyuncular çizimi canlı izliyor.</Text>}</View>}
-    {state.mode==='drawing_chain'&&state.phase==='guess'&&<View style={styles.panel}><Text style={styles.panelTitle}>{canAct?'Takım tahmini':'Canlı çizimi izle'}</Text>{canAct?<><Text style={styles.muted}>Takım arkadaşının çizdiği resmi 1 dakika içinde tahmin et. Rakip takım izleyici.</Text><View style={styles.inline}><TextInput value={guessText} onChangeText={setGuessText} placeholder="Çizimde ne var?" placeholderTextColor="#71879B" style={styles.input}/><Button label="Tahmini gönder" disabled={!canAct||guessText.trim().length<2} onPress={()=>{const text=guessText.trim();setGuessText('');void act({action:'guess',text});}}/></View></>:<Text style={styles.muted}>{state.players.find(p=>p.id===state.currentPlayerId)?.name} çizimi tamamladı. Sıra takımının tahmininde.</Text>}</View>}
+    {state.mode==='drawing_chain'&&state.public.rulesVersion!==2&&state.phase!=='finished'&&<View style={styles.panel}><Text style={styles.panelTitle}>{state.phase==='draw'?(canAct?'Tuval sende':'Sıra bekleniyor'):'Çizimi tahmin et'}</Text>{state.phase==='draw'?canAct?<><Text style={styles.muted}>Yalnızca sana görünen ipucu: <Text style={styles.cyan}>{(state.me as any).text}</Text> · Tuvale parmağınla/farenle çiz.</Text><Text style={[styles.drawStatus,{color:draft.length?'#53D7A2':palette.muted}]}>{draft.length?'✓ Çizim alındı · '+draft.length+' çizgi':'Çizgiler tüm oyunculara anında görünür.'}</Text><View style={styles.inline}><Button label="Temizle" disabled={!canAct} onPress={clearDraft}/><Button label="Çizimi devret" disabled={!canAct||draft.length===0} onPress={()=>void act({action:'draw',strokes:draft})}/></View></>:<Text style={styles.muted}>{state.players.find(p=>p.id===state.currentPlayerId)?.name??'Başka bir oyuncu'} çiziyor. Sıra sana gelince ipucun açılacak.</Text>:<><Text style={styles.muted}>Gördüğünü tek cümleyle tahmin et.</Text><View style={styles.inline}><TextInput value={guessText} onChangeText={setGuessText} placeholder="Bu çizim ne anlatıyor?" placeholderTextColor="#71879B" style={styles.input}/><Button label="Tahmini gönder" disabled={!canAct||guessText.trim().length<2} onPress={()=>{const text=guessText.trim();setGuessText('');void act({action:'guess',text});}}/></View></>}</View>}
+    {state.mode==='drawing_chain'&&state.public.rulesVersion===2&&state.phase==='draw'&&state.canAct&&<View style={styles.panel}><Text style={styles.panelTitle}>Çizeceğin kelime: {String(state.me.text??'')}</Text><Text style={styles.muted}>2 dakika boyunca çiz. Herkes tuvalini canlı izliyor.</Text><Button label="Tuvali temizle" onPress={clearDraft}/></View>}
+    {state.mode==='drawing_chain'&&state.public.rulesVersion===2&&state.phase==='guess'&&state.canAct&&<View style={styles.panel}><Text style={styles.panelTitle}>Takımın için tahmin et</Text><TextInput value={guessText} onChangeText={setGuessText} maxLength={80} placeholder="Çizilen kelime…" placeholderTextColor="#71879B" style={styles.input}/><Button label="Tahmini gönder" disabled={busy||!guessText.trim()} onPress={()=>{const text=guessText.trim();setGuessText('');void act({action:'guess',text});}}/></View>}
     {state.mode==='kitchen_chaos'&&state.phase!=='finished'&&<View style={styles.panel}><Text style={styles.panelTitle}>İstasyon seçimi</Text><Text style={styles.muted}>Sipariş: {ticketOrder?.emoji} {ticketOrder?.name} · aşama: {ticketOrder?.status}</Text><View style={styles.ticketRow}>{(publicState.orders??[]).map((o:any,i:number)=><Pressable key={i} onPress={()=>setTicket(i)} style={[styles.ticket,{borderColor:ticket===i?palette.cyan:palette.border}]}><Text style={styles.muted}>{o.emoji} {o.name}</Text></Pressable>)}</View><View style={styles.stationRow}>{KITCHEN_ACTIONS.map(a=><Pressable disabled={!canAct||myPlayer?.submitted} key={a.id} onPress={()=>void act({action:a.id,ticket})} style={[styles.station,{backgroundColor:`${a.color}22`,borderColor:a.color}]}><Text style={styles.stationEmoji}>{a.emoji}</Text><Text style={styles.stationText}>{a.label}</Text></Pressable>)}</View><Text style={styles.muted}>Her oyuncu aynı anda bir istasyon hamlesi seçer; mutfak bütün hamleleri birlikte çözer.</Text></View>}
     {state.mode==='pirate_cannon'&&state.phase!=='finished'&&<View style={styles.panel}><Text style={styles.panelTitle}>{state.canAct?'Nişan al ve ateş et':`${state.players.find(p=>p.id===state.currentPlayerId)?.name??'Rakip'} nişan alıyor`}</Text><Text style={styles.muted}>Top açısı ve barut gücü merminin yörüngesini belirler. Rüzgâr her atışta değişir.</Text><View style={styles.adjustRow}><View style={styles.adjust}><Text style={styles.adjustLabel}>AÇI · {angle}°</Text><View style={styles.inline}><Button label="−" disabled={!canAct} onPress={()=>setAngle((v)=>Math.max(15,v-5))}/><Button label="+" disabled={!canAct} onPress={()=>setAngle((v)=>Math.min(75,v+5))}/></View></View><View style={styles.adjust}><Text style={styles.adjustLabel}>BARUT · {power}%</Text><View style={styles.inline}><Button label="−" disabled={!canAct} onPress={()=>setPower((v)=>Math.max(30,v-5))}/><Button label="+" disabled={!canAct} onPress={()=>setPower((v)=>Math.min(100,v+5))}/></View></View></View><Button label="💥 Ateş et" disabled={!canAct} onPress={()=>void act({action:'fire',angle,power})}/></View>}
     {error&&<Text style={styles.error}>{error}</Text>}

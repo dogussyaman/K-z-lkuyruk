@@ -1,6 +1,6 @@
 import type { ArcadeGameMode } from './catalog';
 
-export type ArcadePhase = 'lobby' | 'teams' | 'play' | 'draw' | 'guess' | 'aim' | 'finished';
+export type ArcadePhase = 'lobby' | 'play' | 'draw' | 'guess' | 'aim' | 'finished';
 
 export interface ArcadePlayer {
   id: string;

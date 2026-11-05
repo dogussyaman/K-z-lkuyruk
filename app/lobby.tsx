@@ -151,7 +151,8 @@ export default function LobbyScreen() {
   const getReady = (player: Player) =>
     prototype.getReady(player.id, testMode && player.id !== me?.id ? false : player.isReady);
   const readyCount = playersList.filter(getReady).length;
-  const canStart = readyCount >= (roomState?.config.minPlayers ?? 2) && readyCount === playersList.length;
+  const drawingTeamsReady = roomState?.config.gameMode !== 'drawing_chain' || (playersList.length >= 4 && playersList.length % 2 === 0);
+  const canStart = drawingTeamsReady && readyCount >= (roomState?.config.minPlayers ?? 2) && readyCount === playersList.length;
   const maxPlayers = roomState?.config.maxPlayers ?? 8;
   const emptySlotsCount = Math.max(0, Math.min(4, maxPlayers - playersList.length));
 
@@ -471,7 +472,7 @@ export default function LobbyScreen() {
 
         {isHost ? (
           <Button
-            label={canStart ? 'Oyunu Başlat!' : `En az ${roomState?.config.minPlayers ?? 2} hazır oyuncu bekleniyor`}
+            label={!drawingTeamsReady ? 'İki eşit takım için 4, 6 veya 8 oyuncu gerekir' : canStart ? 'Oyunu Başlat!' : `En az ${roomState?.config.minPlayers ?? 2} hazır oyuncu bekleniyor`}
             onPress={handleStartGame}
             variant="orange"
             disabled={!canStart || starting}
