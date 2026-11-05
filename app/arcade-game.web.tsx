@@ -4,12 +4,13 @@ import { advanceArcadeGame, getArcadeState, submitArcadeAction } from '@/feature
 import { KITCHEN_ACTIONS, SIGNAL_COLORS, isArcadeGameMode } from '@/features/arcade/catalog';
 import type { ArcadeAction, ArcadeState } from '@/features/arcade/types';
 import { useEffect, useRef, useState } from 'react';
+import type { PointerEvent as ReactPointerEvent } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import type * as PhaserTypes from 'phaser';
 
 type DraftStroke = number[][];
-type DrawBridge = { setState: (state: ArcadeState | null) => void; clearDraft: () => void };
+type DrawBridge = { setState: (state: ArcadeState | null) => void; setDraft: (strokes: DraftStroke[]) => void; clearDraft: () => void };
 
 const palette = { bg: '#080D18', panel: '#111B2A', border: '#25364A', text: '#F4F7FB', muted: '#96A9BD', cyan: '#42D7F5', orange: '#FF8A4C', green: '#53D7A2', red: '#FF5C6C' };
 const labels: Record<string, string> = { critical_signal: 'Kritik Sinyal', drawing_chain: 'Çizgi Zinciri', kitchen_chaos: 'Mutfak Kaosu', pirate_cannon: 'Korsan Topu' };
@@ -20,6 +21,9 @@ export default function ArcadeGameScreen() {
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const bridgeRef = useRef<DrawBridge | null>(null);
   const actionLock = useRef(false);
+  const drawingPointer = useRef<number | null>(null);
+  const strokesRef = useRef<DraftStroke[]>([]);
+  const liveStrokeRef = useRef<number[][] | null>(null);
   const [state, setState] = useState<ArcadeState | null>(null);
   const [draft, setDraft] = useState<DraftStroke[]>([]);
   const [chatText, setChatText] = useState('');
@@ -63,43 +67,18 @@ export default function ArcadeGameScreen() {
       class ArenaScene extends Phaser.Scene {
         snapshot: ArcadeState | null = null;
         strokes: DraftStroke[] = [];
-        liveStroke: number[][] | null = null;
         lastShotStep = -1;
         graphics!: Phaser.GameObjects.Graphics;
         texts: PhaserTypes.GameObjects.Text[] = [];
         constructor() { super('ArcadeArena'); }
         create() {
           this.graphics = this.add.graphics();
-          this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
-            if (this.snapshot?.mode !== 'drawing_chain' || this.snapshot.phase !== 'draw' || !this.snapshot.canAct) return;
-            const pt = this.toBoard(p.x, p.y);
-            if (pt) this.liveStroke = [pt];
-            this.paint();
-          });
-          this.input.on('pointermove', (p: Phaser.Input.Pointer) => {
-            if (!p.isDown || !this.liveStroke) return;
-            const pt = this.toBoard(p.x, p.y);
-            if (pt) this.liveStroke.push(pt);
-            this.paint();
-          });
-          this.input.on('pointerup', () => {
-            if (!this.liveStroke) return;
-            if (this.liveStroke.length > 1) this.strokes.push(this.liveStroke);
-            this.liveStroke = null;
-            setDraft([...this.strokes]);
-            this.paint();
-          });
           this.scale.on('resize', () => this.paint());
           this.paint();
         }
-        toBoard(x: number, y: number) {
-          const width = this.scale.width; const height = this.scale.height;
-          const left = width * 0.08; const right = width * 0.92; const top = height * 0.13; const bottom = height * 0.86;
-          if (x < left || x > right || y < top || y > bottom) return null;
-          return [Math.round(((x-left)/(right-left))*1000), Math.round(((y-top)/(bottom-top))*700)];
-        }
         setSnapshot(next: ArcadeState | null) { this.snapshot = next; this.paint(); }
-        clearDrawing() { this.strokes = []; this.liveStroke = null; setDraft([]); this.paint(); }
+        setDrawing(next: DraftStroke[]) { this.strokes = next; this.paint(); }
+        clearDrawing() { this.strokes = []; this.paint(); }
         paint() {
           if (!this.graphics) return;
           this.texts.forEach((item) => item.destroy()); this.texts=[];
@@ -153,8 +132,7 @@ export default function ArcadeGameScreen() {
           g.lineStyle(1,0xd7d2c9,.65);
           for(let i=1;i<10;i++) g.lineBetween(x+bw*i/10,y,x+bw*i/10,y+bh);
           for(let i=1;i<7;i++) g.lineBetween(x,y+bh*i/7,x+bw,y+bh*i/7);
-          const all=this.strokes.concat(this.liveStroke?[this.liveStroke]:[]);
-          for(const stroke of all) { g.lineStyle(5,0x212b3b,1); for(let i=1;i<stroke.length;i++){const a=stroke[i-1],b=stroke[i];g.lineBetween(x+bw*a[0]/1000,y+bh*a[1]/700,x+bw*b[0]/1000,y+bh*b[1]/700);} }
+          for(const stroke of this.strokes) { g.lineStyle(5,0x212b3b,1); for(let i=1;i<stroke.length;i++){const a=stroke[i-1],b=stroke[i];g.lineBetween(x+bw*a[0]/1000,y+bh*a[1]/700,x+bw*b[0]/1000,y+bh*b[1]/700);} }
           this.addText(w*.09,h*.035,s.phase==='draw'?'ÇİZİM MASASI':'TAHMİN SIRASI',14,'#8DEEFF');
           this.addText(w*.09,h*.89,s.phase==='draw'?(item.text ?? 'İPUCUNU ÇİZ'):(`ZİNCİR ${pub.chainStep ?? 0} / ${pub.totalSteps ?? 0}`),13,'#F6FBFF');
         }
@@ -184,7 +162,7 @@ export default function ArcadeGameScreen() {
       }
       const scene = new ArenaScene();
       game = new Phaser.Game({ type: Phaser.AUTO, parent: canvasRef.current!, width: 1000, height: 560, backgroundColor: '#080D18', scene: [scene], scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: 1000, height: 560 }, render: { antialias: true, pixelArt: false, powerPreference: 'high-performance' } });
-      bridgeRef.current = { setState: (next) => { scene.setSnapshot(next); }, clearDraft: () => scene.clearDrawing() };
+      bridgeRef.current = { setState: (next) => { scene.setSnapshot(next); }, setDraft: (next) => scene.setDrawing(next), clearDraft: () => scene.clearDrawing() };
       scene.setSnapshot(null);
     });
     return () => { disposed = true; bridgeRef.current = null; game?.destroy(true); };
@@ -193,7 +171,7 @@ export default function ArcadeGameScreen() {
   const act = async (payload: ArcadeAction) => {
     if (!roomCode || !state || actionLock.current) return;
     actionLock.current = true; setBusy(true); setError(null);
-    try { await submitArcadeAction(roomCode, { ...payload, step: state.step }); setDraft([]); bridgeRef.current?.clearDraft(); }
+    try { await submitArcadeAction(roomCode, { ...payload, step: state.step }); if(payload.action==='draw'){strokesRef.current=[];liveStrokeRef.current=null;} setDraft([]); bridgeRef.current?.clearDraft(); }
     catch (cause) { setError(cause instanceof Error ? cause.message : 'Hamle gönderilemedi.'); }
     finally { actionLock.current = false; setBusy(false); }
   };
@@ -205,6 +183,40 @@ export default function ArcadeGameScreen() {
     setRoomCode(null); setRoomState(null); router.replace('/game-modes');
   };
 
+  const getBoardPoint = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const canvas = canvasRef.current?.querySelector('canvas');
+    const bounds = canvas?.getBoundingClientRect();
+    if (!bounds || !bounds.width || !bounds.height) return null;
+    const x = ((event.clientX - bounds.left) / bounds.width) * 1000;
+    const y = ((event.clientY - bounds.top) / bounds.height) * 560;
+    const left=80,right=920,top=72.8,bottom=481.6;
+    if(x<left||x>right||y<top||y>bottom)return null;
+    return [Math.round(((x-left)/(right-left))*1000),Math.round(((y-top)/(bottom-top))*700)];
+  };
+  const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if(state?.mode!=='drawing_chain'||state.phase!=='draw'||!state.canAct)return;
+    const point=getBoardPoint(event); if(!point)return;
+    event.preventDefault(); event.stopPropagation();
+    drawingPointer.current=event.pointerId; liveStrokeRef.current=[point];
+    try{event.currentTarget.setPointerCapture(event.pointerId);}catch{}
+    bridgeRef.current?.setDraft([...strokesRef.current,liveStrokeRef.current]);
+  };
+  const handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if(drawingPointer.current!==event.pointerId||!liveStrokeRef.current)return;
+    const point=getBoardPoint(event); if(!point)return;
+    event.preventDefault(); event.stopPropagation(); liveStrokeRef.current.push(point);
+    bridgeRef.current?.setDraft([...strokesRef.current,liveStrokeRef.current]);
+  };
+  const handlePointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if(drawingPointer.current!==event.pointerId)return;
+    event.preventDefault(); event.stopPropagation(); drawingPointer.current=null;
+    if(liveStrokeRef.current&&liveStrokeRef.current.length>=2)strokesRef.current=[...strokesRef.current,liveStrokeRef.current];
+    liveStrokeRef.current=null; setDraft(strokesRef.current);
+    bridgeRef.current?.setDraft(strokesRef.current);
+    try{event.currentTarget.releasePointerCapture(event.pointerId);}catch{}
+  };
+  const clearDraft = () => { strokesRef.current=[];liveStrokeRef.current=null;setDraft([]);bridgeRef.current?.clearDraft(); };
+
   if (!roomCode || !state) return <Screen><View style={styles.center}><ActivityIndicator color={palette.cyan}/><Text style={styles.muted}>Oyun arenası yükleniyor…</Text></View></Screen>;
   if (!isArcadeGameMode(state.mode)) return <Screen><View style={styles.center}><Text style={styles.title}>Oyun modu bulunamadı</Text><Button label="Lobiye dön" onPress={() => router.replace('/lobby')} /></View></Screen>;
   const publicState=state.public as any; const myPlayer=state.players.find((p)=>p.id===hostId); const remaining=state.deadline?Math.max(0,Math.ceil((new Date(state.deadline).getTime()-Date.now())/1000)):0;
@@ -213,7 +225,7 @@ export default function ArcadeGameScreen() {
 
   return <Screen><ScrollView contentContainerStyle={styles.page}>
     <View style={styles.header}><Text style={styles.back}>ODA {roomCode}</Text><Text style={styles.title}>{labels[state.mode]}</Text><Text style={styles.timer}>{state.phase==='finished'?'MAÇ SONU':`${remaining} SN`}</Text></View>
-    <View style={styles.stage}><div ref={canvasRef} style={{ width: '100%', height: '100%' }}/></View>
+    <View style={styles.stage}><div ref={canvasRef} onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerUp} onPointerCancel={handlePointerUp} style={{ width: '100%', height: '100%', touchAction: 'none', userSelect: 'none' }}/></View>
     <View style={styles.playerRow}>{state.players.map(p=><View key={p.id} style={[styles.playerChip,{borderColor:p.id===state.currentPlayerId?palette.cyan:palette.border}]}><Text style={styles.playerName}>{p.name}{p.isHost?' 👑':''}</Text><Text style={styles.playerMeta}>{p.score} P{p.team!==undefined?` · ${p.team===0?'KIRMIZI':'MAVİ'}`:''}{p.submitted?' · HAZIR':''}</Text></View>)}</View>
     {state.phase==='finished' ? <Card style={styles.panel}><Text style={styles.panelTitle}>Maç tamamlandı</Text><Text style={styles.muted}>{state.result}</Text><Button label="Oyun seçimine dön" onPress={()=>void leaveGame()}/></Card> : null}
     {state.mode==='critical_signal'&&state.phase!=='finished'&&<View style={styles.controls}>
@@ -223,7 +235,7 @@ export default function ArcadeGameScreen() {
       </View>
       {myPlayer?.isHost&&<View style={styles.panel}><Text style={styles.panelTitle}>Defuser paneli · renk dizisi</Text><View style={styles.colorRow}>{Array.from({length:4},(_,i)=>{const color=SIGNAL_COLORS.find(c=>c.id===answer[i]);return <Pressable key={i} onPress={()=>setAnswer((a)=>{const n=[...a];const current=SIGNAL_COLORS.findIndex(c=>c.id===n[i]);n[i]=SIGNAL_COLORS[(current+1)%SIGNAL_COLORS.length].id;return n;})} style={[styles.colorSlot,{backgroundColor:color?.color??'#26384A'}]}><Text style={styles.slotText}>{i+1}</Text></Pressable>})}</View><Button label="Diziyi kilitle" disabled={!canAct||answer.length!==4} onPress={()=>{void act({action:'guess',answer});setAnswer([]);}}/></View>}
     </View>}
-    {state.mode==='drawing_chain'&&state.phase!=='finished'&&<View style={styles.panel}><Text style={styles.panelTitle}>{state.phase==='draw'?'Tuval sende':'Çizimi tahmin et'}</Text>{state.phase==='draw'?<><Text style={styles.muted}>İpucu yalnız sana görünür: <Text style={styles.cyan}>{(state.me as any).text}</Text> · Tuvale parmağınla/farenle çiz.</Text><View style={styles.inline}><Button label="Temizle" disabled={!canAct} onPress={()=>{setDraft([]);bridgeRef.current?.clearDraft();}}/><Button label="Çizimi devret" disabled={!canAct||draft.length===0} onPress={()=>void act({action:'draw',strokes:draft})}/></View></>:<><Text style={styles.muted}>Gördüğünü tek cümleyle tahmin et.</Text><View style={styles.inline}><TextInput value={guessText} onChangeText={setGuessText} placeholder="Bu çizim ne anlatıyor?" placeholderTextColor="#71879B" style={styles.input}/><Button label="Tahmini gönder" disabled={!canAct||guessText.trim().length<2} onPress={()=>{const text=guessText.trim();setGuessText('');void act({action:'guess',text});}}/></View></>}</View>}
+    {state.mode==='drawing_chain'&&state.phase!=='finished'&&<View style={styles.panel}><Text style={styles.panelTitle}>{state.phase==='draw'?'Tuval sende':'Çizimi tahmin et'}</Text>{state.phase==='draw'?<><Text style={styles.muted}>İpucu yalnız sana görünür: <Text style={styles.cyan}>{(state.me as any).text}</Text> · Tuvale parmağınla/farenle çiz.</Text><View style={styles.inline}><Button label="Temizle" disabled={!canAct} onPress={clearDraft}/><Button label="Çizimi devret" disabled={!canAct||draft.length===0} onPress={()=>void act({action:'draw',strokes:draft})}/></View></>:<><Text style={styles.muted}>Gördüğünü tek cümleyle tahmin et.</Text><View style={styles.inline}><TextInput value={guessText} onChangeText={setGuessText} placeholder="Bu çizim ne anlatıyor?" placeholderTextColor="#71879B" style={styles.input}/><Button label="Tahmini gönder" disabled={!canAct||guessText.trim().length<2} onPress={()=>{const text=guessText.trim();setGuessText('');void act({action:'guess',text});}}/></View></>}</View>}
     {state.mode==='kitchen_chaos'&&state.phase!=='finished'&&<View style={styles.panel}><Text style={styles.panelTitle}>İstasyon seçimi</Text><Text style={styles.muted}>Sipariş: {ticketOrder?.emoji} {ticketOrder?.name} · aşama: {ticketOrder?.status}</Text><View style={styles.ticketRow}>{(publicState.orders??[]).map((o:any,i:number)=><Pressable key={i} onPress={()=>setTicket(i)} style={[styles.ticket,{borderColor:ticket===i?palette.cyan:palette.border}]}><Text style={styles.muted}>{o.emoji} {o.name}</Text></Pressable>)}</View><View style={styles.stationRow}>{KITCHEN_ACTIONS.map(a=><Pressable disabled={!canAct||myPlayer?.submitted} key={a.id} onPress={()=>void act({action:a.id,ticket})} style={[styles.station,{backgroundColor:`${a.color}22`,borderColor:a.color}]}><Text style={styles.stationEmoji}>{a.emoji}</Text><Text style={styles.stationText}>{a.label}</Text></Pressable>)}</View><Text style={styles.muted}>Her oyuncu aynı anda bir istasyon hamlesi seçer; mutfak bütün hamleleri birlikte çözer.</Text></View>}
     {state.mode==='pirate_cannon'&&state.phase!=='finished'&&<View style={styles.panel}><Text style={styles.panelTitle}>{state.canAct?'Nişan al ve ateş et':`${state.players.find(p=>p.id===state.currentPlayerId)?.name??'Rakip'} nişan alıyor`}</Text><Text style={styles.muted}>Top açısı ve barut gücü merminin yörüngesini belirler. Rüzgâr her atışta değişir.</Text><View style={styles.adjustRow}><View style={styles.adjust}><Text style={styles.adjustLabel}>AÇI · {angle}°</Text><View style={styles.inline}><Button label="−" disabled={!canAct} onPress={()=>setAngle((v)=>Math.max(15,v-5))}/><Button label="+" disabled={!canAct} onPress={()=>setAngle((v)=>Math.min(75,v+5))}/></View></View><View style={styles.adjust}><Text style={styles.adjustLabel}>BARUT · {power}%</Text><View style={styles.inline}><Button label="−" disabled={!canAct} onPress={()=>setPower((v)=>Math.max(30,v-5))}/><Button label="+" disabled={!canAct} onPress={()=>setPower((v)=>Math.min(100,v+5))}/></View></View></View><Button label="💥 Ateş et" disabled={!canAct} onPress={()=>void act({action:'fire',angle,power})}/></View>}
     {error&&<Text style={styles.error}>{error}</Text>}
