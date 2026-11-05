@@ -52,7 +52,7 @@ function DrawingBoard({onChange}:{onChange:(strokes:number[][][])=>void}){
       <Rect x="0" y="0" width="1000" height="700" fill="#F7F4ED"/>
       {Array.from({length:9},(_,i)=><Line key={`v${i}`} x1={(i+1)*100} y1="0" x2={(i+1)*100} y2="700" stroke="#DDD9D1" strokeWidth="2"/>)}
       {Array.from({length:6},(_,i)=><Line key={`h${i}`} x1="0" y1={(i+1)*100} x2="1000" y2={(i+1)*100} stroke="#DDD9D1" strokeWidth="2"/>)}
-      {strokes.map((stroke,i)=><Polyline key={i} points={stroke.map(p=>`${p[0]},${p[1]}`).join(' ')} fill="none" stroke="#263343" strokeWidth="11" strokeLinecap="round" strokeLinejoin="round"/>)}
+      {strokes.map((stroke,i)=><Polyline key={i} points={stroke.map(p=>`${p[0]},${p[1]}`).join(' ')} fill="none" stroke="#E11D48" strokeWidth="13" strokeLinecap="round" strokeLinejoin="round"/>)}
     </Svg>
   </View>;
 }
