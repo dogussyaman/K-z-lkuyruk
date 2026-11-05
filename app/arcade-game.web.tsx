@@ -8,12 +8,13 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, 
 import { router } from 'expo-router';
 import type * as PhaserTypes from 'phaser';
 import { subscribeToArcadeDrawingDraft, type DrawingStrokes } from '@/features/arcade/drawingSync';
+import { FoxTeamsDisplay } from '@/features/arcade/FoxTeamsDisplay';
 
 type DraftStroke = number[][];
 type DrawBridge = { setState: (state: ArcadeState | null) => void; setDraft: (strokes: DraftStroke[]) => void; clearDraft: () => void };
 
 const palette = { bg: '#080D18', panel: '#111B2A', border: '#25364A', text: '#F4F7FB', muted: '#96A9BD', cyan: '#42D7F5', orange: '#FF8A4C', green: '#53D7A2', red: '#FF5C6C' };
-const labels: Record<string, string> = { critical_signal: 'Kritik Sinyal', drawing_chain: 'Çizgi Zinciri', kitchen_chaos: 'Mutfak Kaosu', pirate_cannon: 'Korsan Topu' };
+const labels: Record<string, string> = { critical_signal: 'Kritik Sinyal', drawing_chain: 'Tilki Takım Çizimi', kitchen_chaos: 'Mutfak Kaosu', pirate_cannon: 'Korsan Topu' };
 
 export default function ArcadeGameScreen() {
   const { roomCode, currentPlayer, service, setRoomCode, setRoomState } = useGameStore();
@@ -51,7 +52,7 @@ export default function ArcadeGameScreen() {
         bridgeRef.current?.setState(next);
         if (next.phase === 'finished') return;
         if (next.isHost && next.deadline && new Date(next.deadline).getTime() < Date.now()) {
-          await advanceArcadeGame(roomCode, next.step);
+          await advanceArcadeGame(roomCode, next.step, next.mode);
         }
       } catch (cause) {
         if (mounted) setError(cause instanceof Error ? cause.message : 'Oyun durumu alınamadı.');
@@ -215,7 +216,7 @@ export default function ArcadeGameScreen() {
   const act = async (payload: ArcadeAction) => {
     if (!roomCode || !state || actionLock.current) return;
     actionLock.current = true; setBusy(true); setError(null);
-    try { await submitArcadeAction(roomCode, { ...payload, step: state.step }); if(payload.action==='draw'){strokesRef.current=[];liveStrokeRef.current=null;} setDraft([]); bridgeRef.current?.clearDraft(); }
+    try { await submitArcadeAction(roomCode, { ...payload, step: state.step }, state.mode); if(payload.action==='draw'){strokesRef.current=[];liveStrokeRef.current=null;} setDraft([]); bridgeRef.current?.clearDraft(); }
     catch (cause) { setError(cause instanceof Error ? cause.message : 'Hamle gönderilemedi.'); }
     finally { actionLock.current = false; setBusy(false); }
   };
@@ -235,8 +236,10 @@ export default function ArcadeGameScreen() {
   const ticketOrder=publicState.orders?.[ticket];
   const canAct=state.canAct&&!busy;
   const drawingStrokes: DrawingStrokes = state.phase === 'draw'
-    ? (canAct ? draft : remoteDraft)
-    : ((state.me as { strokes?: DrawingStrokes }).strokes ?? []);
+    ? (state.canAct ? draft : remoteDraft)
+    : state.phase === 'guess'
+      ? ((publicState.currentDrawing?.strokes ?? []) as DrawingStrokes)
+      : [];
   const getDrawingPoint = (event: ReactPointerEvent<HTMLDivElement>) => {
     const bounds = event.currentTarget.getBoundingClientRect();
     if (!bounds.width || !bounds.height) return null;
@@ -275,9 +278,11 @@ export default function ArcadeGameScreen() {
 
   return <Screen><ScrollView contentContainerStyle={styles.page}>
     <View style={styles.header}><Text style={styles.back}>ODA {roomCode}</Text><Text style={styles.title}>{labels[state.mode]}</Text><Text style={styles.timer}>{state.phase==='finished'?'MAÇ SONU':`${remaining} SN`}</Text></View>
+    {state.mode==='drawing_chain'&&<FoxTeamsDisplay players={state.players} scores={publicState.teamScores} animated={state.phase==='teams'} activeTeam={state.players.find((player)=>player.id===state.currentPlayerId)?.team} currentPlayerId={state.currentPlayerId}/>}
+    {state.mode==='drawing_chain'&&state.phase==='teams'&&<View style={styles.panel}><Text style={styles.panelTitle}>Tilki takımları kuruluyor</Text><Text style={styles.muted}>Takımlar sırayla çizim yapacak. Her çizim için 2 dakika, takım tahmini için 1 dakika var.</Text></View>}
     <View style={styles.stage}>
       <div ref={canvasRef} style={{ width: '100%', height: '100%', touchAction: 'none', userSelect: 'none' }}/>
-      {state.mode==='drawing_chain'&&state.phase!=='finished'&&<div
+      {state.mode==='drawing_chain'&&(state.phase==='draw'||state.phase==='guess')&&<div
         onPointerDown={startDrawing}
         onPointerMove={continueDrawing}
         onPointerUp={finishDrawing}
@@ -304,7 +309,8 @@ export default function ArcadeGameScreen() {
       </View>
       {myPlayer?.isHost&&<View style={styles.panel}><Text style={styles.panelTitle}>Defuser paneli · renk dizisi</Text><View style={styles.colorRow}>{Array.from({length:4},(_,i)=>{const color=SIGNAL_COLORS.find(c=>c.id===answer[i]);return <Pressable key={i} onPress={()=>setAnswer((a)=>{const n=[...a];const current=SIGNAL_COLORS.findIndex(c=>c.id===n[i]);n[i]=SIGNAL_COLORS[(current+1)%SIGNAL_COLORS.length].id;return n;})} style={[styles.colorSlot,{backgroundColor:color?.color??'#26384A'}]}><Text style={styles.slotText}>{i+1}</Text></Pressable>})}</View><Button label="Diziyi kilitle" disabled={!canAct||answer.length!==4} onPress={()=>{void act({action:'guess',answer});setAnswer([]);}}/></View>}
     </View>}
-    {state.mode==='drawing_chain'&&state.phase!=='finished'&&<View style={styles.panel}><Text style={styles.panelTitle}>{state.phase==='draw'?(canAct?'Tuval sende':'Sıra bekleniyor'):'Çizimi tahmin et'}</Text>{state.phase==='draw'?canAct?<><Text style={styles.muted}>Yalnızca sana görünen ipucu: <Text style={styles.cyan}>{(state.me as any).text}</Text> · Tuvale parmağınla/farenle çiz.</Text><Text style={[styles.drawStatus,{color:draft.length?'#53D7A2':palette.muted}]}>{draft.length?'✓ Çizim alındı · '+draft.length+' çizgi':'Çizgiler tüm oyunculara anında görünür.'}</Text><View style={styles.inline}><Button label="Temizle" disabled={!canAct} onPress={clearDraft}/><Button label="Çizimi devret" disabled={!canAct||draft.length===0} onPress={()=>void act({action:'draw',strokes:draft})}/></View></>:<Text style={styles.muted}>{state.players.find(p=>p.id===state.currentPlayerId)?.name??'Başka bir oyuncu'} çiziyor. Sıra sana gelince ipucun açılacak.</Text>:<><Text style={styles.muted}>Gördüğünü tek cümleyle tahmin et.</Text><View style={styles.inline}><TextInput value={guessText} onChangeText={setGuessText} placeholder="Bu çizim ne anlatıyor?" placeholderTextColor="#71879B" style={styles.input}/><Button label="Tahmini gönder" disabled={!canAct||guessText.trim().length<2} onPress={()=>{const text=guessText.trim();setGuessText('');void act({action:'guess',text});}}/></View></>}</View>}
+    {state.mode==='drawing_chain'&&state.phase==='draw'&&<View style={styles.panel}><Text style={styles.panelTitle}>{canAct?'Takımın için çiz':'Takım arkadaşını izliyorsun'}</Text>{canAct?<><Text style={styles.muted}>İpucunu sadece sen görürsün: <Text style={styles.cyan}>{(state.me as any).prompt}</Text>. Rakip takım çizimini canlı izliyor.</Text><Text style={[styles.drawStatus,{color:draft.length?'#53D7A2':palette.muted}]}>{draft.length?'✓ Çizim anında iki takıma da aktarılıyor':'2 dakika içinde çizimini tamamla.'}</Text><View style={styles.inline}><Button label="Temizle" disabled={!canAct} onPress={clearDraft}/><Button label="Çizimi gönder" disabled={!canAct||draft.length===0} onPress={()=>void act({action:'draw',strokes:draft})}/></View></>:<Text style={styles.muted}>{state.players.find(p=>p.id===state.currentPlayerId)?.name??'Takım arkadaşın'} çiziyor; tüm oyuncular çizimi canlı izliyor.</Text>}</View>}
+    {state.mode==='drawing_chain'&&state.phase==='guess'&&<View style={styles.panel}><Text style={styles.panelTitle}>{canAct?'Takım tahmini':'Canlı çizimi izle'}</Text>{canAct?<><Text style={styles.muted}>Takım arkadaşının çizdiği resmi 1 dakika içinde tahmin et. Rakip takım izleyici.</Text><View style={styles.inline}><TextInput value={guessText} onChangeText={setGuessText} placeholder="Çizimde ne var?" placeholderTextColor="#71879B" style={styles.input}/><Button label="Tahmini gönder" disabled={!canAct||guessText.trim().length<2} onPress={()=>{const text=guessText.trim();setGuessText('');void act({action:'guess',text});}}/></View></>:<Text style={styles.muted}>{state.players.find(p=>p.id===state.currentPlayerId)?.name} çizimi tamamladı. Sıra takımının tahmininde.</Text>}</View>}
     {state.mode==='kitchen_chaos'&&state.phase!=='finished'&&<View style={styles.panel}><Text style={styles.panelTitle}>İstasyon seçimi</Text><Text style={styles.muted}>Sipariş: {ticketOrder?.emoji} {ticketOrder?.name} · aşama: {ticketOrder?.status}</Text><View style={styles.ticketRow}>{(publicState.orders??[]).map((o:any,i:number)=><Pressable key={i} onPress={()=>setTicket(i)} style={[styles.ticket,{borderColor:ticket===i?palette.cyan:palette.border}]}><Text style={styles.muted}>{o.emoji} {o.name}</Text></Pressable>)}</View><View style={styles.stationRow}>{KITCHEN_ACTIONS.map(a=><Pressable disabled={!canAct||myPlayer?.submitted} key={a.id} onPress={()=>void act({action:a.id,ticket})} style={[styles.station,{backgroundColor:`${a.color}22`,borderColor:a.color}]}><Text style={styles.stationEmoji}>{a.emoji}</Text><Text style={styles.stationText}>{a.label}</Text></Pressable>)}</View><Text style={styles.muted}>Her oyuncu aynı anda bir istasyon hamlesi seçer; mutfak bütün hamleleri birlikte çözer.</Text></View>}
     {state.mode==='pirate_cannon'&&state.phase!=='finished'&&<View style={styles.panel}><Text style={styles.panelTitle}>{state.canAct?'Nişan al ve ateş et':`${state.players.find(p=>p.id===state.currentPlayerId)?.name??'Rakip'} nişan alıyor`}</Text><Text style={styles.muted}>Top açısı ve barut gücü merminin yörüngesini belirler. Rüzgâr her atışta değişir.</Text><View style={styles.adjustRow}><View style={styles.adjust}><Text style={styles.adjustLabel}>AÇI · {angle}°</Text><View style={styles.inline}><Button label="−" disabled={!canAct} onPress={()=>setAngle((v)=>Math.max(15,v-5))}/><Button label="+" disabled={!canAct} onPress={()=>setAngle((v)=>Math.min(75,v+5))}/></View></View><View style={styles.adjust}><Text style={styles.adjustLabel}>BARUT · {power}%</Text><View style={styles.inline}><Button label="−" disabled={!canAct} onPress={()=>setPower((v)=>Math.max(30,v-5))}/><Button label="+" disabled={!canAct} onPress={()=>setPower((v)=>Math.min(100,v+5))}/></View></View></View><Button label="💥 Ateş et" disabled={!canAct} onPress={()=>void act({action:'fire',angle,power})}/></View>}
     {error&&<Text style={styles.error}>{error}</Text>}
