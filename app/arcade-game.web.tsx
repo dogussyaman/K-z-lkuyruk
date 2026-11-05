@@ -183,7 +183,7 @@ export default function ArcadeGameScreen() {
         }
       }
       const scene = new ArenaScene();
-      game = new Phaser.Game({ type: Phaser.AUTO, parent: canvasRef.current!, width: 1000, height: 560, backgroundColor: '#080D18', scene: [scene], scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: 1000, height: 560 }, physics: { default: 'matter', matter: { gravity: { x: 0, y: 0.75 }, enableSleeping: true, debug: false } }, render: { antialias: true, pixelArt: false, powerPreference: 'high-performance' } });
+      game = new Phaser.Game({ type: Phaser.AUTO, parent: canvasRef.current!, width: 1000, height: 560, backgroundColor: '#080D18', scene: [scene], scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: 1000, height: 560 }, render: { antialias: true, pixelArt: false, powerPreference: 'high-performance' } });
       bridgeRef.current = { setState: (next) => { scene.setSnapshot(next); }, clearDraft: () => scene.clearDrawing() };
       scene.setSnapshot(null);
     });
