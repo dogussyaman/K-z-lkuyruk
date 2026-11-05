@@ -4,9 +4,9 @@ import { KITCHEN_ACTIONS, SIGNAL_COLORS, isArcadeGameMode } from '@/features/arc
 import type { ArcadeAction, ArcadeState } from '@/features/arcade/types';
 import { useGameStore } from '@/store/gameStore';
 import { router } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, PanResponder, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import Svg, { Line, Polyline, Rect } from 'react-native-svg';
+import Svg, { Circle, Line, Polyline, Rect } from 'react-native-svg';
 
 const palette={bg:'#080D18',panel:'#111B2A',border:'#25364A',text:'#F4F7FB',muted:'#96A9BD',cyan:'#42D7F5',orange:'#FF8A4C'};
 export default function ArcadeGameScreen(){
@@ -49,10 +49,13 @@ function DrawingBoard({onChange}:{onChange:(strokes:number[][][])=>void}){
   })).current;
   return <View style={s.drawBoard} {...pan.panHandlers} onLayout={event=>{sizeRef.current={width:Math.max(1,event.nativeEvent.layout.width),height:Math.max(1,event.nativeEvent.layout.height)};}} accessibilityLabel="Dokunmatik çizim tuvali">
     <Svg width="100%" height="100%" viewBox="0 0 1000 700">
-      <Rect x="0" y="0" width="1000" height="700" fill="#F7F4ED"/>
-      {Array.from({length:9},(_,i)=><Line key={`v${i}`} x1={(i+1)*100} y1="0" x2={(i+1)*100} y2="700" stroke="#DDD9D1" strokeWidth="2"/>)}
-      {Array.from({length:6},(_,i)=><Line key={`h${i}`} x1="0" y1={(i+1)*100} x2="1000" y2={(i+1)*100} stroke="#DDD9D1" strokeWidth="2"/>)}
-      {strokes.map((stroke,i)=><Polyline key={i} points={stroke.map(p=>`${p[0]},${p[1]}`).join(' ')} fill="none" stroke="#E11D48" strokeWidth="13" strokeLinecap="round" strokeLinejoin="round"/>)}
+      <Rect x="0" y="0" width="1000" height="700" fill="#FFFFFF"/>
+      {Array.from({length:9},(_,i)=><Line key={`v${i}`} x1={(i+1)*100} y1="0" x2={(i+1)*100} y2="700" stroke="#D9DEE7" strokeWidth="2"/>)}
+      {Array.from({length:6},(_,i)=><Line key={`h${i}`} x1="0" y1={(i+1)*100} x2="1000" y2={(i+1)*100} stroke="#D9DEE7" strokeWidth="2"/>)}
+      {strokes.map((stroke,i)=><Fragment key={i}>
+        {stroke.length===1&&<Circle cx={stroke[0][0]} cy={stroke[0][1]} r="6.5" fill="#E11D48"/>}
+        <Polyline points={stroke.map(p=>`${p[0]},${p[1]}`).join(' ')} fill="none" stroke="#E11D48" strokeWidth="13" strokeLinecap="round" strokeLinejoin="round"/>
+      </Fragment>)}
     </Svg>
   </View>;
 }
