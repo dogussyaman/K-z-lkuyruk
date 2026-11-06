@@ -7,6 +7,7 @@ const migration = readFileSync(resolve(process.cwd(), 'supabase/migrations/20261
 const lockMigration = readFileSync(resolve(process.cwd(), 'supabase/migrations/20261105190456_drawing_consistent_lock_order.sql'), 'utf8');
 const client = readFileSync(resolve(process.cwd(), 'features/arcade/client.ts'), 'utf8');
 const drawingHook = readFileSync(resolve(process.cwd(), 'features/arcade/useTeamDrawing.ts'), 'utf8');
+const drawingSync = readFileSync(resolve(process.cwd(), 'features/arcade/drawingSync.ts'), 'utf8');
 const webScreen = readFileSync(resolve(process.cwd(), 'app/arcade-game.web.tsx'), 'utf8');
 const nativeScreen = readFileSync(resolve(process.cwd(), 'app/arcade-game.tsx'), 'utf8');
 
@@ -38,13 +39,19 @@ describe('fox-team drawing game', () => {
     assert.doesNotMatch(client, /arcade_drawing_(start|action|advance)_secure/);
   });
 
-  it('shows team scores, live artwork, and team-only guessing on both platforms', () => {
+  it('puts the drawing first, keeps teams compact, and shares live artwork on both platforms', () => {
     for (const screen of [webScreen, nativeScreen]) {
       assert.match(screen, /DrawingTeams/);
       assert.match(screen, /useTeamDrawing/);
       assert.match(screen, /public\.rulesVersion===2/);
       assert.match(screen, /action:'guess'/);
+      assert.ok(screen.indexOf('DrawingCountdown deadline={state.deadline}') < screen.indexOf('<DrawingTeams'));
     }
+    assert.ok(webScreen.indexOf('<View style={styles.stage}>') < webScreen.indexOf('<DrawingTeams'));
+    assert.ok(nativeScreen.indexOf('initialStrokes={strokes}') < nativeScreen.indexOf('<DrawingTeams'));
     assert.match(drawingHook, /action:'draft'/);
+    assert.match(drawingHook, /subscribeToArcadeDrawingDraft/);
+    assert.match(drawingHook, /publisher\.current\?\.publish/);
+    assert.match(drawingSync, /event: 'drawing-draft'/);
   });
 });
