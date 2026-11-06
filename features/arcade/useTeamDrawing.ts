@@ -7,6 +7,7 @@ import { subscribeToArcadeDrawingDraft, type DrawingStrokes } from './drawingSyn
 export function useTeamDrawing(room: string | null, playerId: string | undefined, state: ArcadeState | null, draft: DrawingStrokes, reset: (strokes: DrawingStrokes) => void, onRemoteDraft: (step: number, strokes: DrawingStrokes) => void, onError: (message: string) => void) {
   const latest = useRef({state,draft,reset,onRemoteDraft,onError});
   const saved=useRef('');
+  const restoring=useRef(false);
   const publisher=useRef<ReturnType<typeof subscribeToArcadeDrawingDraft> | null>(null);
   const remoteSequence=useRef({step:-1,sequence:-1});
   useEffect(()=>{latest.current={state,draft,reset,onRemoteDraft,onError};},[state,draft,reset,onRemoteDraft,onError]);
@@ -14,9 +15,10 @@ export function useTeamDrawing(room: string | null, playerId: string | undefined
     const current=latest.current.state;
     if(current?.mode!=='drawing_chain'||current.public.rulesVersion!==2)return;
     const strokes=(current.public.strokes??[]) as DrawingStrokes;
+    restoring.current=true;
     saved.current=JSON.stringify(strokes);
     remoteSequence.current={step:current.step,sequence:-1};
-    latest.current.onRemoteDraft(current.step,[]);
+    latest.current.onRemoteDraft(current.step,strokes);
     latest.current.reset(current.phase==='draw'&&current.canAct?strokes:[]);
   },[state?.step,state?.mode,state?.public.rulesVersion]);
   useEffect(()=>{
@@ -33,6 +35,7 @@ export function useTeamDrawing(room: string | null, playerId: string | undefined
     return()=>{active=false;publisher.current=null;channel.dispose();};
   },[room,playerId]);
   useEffect(()=>{
+    if(restoring.current){restoring.current=false;return;}
     if(state?.mode==='drawing_chain'&&state.public.rulesVersion===2&&state.phase==='draw'&&state.canAct&&playerId){
       publisher.current?.publish(state.step,playerId,draft);
     }

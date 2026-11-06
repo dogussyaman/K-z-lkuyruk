@@ -74,7 +74,8 @@ export function subscribeToArcadeDrawingDraft(
 
   return {
     publish(step: number, playerId: string, strokes: DrawingStrokes) {
-      pending = { step, playerId, sequence: ++sequence, strokes };
+      sequence = Math.max(sequence + 1, Date.now());
+      pending = { step, playerId, sequence, strokes };
       if (!ready || disposed || sendTimer) return;
       const delay = Math.max(0, 100 - (Date.now() - lastSentAt));
       if (delay === 0) flush();

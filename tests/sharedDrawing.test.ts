@@ -1,0 +1,12 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { selectSharedDrawing } from '../features/arcade/sharedDrawing';
+import type { ArcadeState } from '../features/arcade/types';
+const stored=[[[10,20],[30,40]]];
+const live=[[[50,60],[70,80]]];
+const make=(team:number,phase='draw')=>({phase,step:2,canAct:false,public:{strokes:stored,activeTeam:0},me:{team}} as unknown as ArcadeState);
+test('both teams see the same live canvas',()=>{for(const team of [0,1])assert.deepEqual(selectSharedDrawing(make(team),[],{step:2,strokes:live,receivedAt:1000},1200),live);});
+test('reload and missed broadcasts recover persisted strokes for both teams',()=>{for(const team of [0,1]){assert.deepEqual(selectSharedDrawing(make(team),[],null,3000),stored);assert.deepEqual(selectSharedDrawing(make(team),[],{step:2,strokes:[],receivedAt:1000},3000),stored);}});
+test('guess phase uses frozen server image even with an empty remote preview',()=>{for(const team of [0,1])assert.deepEqual(selectSharedDrawing(make(team,'guess'),[],{step:2,strokes:[],receivedAt:1000},1200),stored);});
+test('previous turns cannot override the new canvas',()=>assert.deepEqual(selectSharedDrawing(make(1),[],{step:1,strokes:live,receivedAt:1000},1200),stored));
+test('drawer sees local strokes and clear broadcasts propagate to viewers',()=>{assert.deepEqual(selectSharedDrawing({...make(0),canAct:true},live,null),live);assert.deepEqual(selectSharedDrawing(make(1),[],{step:2,strokes:[],receivedAt:1000},1200),[]);});

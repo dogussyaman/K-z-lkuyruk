@@ -1,3 +1,4 @@
+import { selectSharedDrawing, type SharedDrawing } from '@/features/arcade/sharedDrawing';
 import { DrawingCountdown, DrawingTeams } from '@/features/arcade/DrawingTeams';
 import { useTeamDrawing } from '@/features/arcade/useTeamDrawing';
 import { Screen, Button, Card } from '@/components/ui';
@@ -28,7 +29,7 @@ export default function ArcadeGameScreen() {
   const liveStrokeRef = useRef<number[][] | null>(null);
   const [state, setState] = useState<ArcadeState | null>(null);
   const [draft, setDraft] = useState<DraftStroke[]>([]);
-  const [remoteDraft, setRemoteDraft] = useState<{step:number;strokes:DraftStroke[]}|null>(null);
+  const [remoteDraft, setRemoteDraft] = useState<SharedDrawing|null>(null);
   const [chatText, setChatText] = useState('');
   const [answer, setAnswer] = useState<string[]>([]);
   const [guessText, setGuessText] = useState('');
@@ -37,7 +38,7 @@ export default function ArcadeGameScreen() {
   const [power, setPower] = useState(60);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  useTeamDrawing(roomCode,hostId,state,draft,(next)=>{strokesRef.current=next;liveStrokeRef.current=null;drawingPointer.current=null;setDraft(next);bridgeRef.current?.setDraft(next);},(step,strokes)=>setRemoteDraft({step,strokes}),setError);
+  useTeamDrawing(roomCode,hostId,state,draft,(next)=>{strokesRef.current=next;liveStrokeRef.current=null;drawingPointer.current=null;setDraft(next);bridgeRef.current?.setDraft(next);},(step,strokes)=>setRemoteDraft({step,strokes,receivedAt:Date.now()}),setError);
 
   useEffect(() => {
     if (!roomCode) { router.replace('/(tabs)'); return; }
@@ -202,11 +203,7 @@ export default function ArcadeGameScreen() {
   const publicState=state.public as any; const myPlayer=state.players.find((p)=>p.id===hostId); const remaining=state.deadline?Math.max(0,Math.ceil((new Date(state.deadline).getTime()-Date.now())/1000)):0;
   const ticketOrder=publicState.orders?.[ticket];
   const canAct=state.canAct&&!busy;
-  const drawingStrokes: DrawingStrokes = state.phase === 'draw' && state.canAct
-    ? draft
-    : remoteDraft?.step===state.step
-      ? remoteDraft.strokes
-      : ((publicState.strokes ?? (state.me as { strokes?: DrawingStrokes }).strokes ?? []) as DrawingStrokes);
+  const drawingStrokes = selectSharedDrawing(state, draft, remoteDraft);
   const getDrawingPoint = (event: ReactPointerEvent<HTMLDivElement>) => {
     const bounds = event.currentTarget.getBoundingClientRect();
     if (!bounds.width || !bounds.height) return null;
