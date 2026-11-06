@@ -49,6 +49,7 @@ describe('fox-team drawing game', () => {
     }
     assert.ok(webScreen.indexOf('<View style={styles.stage}>') < webScreen.indexOf('<DrawingTeams'));
     assert.ok(nativeScreen.indexOf('initialStrokes={strokes}') < nativeScreen.indexOf('<DrawingTeams'));
+    assert.match(nativeScreen, /current\.phase==='draw'\?350:1300/);
     assert.match(drawingHook, /action:'draft'/);
     assert.match(drawingHook, /subscribeToArcadeDrawingDraft/);
     assert.match(drawingHook, /publisher\.current\?\.publish/);
