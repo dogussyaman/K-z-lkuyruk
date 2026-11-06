@@ -25,7 +25,7 @@ export function DrawingTeams({state,playerId}:{state:ArcadeState;playerId?:strin
       {state.players.filter(p=>p.team===team).map(p=><Player key={p.id} player={p} index={pub.turnOrder?.indexOf(p.id)??0} assigning={assigning} active={!assigning&&p.id===drawer?.id}/>)}
     </View>)}</View>
     <Text style={styles.hint}>{assigning?'Oyuncular iki eşit takıma ayrılıyor':`Tur ${(pub.turnIndex??0)+1}/${pub.turnOrder?.length??state.players.length} · Tilki ${pub.activeTeam===0?'A':'B'} sırada`}</Text>
-    {state.phase==='draw'&&<Text style={styles.hint}>{state.currentPlayerId===playerId?'Kelimeyi çiz; takım arkadaşların ve rakip takım izliyor.':'Takım arkadaşının çizimi canlı gösteriliyor.'}</Text>}
+    {state.phase==='draw'&&<Text style={styles.hint}>{state.currentPlayerId===playerId?'Kelimeyi çiz; takım arkadaşların ve rakip takım izliyor.':'Çizen oyuncunun tuvali her iki takıma da canlı gösteriliyor.'}</Text>}
     {state.phase==='guess'&&!state.canAct&&<Text style={styles.hint}>{state.currentPlayerId===playerId?'Takımın tahmin ediyor.':'Diğer takımın tahminlerini izliyorsun.'}</Text>}
     {state.phase==='play'&&<Text style={styles.answer}>Çizilen: {pub.answer}</Text>}
     {(pub.guesses??[]).slice(-5).map((g,i)=><Text key={i} style={styles.hint}>{state.players.find(p=>p.id===g.playerId)?.name}: {g.text}</Text>)}
