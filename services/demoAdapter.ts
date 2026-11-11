@@ -1,6 +1,7 @@
 import type { CategoryId } from '../features/game/categories';
 import { pickQuestions, QUESTIONS } from '../features/game/questions';
 import { canUseAbility } from '../features/game/abilities';
+import { MATCH_STARTING_CREDITS } from '../features/game/credits';
 import { BLITZ_ROUND_SECONDS } from '../features/game/modes';
 import {
   applyRoundBlockEffects,
@@ -510,7 +511,7 @@ export class DemoGameService implements GameService {
 
     room.players = Object.fromEntries(Object.entries(room.players).map(([id, player]) => [
       id,
-      { ...player, score: 0, credits: 0, creditMilestonesAwarded: 0, livesRemaining: 3 },
+      { ...player, score: 0, credits: room.config.gameMode === 'blitz' ? 0 : MATCH_STARTING_CREDITS, creditMilestonesAwarded: 0, livesRemaining: 3 },
     ]));
     room.survivalFinished = false;
     if (this.currentPlayer && room.players[this.currentPlayer.id]) this.currentPlayer = room.players[this.currentPlayer.id];
