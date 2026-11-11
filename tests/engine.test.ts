@@ -24,6 +24,7 @@ import { pickQuestions, questionsForCategory } from '../features/game/questions'
 import type { Player, RoundChoice } from '../types/game';
 import type { Question } from '../features/game/questions';
 import { getPlayerAchievements } from '../features/game/achievements';
+import { getMatchCreditMilestones, MATCH_CREDIT_THRESHOLDS, MATCH_STARTING_CREDITS } from '../features/game/credits';
 import './soundService.test';
 import './avatar.test';
 
@@ -367,7 +368,7 @@ describe('TUZAK Game Engine — Bluff & Scoring Tests', () => {
 
   describe('4. Match Credit Economy & Ability Rules', () => {
     test('Crossing each score milestone awards a match credit only once', () => {
-      const player = createPlayer('milestone', 'Milestone', 4);
+      const player = createPlayer('milestone', 'Milestone', 2);
       const result = resolveZartoRound({
         question: sampleQuestion,
         players: [player],
@@ -377,12 +378,12 @@ describe('TUZAK Game Engine — Bluff & Scoring Tests', () => {
         picks: { milestone: 0 },
       });
 
-      assert.equal(result.updatedPlayers.milestone.score, 6);
+      assert.equal(result.updatedPlayers.milestone.score, 4);
       assert.equal(result.updatedPlayers.milestone.credits, 1);
       assert.equal(result.updatedPlayers.milestone.creditMilestonesAwarded, 1);
 
       const applied = applyRoundToPlayers({ milestone: player }, result.rows);
-      assert.equal(applied.milestone.score, 6);
+      assert.equal(applied.milestone.score, 4);
       assert.equal(applied.milestone.credits, 1);
       assert.equal(applied.milestone.creditMilestonesAwarded, 1);
 
@@ -398,6 +399,31 @@ describe('TUZAK Game Engine — Bluff & Scoring Tests', () => {
       assert.equal(next.updatedPlayers.milestone.creditMilestonesAwarded, 1);
     });
 
+
+    test('Short matches grant a starting move and 4/8/12 milestones without duplication', () => {
+      assert.equal(MATCH_STARTING_CREDITS, 1);
+      assert.deepEqual([...MATCH_CREDIT_THRESHOLDS], [4, 8, 12]);
+      assert.deepEqual([0, 3, 4, 7, 8, 11, 12, 99].map(getMatchCreditMilestones), [0, 0, 1, 1, 2, 2, 3, 3]);
+      const player = { ...createPlayer('fox', 'Fox', 6), credits: 1, creditMilestonesAwarded: 1 };
+      const choices: RoundChoice[] = [{ choiceIndex: 0, text: '1923', authorId: null, isCorrect: true }];
+      const earned = resolveZartoRound({
+        question: sampleQuestion, players: [player], choices, picks: { fox: 0 },
+      }).updatedPlayers.fox;
+      assert.equal(earned.score, 8);
+      assert.equal(earned.credits, 2);
+      assert.equal(earned.creditMilestonesAwarded, 2);
+      const next = resolveZartoRound({
+        question: sampleQuestion, players: [earned], choices, picks: { fox: 0 },
+      }).updatedPlayers.fox;
+      assert.equal(next.score, 10);
+      assert.equal(next.credits, 2);
+      const last = resolveZartoRound({
+        question: sampleQuestion, players: [next], choices, picks: { fox: 0 },
+      }).updatedPlayers.fox;
+      assert.equal(last.score, 12);
+      assert.equal(last.credits, 3);
+      assert.equal(last.creditMilestonesAwarded, 3);
+    });
 
     test('Score streaks no longer grant free shields', () => {
       const p1 = createPlayer('p1', 'Dahi', 0);
@@ -687,7 +713,7 @@ describe('TUZAK Game Engine — Bluff & Scoring Tests', () => {
         await host.startGame(room.code);
         const started = await host.getRoomState(room.code);
         assert.equal(started?.players[room.playerId].score, 0);
-        assert.equal(started?.players[room.playerId].credits, 0);
+        assert.equal(started?.players[room.playerId].credits, 1);
         assert.equal(started?.players[room.playerId].creditMilestonesAwarded, 0);
       });
 
