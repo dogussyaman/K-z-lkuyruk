@@ -141,7 +141,7 @@ export default function ResultScreen() {
       .map((id) => playersList.find((player) => player.id === id))
       .filter((player) => player !== undefined);
     return author && victims.length > 0
-      ? [{ choiceIndex: choice.choiceIndex, author, victims }]
+      ? [{ choiceIndex: choice.choiceIndex, choiceText: choice.text, author, victims }]
       : [];
   });
 
@@ -178,6 +178,15 @@ export default function ResultScreen() {
   const zartaladın = !!outcome?.zartaladın || victimsCount > 0;
   const zartalandın = !!outcome?.zartalandın;
   const didPick = myResult?.pickedText !== undefined && myResult?.pickedText !== null;
+  const myDeceptionChoice = revealChoices?.find((choice) =>
+    !choice.isCorrect && !!choice.authorId && choice.pickedBy.includes(me?.id ?? '')
+  );
+  const myDeceptionText = zartalandın
+    ? (myDeceptionChoice?.text ?? myResult?.pickedText)
+    : null;
+  const myDeceptionAuthor = playersList.find((player) =>
+    player.id === (myDeceptionChoice?.authorId ?? myResult?.deceivedByAuthorId)
+  );
   const positiveScoreColor = mode === 'light' ? '#435B17' : colors.lime;
   const negativeScoreColor = mode === 'light' ? '#B42318' : colors.dangerSoft;
 
@@ -288,6 +297,15 @@ export default function ResultScreen() {
           </PopView>
         </View>
 
+        {myDeceptionText ? (
+          <Card variant="surface" style={styles.personalTrapCard}>
+            <Text style={styles.personalTrapLabel}>🎭 SENİN KANDIĞIN CEVAP</Text>
+            <Text style={styles.personalTrapAnswer}>“{myDeceptionText}”</Text>
+            <Text style={styles.personalTrapAuthor}>
+              {myDeceptionAuthor ? `${myDeceptionAuthor.name} bu sahte cevabı yazdı.` : 'Bu cevap başka bir oyuncunun tuzağıydı.'}
+            </Text>
+          </Card>
+        ) : null}
         <Text style={styles.sectionTitle}>KİM KİMİ TUZAĞA DÜŞÜRDÜ?</Text>
         <Card variant="surface" style={styles.summaryCard}>
           {correctAnswerText ? (
@@ -317,7 +335,7 @@ export default function ResultScreen() {
             <Text style={styles.summaryMessage}>Tur özeti yükleniyor...</Text>
           ) : trapSummaries.length > 0 ? (
             <View style={styles.trapList}>
-              {trapSummaries.map(({ choiceIndex, author, victims }) => {
+              {trapSummaries.map(({ choiceIndex, choiceText, author, victims }) => {
                 const isMyTrap = author.id === me?.id;
                 return (
                   <View
@@ -327,6 +345,7 @@ export default function ResultScreen() {
                       isMyTrap && styles.trapRowMyTrap,
                     ]}
                   >
+                    <View style={styles.trapMatchRow}>
                     <View style={styles.trapAuthor}>
                       <Avatar avatarKey={author.avatarUrl ?? author.avatarKey} userId={author.id} size={38} />
                       <View style={styles.trapAuthorDetails}>
@@ -366,6 +385,13 @@ export default function ResultScreen() {
                           </View>
                         );
                       })}
+                    </View>
+                    </View>
+                    <View style={styles.trapAnswerBox}>
+                      <Text style={styles.trapAnswerLabel}>
+                        {victims.some((victim) => victim.id === me?.id) ? 'SENİN SEÇTİĞİN YANLIŞ CEVAP' : 'KANDIRAN SAHTE CEVAP'}
+                      </Text>
+                      <Text style={styles.trapAnswerText}>“{choiceText}”</Text>
                     </View>
                   </View>
                 );
@@ -572,6 +598,17 @@ const createStyles = (colors: ThemeColors, mode: 'dark' | 'light') => StyleSheet
     marginBottom: spacing.xs,
     marginTop: spacing.sm,
   },
+  personalTrapCard: {
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+    backgroundColor: mode === 'light' ? 'rgba(239, 68, 68, 0.07)' : 'rgba(239, 68, 68, 0.11)',
+    borderWidth: 1,
+    borderColor: mode === 'light' ? '#E8A7A7' : 'rgba(239, 68, 68, 0.5)',
+    gap: 6,
+  },
+  personalTrapLabel: { ...typography.caption, color: colors.dangerSoft, fontFamily: 'Poppins-Bold' },
+  personalTrapAnswer: { fontFamily: 'Poppins-Bold', fontSize: 17, color: colors.textPrimary, lineHeight: 24 },
+  personalTrapAuthor: { ...typography.small, color: colors.textSecondary },
   summaryCard: {
     padding: spacing.md,
     marginBottom: spacing.md,
@@ -635,13 +672,26 @@ const createStyles = (colors: ThemeColors, mode: 'dark' | 'light') => StyleSheet
     gap: spacing.sm,
   },
   trapRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'column',
+    alignItems: 'stretch',
     gap: spacing.sm,
     paddingVertical: spacing.xs + 2,
     paddingHorizontal: spacing.xs + 2,
     borderRadius: radii.md,
   },
+  trapMatchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  trapAnswerBox: {
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    paddingTop: 5,
+    gap: 2,
+  },
+  trapAnswerLabel: { fontFamily: 'Poppins-Bold', fontSize: 10, color: colors.textMuted },
+  trapAnswerText: { fontFamily: 'Poppins-SemiBold', fontSize: 13, color: colors.textPrimary, lineHeight: 19 },
   trapRowMyTrap: {
     backgroundColor: mode === 'light' ? 'rgba(34, 197, 94, 0.12)' : 'rgba(34, 197, 94, 0.14)',
     borderWidth: 1.5,
