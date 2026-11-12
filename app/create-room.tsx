@@ -41,6 +41,13 @@ const ROUND_OPTIONS = [3, 5, 7, 10];
 const TIME_OPTIONS = [10, 15, 20, 30];
 const BLITZ_TIME_OPTIONS = [5, 7, 10];
 
+const CATEGORY_QUESTION_COUNTS = Object.fromEntries(
+  CATEGORY_OPTIONS.map((category) => [
+    category.id,
+    QUESTIONS.filter((question) => question.categoryId === category.questionCategoryId).length,
+  ])
+);
+
 export default function CreateRoomScreen() {
   const { colors } = useTheme();
   const styles = useThemeStyles(createStyles);
@@ -61,6 +68,7 @@ export default function CreateRoomScreen() {
   const [gameMode, setGameMode] = useState<GameMode>(initialMode);
   const [roundSeconds, setRoundSeconds] = useState(initialMode === 'blitz' ? BLITZ_ROUND_SECONDS : 15);
   const [selectedCats, setSelectedCats] = useState<CategoryOptionId[]>([]);
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [isPrivate, setIsPrivate] = useState(false);
   const [roomPassword, setRoomPassword] = useState('');
   const [showRoomPassword, setShowRoomPassword] = useState(false);
@@ -82,11 +90,10 @@ export default function CreateRoomScreen() {
   const toggleCategory = (id: CategoryOptionId) => {
     soundService.play('click');
     trigger('light');
-    if (selectedCats.includes(id)) {
-      setSelectedCats(selectedCats.filter((c) => c !== id));
-    } else {
-      setSelectedCats([...selectedCats, id]);
-    }
+    setSelectedCats((previous) => previous.includes(id)
+      ? previous.filter((category) => category !== id)
+      : [...previous, id]
+    );
   };
 
   const toggleAllCategories = () => {
@@ -98,6 +105,21 @@ export default function CreateRoomScreen() {
       setSelectedCats(CATEGORY_OPTIONS.map((category) => category.id));
     }
   };
+
+  const selectedQuestionCategories = new Set(
+    CATEGORY_OPTIONS
+      .filter((category) => selectedCats.includes(category.id))
+      .map((category) => category.questionCategoryId)
+  );
+  const selectedQuestionCount = QUESTIONS.filter((question) =>
+    selectedQuestionCategories.has(question.categoryId)
+  ).length;
+  const visibleCategoryOptions = CATEGORY_OPTIONS.filter((category) =>
+    categoryFilter === 'all' || category.groupId === categoryFilter
+  );
+  const selectedCategoryOptions = CATEGORY_OPTIONS.filter((category) =>
+    selectedCats.includes(category.id)
+  );
 
   const handleCreate = async () => {
     if (submitting.current) return;
@@ -429,77 +451,178 @@ export default function CreateRoomScreen() {
             </View>
           </Card>
 
-          {/* Category selection */}
-          <View style={styles.catHeaderRow}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Text style={styles.sectionTitle}>Kategoriler</Text>
-              <Badge tone="yellow">{selectedCats.length} Seçili</Badge>
-            </View>
-            <Pressable onPress={toggleAllCategories}>
-              <Text style={styles.allLink}>
-                {selectedCats.length === CATEGORY_OPTIONS.length ? 'Tümünü Kaldır' : 'Tümünü Seç'}
-              </Text>
-            </Pressable>
-          </View>
-          <Text style={styles.categoryHint}>
-            Alt kategoriler, en yakın mevcut soru havuzunu kullanır.
-          </Text>
-
-          {CATEGORY_GROUPS.map((group) => (
-            <View key={group.id} style={styles.catGroup}>
-              <View style={styles.catGroupHeading}>
-                <Text style={styles.catGroupEmoji}>{group.emoji}</Text>
-                <Text style={styles.catGroupTitle}>{group.name}</Text>
+          {/* Multi-select category picker: compact, discoverable and mobile friendly. */}
+          <View style={styles.modernCategoryPanel}>
+            <LinearGradient
+              colors={['#5C2AA1', '#2D194A']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.modernCategoryHero}
+            >
+              <View style={styles.modernCategoryHeroTop}>
+                <View style={styles.modernCategoryHeroBadge}>
+                  <Sparkles color="#FFD46F" size={14} />
+                  <Text style={styles.modernCategoryHeroBadgeText}>KATEGORİ EVRENİ</Text>
+                </View>
+                <View style={styles.modernCategoryCountBadge}>
+                  <Check color="#271B42" size={13} strokeWidth={3} />
+                  <Text style={styles.modernCategoryCountText}>
+                    {selectedCats.length} / {CATEGORY_OPTIONS.length}
+                  </Text>
+                </View>
               </View>
-              <View style={styles.catGrid}>
-                {group.categories.map((category) => {
-                  const isSelected = selectedCats.includes(category.id);
+              <Text style={styles.modernCategoryHeroTitle}>Hangi konularda yarışalım?</Text>
+              <Text style={styles.modernCategoryHeroSubtitle}>
+                Sevdiğin konuları seç. Birden fazla kategoriyle daha sürprizli bir maç kur!
+              </Text>
+              <View style={styles.modernCategorySelectionProgress}>
+                <View style={[styles.modernCategorySelectionFill, {
+                  width: (selectedCats.length / CATEGORY_OPTIONS.length * 100) + '%',
+                }]} />
+              </View>
+            </LinearGradient>
+
+            <View style={styles.modernCategoryBody}>
+              <View style={styles.modernCategoryActionRow}>
+                <View style={styles.modernCategorySummary}>
+                  <Text style={styles.modernCategorySummaryTitle}>Seçilen kategoriler</Text>
+                  <Text style={styles.modernCategorySummaryMeta}>
+                    {selectedCats.length === 0
+                      ? 'Başlamak için en az 1 kategori seç'
+                      : selectedQuestionCount + ' farklı soru havuzda'}
+                  </Text>
+                </View>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={selectedCats.length === CATEGORY_OPTIONS.length
+                    ? 'Tüm kategorileri kaldır' : 'Tüm kategorileri seç'}
+                  onPress={toggleAllCategories}
+                  style={({ pressed }) => [
+                    styles.modernCategorySelectAll,
+                    { opacity: pressed ? 0.75 : 1 },
+                  ]}
+                >
+                  <Text style={styles.modernCategorySelectAllText}>
+                    {selectedCats.length === CATEGORY_OPTIONS.length ? 'Temizle' : 'Tümünü seç'}
+                  </Text>
+                </Pressable>
+              </View>
+
+              {selectedCategoryOptions.length > 0 ? (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  keyboardShouldPersistTaps="always"
+                  contentContainerStyle={styles.modernCategoryChosenList}
+                  style={styles.modernCategoryChosenScroll}
+                >
+                  {selectedCategoryOptions.map((category) => (
+                    <Pressable
+                      key={category.id}
+                      onPress={() => toggleCategory(category.id)}
+                      accessibilityRole="button"
+                      accessibilityLabel={category.name + ' seçimini kaldır'}
+                      style={styles.modernCategoryChosenChip}
+                    >
+                      <Text style={styles.modernCategoryChosenLabel}>
+                        {category.emoji} {category.name}
+                      </Text>
+                      <Text style={styles.modernCategoryChosenRemove}>×</Text>
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              ) : (
+                <View style={styles.modernCategoryEmptySelection}>
+                  <Text style={styles.modernCategoryEmptyText}>✨ Seçtiklerin burada görünecek</Text>
+                </View>
+              )}
+
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                keyboardShouldPersistTaps="always"
+                contentContainerStyle={styles.modernCategoryFilters}
+                style={styles.modernCategoryFilterScroll}
+              >
+                {[
+                  { id: 'all', label: 'Hepsi', emoji: '🎲' },
+                  ...CATEGORY_GROUPS.map((group) => ({
+                    id: group.id, label: group.name, emoji: group.emoji,
+                  })),
+                ].map((group) => {
+                  const active = categoryFilter === group.id;
+                  return (
+                    <Pressable
+                      key={group.id}
+                      onPress={() => {
+                        trigger('light');
+                        setCategoryFilter(group.id);
+                      }}
+                      accessibilityRole="tab"
+                      accessibilityState={{ selected: active }}
+                      style={[
+                        styles.modernCategoryFilter,
+                        active && styles.modernCategoryFilterActive,
+                      ]}
+                    >
+                      <Text style={[
+                        styles.modernCategoryFilterText,
+                        active && styles.modernCategoryFilterTextActive,
+                      ]}>{group.emoji} {group.label}</Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+
+              <View style={styles.modernCategoryList}>
+                {visibleCategoryOptions.map((category) => {
+                  const selected = selectedCats.includes(category.id);
                   return (
                     <Pressable
                       key={category.id}
                       onPress={() => toggleCategory(category.id)}
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked: selected }}
+                      accessibilityLabel={category.name + ' kategorisi'}
                       style={({ pressed }) => [
-                        styles.catCard,
-                        isSelected && styles.catCardSelected,
-                        { transform: [{ scale: pressed ? 0.98 : 1 }] },
+                        styles.modernCategoryCard,
+                        selected && styles.modernCategoryCardSelected,
+                        { opacity: pressed ? 0.85 : 1 },
                       ]}
                     >
                       <ImageBackground
                         source={categoryOptionImages[category.id]}
-                        style={styles.catCardGradient}
-                        imageStyle={styles.categoryImage}
+                        style={styles.modernCategoryThumb}
+                        imageStyle={styles.modernCategoryThumbImage}
                       >
                         <LinearGradient
-                          colors={['rgba(15, 9, 27, 0.2)', 'rgba(15, 9, 27, 0.82)']}
+                          colors={['rgba(20, 12, 38, 0.06)', 'rgba(20, 12, 38, 0.7)']}
                           style={StyleSheet.absoluteFill}
                           pointerEvents="none"
                         />
-                        <View style={styles.catCardContent}>
-                          <View style={styles.catTopRow}>
-                            <Text style={styles.catEmoji}>{category.emoji}</Text>
-                            <View
-                              style={[
-                                styles.checkCircle,
-                                isSelected ? styles.checkCircleActive : styles.checkCircleInactive,
-                              ]}
-                            >
-                              {isSelected && <Check color="#171026" size={13} strokeWidth={3} />}
-                            </View>
-                          </View>
-                          <Text style={styles.catName} numberOfLines={3}>
-                            {category.name}
-                          </Text>
-                        </View>
+                        <Text style={styles.modernCategoryThumbEmoji}>{category.emoji}</Text>
                       </ImageBackground>
-                      {isSelected && (
-                        <View pointerEvents="none" style={styles.catCardSelectedOutline} />
-                      )}
+                      <View style={styles.modernCategoryCardBody}>
+                        <Text style={[
+                          styles.modernCategoryName,
+                          selected && styles.modernCategoryNameSelected,
+                        ]} numberOfLines={2}>{category.name}</Text>
+                        <Text style={styles.modernCategoryDescription} numberOfLines={2}>
+                          {category.groupName} · {CATEGORY_QUESTION_COUNTS[category.id]} soru
+                        </Text>
+                      </View>
+                      <View style={[
+                        styles.modernCategoryTick,
+                        selected && styles.modernCategoryTickSelected,
+                      ]}>
+                        {selected ? <Check color="#FFFFFF" size={17} strokeWidth={3} /> : null}
+                      </View>
                     </Pressable>
                   );
                 })}
               </View>
             </View>
-          ))}
+          </View>
 
         </ScrollView>
         <StickyActionBar>
@@ -573,6 +696,60 @@ export default function CreateRoomScreen() {
 }
 
 const createStyles = (colors: ThemeColors) => StyleSheet.create({
+
+  modernCategoryPanel: {
+    borderRadius: 23,
+    backgroundColor: colors.bgCard,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    overflow: 'hidden',
+    marginTop: spacing.sm,
+    marginBottom: spacing.lg,
+    ...shadows.card,
+  },
+  modernCategoryHero: { paddingHorizontal: 17, paddingTop: 17, paddingBottom: 16, gap: 8 },
+  modernCategoryHeroTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
+  modernCategoryHeroBadge: { flexDirection: 'row', gap: 6, alignItems: 'center' },
+  modernCategoryHeroBadgeText: { color: '#FFEAC8', fontFamily: 'Poppins-Bold', fontSize: 10, letterSpacing: 0.9 },
+  modernCategoryCountBadge: { flexDirection: 'row', gap: 4, alignItems: 'center', backgroundColor: '#FBD984', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 99 },
+  modernCategoryCountText: { color: '#271B42', fontFamily: 'Poppins-Bold', fontSize: 12 },
+  modernCategoryHeroTitle: { color: '#FFFFFF', fontFamily: 'Poppins-Bold', fontSize: 19, lineHeight: 27 },
+  modernCategoryHeroSubtitle: { color: '#E7D7FA', fontFamily: 'Poppins-Medium', fontSize: 12, lineHeight: 18 },
+  modernCategorySelectionProgress: { height: 5, width: '100%', marginTop: 5, backgroundColor: 'rgba(255,255,255,0.24)', borderRadius: 8, overflow: 'hidden' },
+  modernCategorySelectionFill: { height: '100%', backgroundColor: '#FFD46F', borderRadius: 8 },
+  modernCategoryBody: { padding: 13, gap: 12 },
+  modernCategoryActionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10 },
+  modernCategorySummary: { flex: 1, minWidth: 0, gap: 2 },
+  modernCategorySummaryTitle: { fontFamily: 'Poppins-Bold', fontSize: 13, color: colors.textPrimary },
+  modernCategorySummaryMeta: { fontFamily: 'Poppins-Medium', fontSize: 11, color: colors.textSecondary },
+  modernCategorySelectAll: { backgroundColor: colors.purpleSurface, borderWidth: 1, borderColor: colors.borderAccent, borderRadius: 99, paddingHorizontal: 12, paddingVertical: 9, minHeight: 38, justifyContent: 'center' },
+  modernCategorySelectAllText: { fontFamily: 'Poppins-Bold', fontSize: 11, color: colors.purpleSoft },
+  modernCategoryChosenScroll: { flexGrow: 0 },
+  modernCategoryChosenList: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingVertical: 3 },
+  modernCategoryChosenChip: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.purpleSurface, borderColor: colors.borderAccent, borderWidth: 1, borderRadius: 99, paddingHorizontal: 10, paddingVertical: 8, minHeight: 36 },
+  modernCategoryChosenLabel: { color: colors.textPrimary, fontFamily: 'Poppins-SemiBold', fontSize: 11 },
+  modernCategoryChosenRemove: { color: colors.purpleSoft, fontFamily: 'Poppins-Bold', fontSize: 17, lineHeight: 19 },
+  modernCategoryEmptySelection: { paddingVertical: 7, alignItems: 'center', borderRadius: 11, borderWidth: 1, borderColor: colors.border, borderStyle: 'dashed' },
+  modernCategoryEmptyText: { fontFamily: 'Poppins-Medium', fontSize: 11, color: colors.textMuted },
+  modernCategoryFilterScroll: { flexGrow: 0 },
+  modernCategoryFilters: { gap: 7, alignItems: 'center', paddingVertical: 3 },
+  modernCategoryFilter: { borderRadius: 99, backgroundColor: colors.bgSurfaceAlt, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 12, paddingVertical: 9, minHeight: 39, justifyContent: 'center' },
+  modernCategoryFilterActive: { backgroundColor: colors.purple, borderColor: colors.purple },
+  modernCategoryFilterText: { fontFamily: 'Poppins-SemiBold', color: colors.textSecondary, fontSize: 11 },
+  modernCategoryFilterTextActive: { color: '#FFFFFF' },
+  modernCategoryList: { gap: 9 },
+  modernCategoryCard: { minHeight: 78, flexDirection: 'row', alignItems: 'center', gap: 11, borderRadius: 16, borderColor: colors.border, borderWidth: 1.3, backgroundColor: colors.bgSurfaceAlt, padding: 7 },
+  modernCategoryCardSelected: { borderColor: colors.purpleSoft, backgroundColor: colors.purpleSurface, borderWidth: 2 },
+  modernCategoryThumb: { width: 64, height: 62, borderRadius: 12, overflow: 'hidden', alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 5 },
+  modernCategoryThumbImage: { borderRadius: 12, resizeMode: 'cover' },
+  modernCategoryThumbEmoji: { fontSize: 23 },
+  modernCategoryCardBody: { flex: 1, gap: 3, minWidth: 0 },
+  modernCategoryName: { fontFamily: 'Poppins-Bold', fontSize: 14, lineHeight: 20, color: colors.textPrimary },
+  modernCategoryNameSelected: { color: colors.purpleSoft },
+  modernCategoryDescription: { fontFamily: 'Poppins-Medium', fontSize: 10, lineHeight: 15, color: colors.textSecondary },
+  modernCategoryTick: { width: 27, height: 27, borderRadius: 14, borderWidth: 1.5, borderColor: colors.borderStrong, backgroundColor: colors.bgCard, alignItems: 'center', justifyContent: 'center', marginRight: 3 },
+  modernCategoryTickSelected: { backgroundColor: colors.purple, borderColor: colors.purple },
+
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
