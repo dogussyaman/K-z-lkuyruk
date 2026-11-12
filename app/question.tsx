@@ -32,6 +32,7 @@ import { colors, spacing, typography, radii, shadows } from '@/theme';
 import { useGameStore } from '@/store/gameStore';
 import { useHaptics } from '@/hooks/useHaptics';
 import { QUESTIONS, type Question } from '@/features/game/questions';
+import { displayGuessChoice } from '@/features/game/choiceDisplay';
 import type { RoundChoice } from '@/types/game';
 import { mascotImages } from '@/assets/illustrations';
 import { soundService } from '@/services/soundService';
@@ -828,7 +829,7 @@ export default function QuestionScreen() {
                             isOwn && styles.choiceTextOwn,
                           ]}
                         >
-                          {choice.text}
+                          {displayGuessChoice(choice.text)}
                         </Text>
 
                         {isOwn ? (

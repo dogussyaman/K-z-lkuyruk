@@ -36,13 +36,17 @@ jobs:
         run: npm test
 
       - name: Type-check TypeScript
+        if: ${{ !cancelled() }}
         run: npm run typecheck
 
       - name: Run ESLint
+        if: ${{ !cancelled() }}
         run: npm run lint
 
       - name: Build production web export
+        if: ${{ !cancelled() }}
         run: npm run build:web
 
       - name: Check Expo project configuration
+        if: ${{ !cancelled() }}
         run: npx --yes expo-doctor

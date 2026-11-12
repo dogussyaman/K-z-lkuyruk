@@ -8,6 +8,7 @@ import type {
   RoundResultRow,
 } from '../../types/game';
 import { computeOutcome, POINTS } from './outcomes';
+import { getMatchCreditMilestones } from './credits';
 import type { Question } from './questions';
 import {
   countsAsTrapVictim,
@@ -260,13 +261,13 @@ export function resolveZartoRound(input: ZartoRoundInput): ZartoRoundResolution 
       abilityUsedCounts[abilityId as keyof typeof abilityUsedCounts] += usedCount;
     }
     const nextScore = Math.max(0, p.score + pointsDelta);
-    const reachedMilestones = nextScore >= 15 ? 3 : nextScore >= 10 ? 2 : nextScore >= 5 ? 1 : 0;
+    const reachedMilestones = getMatchCreditMilestones(nextScore);
     const milestonesAwarded = p.creditMilestonesAwarded ?? 0;
     const newMilestones = Math.max(0, reachedMilestones - milestonesAwarded);
     updatedPlayers[p.id] = {
       ...p,
       score: nextScore,
-      credits: (p.credits ?? 0) + newMilestones * (golden && answeredCorrectly ? 2 : 1),
+      credits: (p.credits ?? 0) + newMilestones,
       creditMilestonesAwarded: Math.max(milestonesAwarded, reachedMilestones),
       abilityUsedCounts,
       consecutiveCorrect,
@@ -311,7 +312,7 @@ export function applyRoundToPlayers(
     const p = players[id];
     const delta = rows[id]?.pointsDelta ?? 0;
     const score = Math.max(0, p.score + delta);
-    const reachedMilestones = score >= 15 ? 3 : score >= 10 ? 2 : score >= 5 ? 1 : 0;
+    const reachedMilestones = getMatchCreditMilestones(score);
     const milestonesAwarded = p.creditMilestonesAwarded ?? 0;
     next[id] = {
       ...p,

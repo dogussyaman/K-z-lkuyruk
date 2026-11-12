@@ -10,6 +10,7 @@ import { useGameStore } from '@/store/gameStore';
 import { useHaptics } from '@/hooks/useHaptics';
 import { getRemainingSeconds, getServerNowMs } from '@/services/serverClock';
 import { ABILITIES, type AbilityId, canUseAbility } from '@/features/game/abilities';
+import { MATCH_CREDIT_THRESHOLDS, MATCH_STARTING_CREDITS } from '@/features/game/credits';
 
 export default function AbilitySelectScreen() {
   const { colors } = useTheme();
@@ -116,8 +117,9 @@ export default function AbilitySelectScreen() {
     lastBlockedPlayerId: me?.lastBlockedPlayerId ?? null,
   };
   const score = me?.score ?? 0;
-  const nextCreditScore = score < 5 ? 5 : score < 10 ? 10 : score < 15 ? 15 : null;
-  const previousCreditScore = nextCreditScore === 15 ? 10 : nextCreditScore === 10 ? 5 : 0;
+  const nextCreditIndex = MATCH_CREDIT_THRESHOLDS.findIndex((threshold) => score < threshold);
+  const nextCreditScore = nextCreditIndex >= 0 ? MATCH_CREDIT_THRESHOLDS[nextCreditIndex] : null;
+  const previousCreditScore = nextCreditIndex > 0 ? MATCH_CREDIT_THRESHOLDS[nextCreditIndex - 1] : 0;
   const creditProgress = nextCreditScore === null
     ? 1
     : Math.min(1, Math.max(0, (score - previousCreditScore) / (nextCreditScore - previousCreditScore)));
@@ -208,7 +210,7 @@ export default function AbilitySelectScreen() {
         <Text style={styles.subtitle}>
           {isEliminated
             ? 'Bu maçta elendin. Canlı oyuncular devam ederken sonuçları izleyebilirsin.'
-            : '5, 10 ve 15 puanda kredi kazanırsın. Blok veya kalkan bu tur 1 kredi harcar.'}
+            : `Maça ${MATCH_STARTING_CREDITS} krediyle başlarsın. 4, 8 ve 12 puanda yeni hamle hakkı kazanırsın.`}
         </Text>
         {roomState?.phaseDeadlineAt ? (
           <View style={styles.timer}>
@@ -221,6 +223,9 @@ export default function AbilitySelectScreen() {
           <Text style={styles.creditBalanceText}>{me?.credits ?? 0} KREDİ</Text>
           <Text style={styles.creditBalanceHint}>· Blok veya kalkan 1 kredi</Text>
         </View>
+        {!isEliminated ? (
+          <Text style={styles.creditGuidance}>1. Yetenek seç  ·  2. Gerekirse rakip seç  ·  3. Hamleni onayla</Text>
+        ) : null}
         {!isEliminated && nextCreditScore !== null ? (
           <View style={styles.creditProgressWrap}>
             <View style={styles.creditProgressCopy}>
@@ -234,7 +239,7 @@ export default function AbilitySelectScreen() {
             </View>
           </View>
         ) : !isEliminated ? (
-          <Text style={styles.creditProgressLabel}>Bu maçın kredi eşikleri tamamlandı · 5 / 10 / 15 puan</Text>
+          <Text style={styles.creditProgressLabel}>Bu maçın kredi eşikleri tamamlandı · 4 / 8 / 12 puan</Text>
         ) : null}
         {error ? <Text style={styles.error}>{error}</Text> : null}
       </View>
@@ -277,9 +282,9 @@ export default function AbilitySelectScreen() {
                     </View>
                     <Badge tone={check.allowed ? (isSelected ? 'orange' : 'lime') : 'neutral'} sticker>
                       {check.allowed
-                        ? `${ab.creditCost} KREDİ`
+                        ? (isSelected ? 'SEÇİLDİ' : '1 KREDİ · HAZIR')
                         : abilityState.credits < ab.creditCost
-                          ? `${ab.creditCost} KREDİ GEREK`
+                          ? 'KREDİ YOK'
                           : 'UYGUN DEĞİL'}
                     </Badge>
                   </View>
@@ -301,7 +306,7 @@ export default function AbilitySelectScreen() {
         {/* Target selection if needed */}
         {selectedAbility && currentAbilityObj?.targetRequired && opponents.length > 0 && (
           <View style={styles.targetSection}>
-            <Text style={styles.targetTitle}>KİMİ HEDEFLİYORSUN?</Text>
+            <Text style={styles.targetTitle}>2. ADIM · KİMİ BLOKLAYACAKSIN?</Text>
             <View style={styles.targetsRow}>
               {opponents.map((opp) => {
                 const isTarget = targetId === opp.id;
@@ -334,8 +339,8 @@ export default function AbilitySelectScreen() {
         <Button
           label={
             selectedAbility
-              ? `${currentAbilityObj?.name} Kullan`
-              : 'Yetenek Kullanmadan Devam Et'
+              ? (selectedAbility === 'shield' ? 'Kalkanı Etkinleştir' : 'Rakibi Blokla')
+              : 'Hamle Yapmadan Geç'
           }
           onPress={selectedAbility ? handleConfirm : handleSkip}
           variant={selectedAbility ? 'orange' : 'secondary'}
@@ -366,6 +371,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     borderRadius: radii.pill,
     marginTop: 10,
   },
+  creditGuidance: { ...typography.caption, color: colors.textSecondary, marginTop: 8, lineHeight: 18 },
   creditBalanceText: { ...typography.caption, color: colors.lime, fontFamily: 'Poppins-Bold' },
   creditBalanceHint: { ...typography.caption, color: colors.textSecondary },
   creditProgressWrap: {
