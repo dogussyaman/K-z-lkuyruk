@@ -3,7 +3,7 @@ import type { ThemeColors } from '@/theme/ThemeProvider';
 import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View, ScrollView, Image, Pressable } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { ArrowRight, Check, Search, Zap, Flag } from 'lucide-react-native';
+import { ArrowRight, Check, Crown, Sparkles, Flag, RotateCcw } from 'lucide-react-native';
 import {
   Screen,
   Button,
@@ -21,6 +21,8 @@ import { resolveZartoRound } from '@/features/game/engine';
 import type { RoundRevealChoice } from '@/services/types';
 import { mascotImages } from '@/assets/illustrations';
 import { soundService } from '@/services/soundService';
+import { buildRevealedChoices } from '@/features/game/revealPresentation';
+import { RoundChoiceReveal } from '@/components/game/RoundChoiceReveal';
 
 export default function ResultScreen() {
   const { colors, mode } = useTheme();
@@ -49,6 +51,7 @@ export default function ResultScreen() {
   const [loadedQuestion, setLoadedQuestion] = useState<Question | null>(null);
   const [revealChoices, setRevealChoices] = useState<RoundRevealChoice[] | null>(null);
   const [revealLoadError, setRevealLoadError] = useState<string | null>(null);
+  const [revealRetry, setRevealRetry] = useState(0);
   const playedResultSound = useRef<string | null>(null);
 
   const currentQId = resultQuestionId || roomState?.currentQuestionId || QUESTIONS[0].id;
@@ -87,6 +90,8 @@ export default function ResultScreen() {
       return;
     }
     let cancelled = false;
+    setRevealChoices(null);
+    setRevealLoadError(null);
     void service.getRoundReveal(roomCode)
       .then((rows) => {
         if (!cancelled) {
@@ -96,14 +101,14 @@ export default function ResultScreen() {
       })
       .catch((error: unknown) => {
         if (!cancelled) {
-          setRevealChoices([]);
+          setRevealChoices(null);
           setRevealLoadError(error instanceof Error ? error.message : 'Tur özeti yüklenemedi.');
         }
       });
     return () => {
       cancelled = true;
     };
-  }, [currentRoomPhase, roomCode, service]);
+  }, [currentRoomPhase, roomCode, service, revealRetry]);
 
   useEffect(() => {
     if (!roomCode || !currentRoomPhase || currentRoomPhase === 'lobby') return;
@@ -134,59 +139,21 @@ export default function ResultScreen() {
     : null;
   const roundResults = { ...resolvedRound?.rows, ...roomState?.roundResults };
   const myResult = me ? roundResults[me.id] : undefined;
-  const trapSummaries = (revealChoices ?? []).flatMap((choice) => {
-    if (!choice.authorId) return [];
-    const author = playersList.find((player) => player.id === choice.authorId);
-    const victims = choice.pickedBy
-      .map((id) => playersList.find((player) => player.id === id))
-      .filter((player) => player !== undefined);
-    return author && victims.length > 0
-      ? [{ choiceIndex: choice.choiceIndex, choiceText: choice.text, author, victims }]
-      : [];
-  });
-
-  const correctRevealChoice = revealChoices?.find((choice) => choice.isCorrect);
-  const correctChoice = correctRevealChoice ?? roomState?.choices?.find((choice) => choice.isCorrect);
-  const correctAnswerText = correctChoice?.text || question?.correctAnswer;
-  const pickedCorrectSolvers = (correctRevealChoice?.pickedBy ?? [])
-    .map((id) => playersList.find((player) => player.id === id))
-    .filter((player): player is NonNullable<typeof player> => player !== undefined);
-  const resultCorrectSolvers = playersList.filter((player) => {
-    const res = roundResults[player.id];
-    return res?.outcome?.correct;
-  });
-  const effectiveCorrectSolvers = pickedCorrectSolvers.length > 0
-    ? pickedCorrectSolvers
-    : resultCorrectSolvers;
-  const didMeKnow = effectiveCorrectSolvers.some((p) => p.id === me?.id);
-  const solverCount = effectiveCorrectSolvers.length;
-  let solversSummaryText = '';
-  if (solverCount > 0) {
-    if (didMeKnow) {
-      solversSummaryText = solverCount === 1 ? 'Sen bildin! 🎯' : `${solverCount} kişi bildi (Sen dahil)`;
-    } else {
-      solversSummaryText = solverCount === 1 ? `${effectiveCorrectSolvers[0].name} bildi` : `${solverCount} kişi bildi`;
-    }
-  } else {
-    solversSummaryText = 'Bilen çıkmadı';
-  }
-
+  const revealed = revealChoices ? buildRevealedChoices(revealChoices, playersList, me?.id) : [];
+  const myPicked = revealed.find((r) => r.isMyPick);
+  const myTrappedPlayers = revealed.filter((r) => r.isMyTrap).flatMap((r) => r.voters);
+  const correctAnswerText = revealChoices?.find((c) => c.isCorrect)?.text
+    ?? roomState?.choices?.find((c) => c.isCorrect)?.text ?? question.correctAnswer;
   const outcome = myResult?.outcome;
   const pointsDelta = myResult?.pointsDelta ?? 0;
-  const victimsCount = myResult?.victimsCount ?? outcome?.victimsCount ?? 0;
-  const isCorrect = !!outcome?.correct;
-  const zartaladın = !!outcome?.zartaladın || victimsCount > 0;
-  const zartalandın = !!outcome?.zartalandın;
-  const didPick = myResult?.pickedText !== undefined && myResult?.pickedText !== null;
-  const myDeceptionChoice = revealChoices?.find((choice) =>
-    !choice.isCorrect && !!choice.authorId && choice.pickedBy.includes(me?.id ?? '')
-  );
-  const myDeceptionText = zartalandın
-    ? (myDeceptionChoice?.text ?? myResult?.pickedText)
-    : null;
-  const myDeceptionAuthor = playersList.find((player) =>
-    player.id === (myDeceptionChoice?.authorId ?? myResult?.deceivedByAuthorId)
-  );
+  const victimsCount = myResult?.victimsCount ?? outcome?.victimsCount ?? myTrappedPlayers.length;
+  const isCorrect = !!outcome?.correct || !!myPicked?.choice.isCorrect;
+  const zartaladın = !!outcome?.zartaladın || victimsCount > 0 || myTrappedPlayers.length > 0;
+  const myDeception = myPicked && !myPicked.choice.isCorrect && !!myPicked.choice.authorId ? myPicked.choice : null;
+  const zartalandın = !!outcome?.zartalandın || !!myDeception;
+  const myChoiceText = myPicked?.choice.text ?? myResult?.pickedText ?? null;
+  const didPick = !!myChoiceText;
+  const myDeceptionAuthor = playersList.find((p) => p.id === (myDeception?.authorId ?? myResult?.deceivedByAuthorId));
   const positiveScoreColor = mode === 'light' ? '#435B17' : colors.lime;
   const negativeScoreColor = mode === 'light' ? '#B42318' : colors.dangerSoft;
 
@@ -239,168 +206,105 @@ export default function ResultScreen() {
     );
   }
 
-  const headerTitle = zartaladın && isCorrect
-    ? 'ÇİFTE BAŞARI! HEM BİLDİN HEM TUZAĞA DÜŞÜRDÜN!'
-    : zartaladın
-    ? 'TUZAĞA DÜŞÜRDÜN! RAKİPLER TUZAĞINA DÜŞTÜ!'
-    : zartalandın
-    ? 'TUZAĞA DÜŞTÜN! SAHTEYE KANDIN!'
-    : isCorrect
-    ? 'DOĞRU BİLDİN!'
-    : !didPick
-    ? 'CEVAP VERMEDİN!'
-    : 'YANLIŞ TAHMİN!';
+  const heroTitle = zartaladın && isCorrect ? 'HEM BİLDİN HEM ZARTLATTIN!'
+    : zartaladın ? 'TUZAĞIN İŞE YARADI!'
+    : isCorrect ? 'DOĞRU BİLDİN!'
+    : zartalandın ? 'TUZAĞA DÜŞTÜN!'
+    : didPick ? 'BU TUR DOĞRUYU BULAMADIN' : 'CEVAP VERMEDİN';
+  const heroDescription = zartaladın ? String(victimsCount) + ' oyuncu sahte cevabına kandı!'
+    : isCorrect ? 'Tuzaklardan kaçtın, doğru cevabı buldun.'
+    : zartalandın ? (myDeceptionAuthor?.name ?? 'Bir oyuncu') + ' seni zartlattı.'
+    : didPick ? 'Bir sonraki turda yeniden dene.' : 'Bu turda seçim yapmadın.';
+  const heroAccent = zartaladın ? '#F4B83F' : isCorrect ? '#4DD96F'
+    : zartalandın ? '#F778A5' : colors.borderStrong;
+  const heroBg = zartaladın ? (mode === 'light' ? '#FFF0C7' : '#422177')
+    : isCorrect ? (mode === 'light' ? '#DDF8DF' : '#114F57')
+    : zartalandın ? (mode === 'light' ? '#FFE5ED' : '#54265B')
+    : colors.bgCardAlt;
+  const heroText = mode === 'light' ? '#2C1847' : '#FFFFFF';
 
   return (
     <Screen gradient diagonalSlice>
-      <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={styles.scroll}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Top Mascot Hero Banner */}
-        <View style={styles.topHeader}>
-          <Image source={mascotImages.brand} style={styles.mascotImage} resizeMode="contain" />
-
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        <View style={[styles.resultHero, { backgroundColor: heroBg, borderColor: heroAccent }]}>
+          <Image source={mascotImages.brand} style={styles.resultMascot} resizeMode="contain" />
           <View style={styles.roundBadge}>
-            <Text style={styles.roundText}>
-              Tur {resultRound} / {roomState?.config.totalRounds ?? 5} Sonucu
-            </Text>
+            <Text style={styles.roundText}>TUR {resultRound} / {roomState?.config.totalRounds ?? 5} · SONUÇLAR</Text>
           </View>
-
-          <Text style={styles.headerTitleText}>{headerTitle}</Text>
-
+          <View style={[styles.heroIconBadge, { backgroundColor: heroAccent }]}>
+            {zartaladın ? <Crown size={27} color="#35204F" strokeWidth={2.5} />
+              : isCorrect ? <Check size={28} color="#15462E" strokeWidth={3} />
+              : <Sparkles size={26} color="#35204F" />}
+          </View>
+          <Text style={[styles.resultHeroTitle, { color: heroText }]}>{heroTitle}</Text>
+          <Text style={[styles.resultHeroDescription, { color: heroText }]}>{heroDescription}</Text>
           <PopView delay={100} duration={350}>
-            <View
-              style={[
-                styles.scorePill,
-                pointsDelta > 0
-                  ? styles.scorePillPos
-                  : pointsDelta < 0
-                  ? styles.scorePillNeg
-                  : styles.scorePillZero,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.mainScoreText,
-                  pointsDelta > 0
-                    ? { color: positiveScoreColor }
-                    : pointsDelta < 0
-                    ? { color: negativeScoreColor }
-                    : { color: colors.textSecondary },
-                ]}
-              >
-                {pointsDelta > 0 ? `+${pointsDelta}` : pointsDelta} PUAN
+            <View style={[styles.resultHeroPoints, { backgroundColor: mode === 'light' ? '#FFFFFF' : 'rgba(9, 9, 35, 0.35)' }]}>
+              <Text style={[styles.resultHeroPointsText, { color: mode === 'light' ? '#3F245B' : '#FFFFFF' }]}>
+                {pointsDelta > 0 ? '+' : ''}{pointsDelta} PUAN
               </Text>
             </View>
           </PopView>
-        </View>
-
-        {myDeceptionText ? (
-          <Card variant="surface" style={styles.personalTrapCard}>
-            <Text style={styles.personalTrapLabel}>🎭 SENİN KANDIĞIN CEVAP</Text>
-            <Text style={styles.personalTrapAnswer}>“{myDeceptionText}”</Text>
-            <Text style={styles.personalTrapAuthor}>
-              {myDeceptionAuthor ? `${myDeceptionAuthor.name} bu sahte cevabı yazdı.` : 'Bu cevap başka bir oyuncunun tuzağıydı.'}
-            </Text>
-          </Card>
-        ) : null}
-        <Text style={styles.sectionTitle}>KİM KİMİ TUZAĞA DÜŞÜRDÜ?</Text>
-        <Card variant="surface" style={styles.summaryCard}>
-          {correctAnswerText ? (
-            <View style={styles.correctAnswerBox}>
-              <View style={styles.correctAnswerHeader}>
-                <View style={styles.correctBadge}>
-                  <Check size={11} color={mode === 'light' ? '#15803D' : '#4ADE80'} strokeWidth={3} />
-                  <Text style={styles.correctBadgeText}>DOĞRU SEÇENEK</Text>
-                </View>
-                {revealChoices !== null || effectiveCorrectSolvers.length > 0 ? (
-                  <Text style={styles.correctSolversText}>
-                    {solversSummaryText}
-                  </Text>
-                ) : null}
+          {zartaladın && myTrappedPlayers.length > 0 ? (
+            <View style={styles.heroVictimGroup}>
+              <Text style={[styles.heroVictimLabel, { color: heroText }]}>TUZAĞINA DÜŞENLER</Text>
+              <View style={styles.heroVictimList}>
+                {myTrappedPlayers.map((p) => (
+                  <View key={p.id} style={styles.heroVictim}>
+                    <Avatar avatarKey={p.avatarUrl ?? p.avatarKey} userId={p.id} size={31} />
+                    <Text style={[styles.heroVictimName, { color: heroText }]} numberOfLines={1}>{p.name}</Text>
+                  </View>
+                ))}
               </View>
-              <Text style={styles.correctAnswerText} numberOfLines={2}>
-                {correctAnswerText}
-              </Text>
             </View>
           ) : null}
-
-          {correctAnswerText ? <View style={styles.summaryDivider} /> : null}
-
-          {revealLoadError ? (
-            <Text accessibilityRole="alert" style={styles.summaryMessage}>{revealLoadError}</Text>
-          ) : revealChoices === null ? (
-            <Text style={styles.summaryMessage}>Tur özeti yükleniyor...</Text>
-          ) : trapSummaries.length > 0 ? (
-            <View style={styles.trapList}>
-              {trapSummaries.map(({ choiceIndex, choiceText, author, victims }) => {
-                const isMyTrap = author.id === me?.id;
-                return (
-                  <View
-                    key={choiceIndex}
-                    style={[
-                      styles.trapRow,
-                      isMyTrap && styles.trapRowMyTrap,
-                    ]}
-                  >
-                    <View style={styles.trapMatchRow}>
-                    <View style={styles.trapAuthor}>
-                      <Avatar avatarKey={author.avatarUrl ?? author.avatarKey} userId={author.id} size={38} />
-                      <View style={styles.trapAuthorDetails}>
-                        <Text style={styles.trapPlayerName} numberOfLines={1}>
-                          {author.name}{isMyTrap ? ' (Sen)' : ''}
-                        </Text>
-                        <View style={[styles.trapRoleBadge, isMyTrap && styles.trapRoleBadgeMine]}>
-                          <Text style={[styles.trapRole, isMyTrap && styles.trapRoleMine]}>
-                            {isMyTrap ? 'TUZAĞA DÜŞÜRDÜN' : 'TUZAĞI KURDU'}
-                          </Text>
-                        </View>
-                      </View>
-                    </View>
-                    <ArrowRight
-                      color={isMyTrap ? '#22C55E' : (mode === 'light' ? '#15803D' : '#4ADE80')}
-                      size={18}
-                    />
-                    <View style={styles.trapVictims}>
-                      {victims.map((victim) => {
-                        const isMe = victim.id === me?.id;
-                        return (
-                          <View
-                            key={victim.id}
-                            style={[
-                              styles.trapVictim,
-                              isMe && styles.trapVictimMe,
-                            ]}
-                          >
-                            <Avatar
-                              avatarKey={victim.avatarUrl ?? victim.avatarKey}
-                              userId={victim.id}
-                              size={28}
-                            />
-                            <Text style={styles.trapVictimName} numberOfLines={1}>
-                              {victim.name}{isMe ? ' (Sen)' : ''}
-                            </Text>
-                          </View>
-                        );
-                      })}
-                    </View>
-                    </View>
-                    <View style={styles.trapAnswerBox}>
-                      <Text style={styles.trapAnswerLabel}>
-                        {victims.some((victim) => victim.id === me?.id) ? 'SENİN SEÇTİĞİN YANLIŞ CEVAP' : 'KANDIRAN SAHTE CEVAP'}
-                      </Text>
-                      <Text style={styles.trapAnswerText}>“{choiceText}”</Text>
-                    </View>
-                  </View>
-                );
-              })}
+          {zartaladın && isCorrect ? (
+            <View style={styles.doubleSuccess}><Check size={16} color="#4ADE80" />
+              <Text style={styles.doubleSuccessText}>Üstelik doğru cevabı da bildin!</Text>
             </View>
-          ) : (
-            <Text style={styles.summaryMessage}>Bu tur kimse tuzağa düşmedi.</Text>
-          )}
-        </Card>
+          ) : null}
+        </View>
+
+        {didPick ? (
+          <View style={[styles.personalPick, { backgroundColor: colors.bgCard, borderColor: isCorrect ? '#36C96B' : zartalandın ? '#F36B90' : colors.borderStrong }]}>
+            <Text style={[styles.personalPickLabel, { color: colors.textSecondary }]}>SENİN SEÇİMİN</Text>
+            <Text style={[styles.personalPickText, { color: colors.textPrimary }]}>“{myChoiceText}”</Text>
+            <Text style={[styles.personalPickExplanation, { color: isCorrect ? positiveScoreColor : zartalandın ? negativeScoreColor : colors.textSecondary }]}>
+              {isCorrect ? '✓ Doğru bildin!' : zartalandın
+                ? (myDeceptionAuthor?.name ?? 'Bir oyuncu') + ' bu sahte cevabı yazdı. Tuzağa düştün.'
+                : 'Maalesef yanlış cevap.'}
+            </Text>
+          </View>
+        ) : null}
+
+        <View style={[styles.correctAnswerStrip, { backgroundColor: colors.successSurface }]}>
+          <Check size={19} color={mode === 'light' ? '#166534' : '#86EFAC'} strokeWidth={3} />
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.correctStripLabel, { color: mode === 'light' ? '#166534' : '#86EFAC' }]}>GERÇEK DOĞRU CEVAP</Text>
+            <Text style={[styles.correctStripText, { color: colors.textPrimary }]}>{correctAnswerText}</Text>
+          </View>
+        </View>
+
+        {revealLoadError ? (
+          <Card variant="surface" style={styles.revealStatusCard}>
+            <Text accessibilityRole="alert" style={styles.summaryMessage}>Seçimler alınamadı: {revealLoadError}</Text>
+            <Pressable accessibilityRole="button" accessibilityLabel="Seçimleri yeniden yükle"
+              style={styles.revealRetryButton} onPress={() => setRevealRetry((n) => n + 1)}>
+              <RotateCcw size={14} color="#FFFFFF" />
+              <Text style={styles.revealRetryText}>Tekrar Dene</Text>
+            </Pressable>
+          </Card>
+        ) : revealChoices === null ? (
+          <Card variant="surface" style={styles.revealStatusCard}>
+            <Text style={styles.summaryMessage}>Oyuncuların seçimleri yükleniyor…</Text>
+          </Card>
+        ) : revealChoices.length === 0 ? (
+          <Card variant="surface" style={styles.revealStatusCard}>
+            <Text style={styles.summaryMessage}>Bu tur açıklanan bir seçenek bulunamadı.</Text>
+          </Card>
+        ) : (
+          <RoundChoiceReveal choices={revealChoices} players={playersList} currentPlayerId={me?.id} />
+        )}
 
         {roomState?.config.gameMode === 'suspicious' ? (
           <>
@@ -525,6 +429,31 @@ export default function ResultScreen() {
 }
 
 const createStyles = (colors: ThemeColors, mode: 'dark' | 'light') => StyleSheet.create({
+  resultHero: { borderWidth: 2.5, borderRadius: 26, padding: 17, paddingBottom: 22, gap: 8, alignItems: 'center', marginBottom: 13, overflow: 'hidden' },
+  resultMascot: { width: 160, height: 64 },
+  heroIconBadge: { width: 55, height: 55, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginTop: 3 },
+  resultHeroTitle: { fontFamily: 'Poppins-Bold', fontSize: 20, lineHeight: 27, textAlign: 'center' },
+  resultHeroDescription: { fontFamily: 'Poppins-Medium', fontSize: 13, lineHeight: 19, textAlign: 'center' },
+  resultHeroPoints: { paddingHorizontal: 18, paddingVertical: 7, borderRadius: 99 },
+  resultHeroPointsText: { fontFamily: 'Poppins-Bold', fontSize: 16 },
+  heroVictimGroup: { width: '100%', gap: 6, marginTop: 4, alignItems: 'center' },
+  heroVictimLabel: { fontFamily: 'Poppins-Bold', fontSize: 10, letterSpacing: 0.5 },
+  heroVictimList: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' },
+  heroVictim: { gap: 3, alignItems: 'center', maxWidth: 90 },
+  heroVictimName: { fontFamily: 'Poppins-SemiBold', fontSize: 10, textAlign: 'center' },
+  doubleSuccess: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(6,28,33,0.42)', borderRadius: 99, paddingHorizontal: 11, paddingVertical: 6 },
+  doubleSuccessText: { color: '#FFFFFF', fontFamily: 'Poppins-Bold', fontSize: 11 },
+  personalPick: { borderWidth: 2, borderRadius: 18, padding: 14, gap: 5, marginBottom: 11 },
+  personalPickLabel: { fontFamily: 'Poppins-Bold', fontSize: 10, letterSpacing: 0.7 },
+  personalPickText: { fontFamily: 'Poppins-Bold', fontSize: 18, lineHeight: 25 },
+  personalPickExplanation: { fontFamily: 'Poppins-SemiBold', fontSize: 12, lineHeight: 18 },
+  correctAnswerStrip: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 15, borderColor: '#36C96B', borderWidth: 1.5, padding: 12, marginBottom: 16 },
+  correctStripLabel: { fontFamily: 'Poppins-Bold', fontSize: 10, letterSpacing: 0.5 },
+  correctStripText: { fontFamily: 'Poppins-Bold', fontSize: 14, lineHeight: 21 },
+  revealStatusCard: { padding: 14, alignItems: 'center', marginBottom: 14 },
+  revealRetryButton: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#6D35B6', borderRadius: 99, paddingHorizontal: 13, paddingVertical: 8, marginTop: 9 },
+  revealRetryText: { color: '#FFFFFF', fontFamily: 'Poppins-Bold', fontSize: 12 },
+
   advanceError: {
     ...typography.caption,
     color: colors.dangerSoft,
