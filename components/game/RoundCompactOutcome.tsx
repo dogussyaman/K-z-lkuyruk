@@ -1,6 +1,6 @@
 import { useWindowDimensions, StyleSheet, Text, View, type DimensionValue } from 'react-native';
 import { Check, Crown, Gem, X } from 'lucide-react-native';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Defs, LinearGradient as SvgGradient, Path, Stop } from 'react-native-svg';
 import { Avatar } from '@/components/ui/Avatar';
 import type { Player } from '@/types/game';
 import { POINTS } from '@/features/game/outcomes';
@@ -14,22 +14,22 @@ interface Props {
   goldenMultiplier?: number;
 }
 
-const CONFETTI = Array.from({ length: 54 }, (_, index) => ({
+const CONFETTI = Array.from({ length: 38 }, (_, index) => ({
   left: (index * 43 + (index % 5) * 11) % 100,
   top: (index * 17 + (index % 3) * 7) % 37,
-  width: index % 4 === 0 ? 9 : 5,
-  height: index % 3 === 0 ? 4 : 8,
+  width: index % 4 === 0 ? 7 : 4,
+  height: index % 3 === 0 ? 3 : 6,
   color: ['#FCE66A', '#FF6A36', '#F94875', '#31BEF4', '#E3ADFF'][index % 5],
   rotate: (index * 47) % 155,
 }));
 
-/** Screenshot-inspired full-screen phone celebration, without any answer list. */
+/** Celebratory round summary, kept separate from the answer reveal. */
 export function RoundCompactOutcome({
   trappedPlayers, trappedCount, correct, tricked, answered, goldenMultiplier = 1,
 }: Props) {
   const { width, height } = useWindowDimensions();
-  const frameWidth = Math.min(width * 0.72, 282);
-  const frameHeight = Math.min(height * 0.61, 475);
+  const frameWidth = Math.min(width - 48, 440);
+  const frameHeight = Math.min(height * 0.7, 580);
   const fakePoints = trappedCount * POINTS.fakeChosenBonus * (correct ? goldenMultiplier : 1);
   const correctPoints = correct ? POINTS.correct * goldenMultiplier : 0;
   const achievementTitle = trappedCount > 0 ? 'HARİKASIN!' : 'BİR SONRAKİ TURDA!';
@@ -55,38 +55,44 @@ export function RoundCompactOutcome({
           }]} />
         ))}
       </View>
-      <View style={[styles.phone, { width: frameWidth, height: frameHeight }]}>
-        <Svg width="100%" height="100%" viewBox="0 0 280 470" preserveAspectRatio="none" style={StyleSheet.absoluteFill}>
-          <Path d="M 0 0 H 280 V 248 L 0 283 Z" fill="#0758B4" />
-          <Path d="M 0 283 L 280 248 V 470 H 0 Z" fill="#5713B7" />
-          <Path d="M 0 0 H 280 V 62 L 0 82 Z" fill="#0B6AC5" opacity={0.5} />
-          <Path d="M 0 308 L 280 275 V 350 L 0 375 Z" fill="#7C26DC" opacity={0.4} />
+      <View style={[styles.card, { width: frameWidth, height: frameHeight }]}>
+        <Svg
+          pointerEvents="none"
+          width="100%"
+          height="100%"
+          viewBox="0 0 100 100"
+          preserveAspectRatio="none"
+          style={StyleSheet.absoluteFill}
+        >
+          <Defs>
+            <SvgGradient id="outcomeTop" x1="0%" y1="0%" x2="100%" y2="100%">
+              <Stop offset="0%" stopColor="#344B9D" />
+              <Stop offset="100%" stopColor="#493A84" />
+            </SvgGradient>
+            <SvgGradient id="outcomeBottom" x1="0%" y1="0%" x2="100%" y2="100%">
+              <Stop offset="0%" stopColor="#302344" />
+              <Stop offset="100%" stopColor="#241A35" />
+            </SvgGradient>
+          </Defs>
+          <Path d="M0 0 H100 V59 L0 57 Z" fill="url(#outcomeTop)" />
+          <Path d="M0 57 L100 59 V100 H0 Z" fill="url(#outcomeBottom)" />
+          <Path d="M0 57 L100 59" fill="none" stroke="rgba(255,255,255,0.16)" strokeWidth="0.3" />
         </Svg>
-        <View style={styles.phoneConfetti} pointerEvents="none">
-          {CONFETTI.slice(0, 24).map((item, i) => (
-            <View key={i} style={[styles.confetti, {
-              left: (item.left + '%') as DimensionValue,
-              top: (item.top + '%') as DimensionValue,
-              width: item.width,
-              height: item.height,
-              backgroundColor: item.color,
-              transform: [{ rotate: item.rotate + 'deg' }],
-              opacity: 0.92,
-            }]} />
-          ))}
-        </View>
-        <View style={styles.crownTab}>
-          <Crown color="#FF6F00" size={34} fill="#FFB528" strokeWidth={2.8} />
-        </View>
         <View style={styles.upper}>
+          <View style={styles.crownTab}>
+            <Crown color="#FFB84D" size={23} fill="#FFB84D" strokeWidth={2.4} />
+          </View>
+          <Text style={styles.eyebrow} numberOfLines={1}>TUR SONUCU</Text>
           <View style={styles.ribbon}>
-            <Text style={styles.ribbonText}>{achievementTitle}</Text>
+            <Text style={styles.ribbonText} numberOfLines={1} adjustsFontSizeToFit>
+              {achievementTitle}
+            </Text>
           </View>
           {trappedCount > 0 ? (
             <View style={styles.avatarCluster}>
               {trappedPlayers.slice(0, 6).map((player, index) => (
                 <View key={player.id} style={[styles.avatarRound, { marginLeft: index ? -10 : 0, zIndex: 6 - index }]}>
-                  <Avatar avatarKey={player.avatarUrl ?? player.avatarKey} userId={player.id} size={34} />
+                  <Avatar avatarKey={player.avatarUrl ?? player.avatarKey} userId={player.id} size={36} />
                 </View>
               ))}
               {trappedCount > trappedPlayers.length ? (
@@ -96,23 +102,28 @@ export function RoundCompactOutcome({
               ) : null}
             </View>
           ) : (
-            <View style={styles.emptyAvatar}><Crown color="#FFE070" size={29} /></View>
+            <View style={styles.emptyAvatar}><Crown color="#FFE070" size={27} /></View>
           )}
-          <Text style={styles.trapCount}>{achievementDescription}</Text>
+          <Text style={styles.trapCount} numberOfLines={3} adjustsFontSizeToFit>
+            {achievementDescription}
+          </Text>
           <View style={styles.pointsPill}>
-            <Gem color="#FF6437" size={13} fill="#ED225D" />
+            <Gem color="#FF8A71" size={14} fill="#FF5575" />
             <Text style={styles.pointsText}>{trappedCount > 0 ? '+' + fakePoints : '0'} PUAN</Text>
           </View>
         </View>
+
         <View style={styles.lower}>
-          <View style={styles.medal}>
+          <View style={[styles.medal, correct && styles.medalCorrect]}>
             {correct
-              ? <Check size={40} strokeWidth={4.5} color="#7833D0" />
-              : <X size={35} strokeWidth={4} color="#7833D0" />}
+              ? <Check size={30} strokeWidth={3.5} color="#17251E" />
+              : <X size={29} strokeWidth={3.5} color="#322044" />}
           </View>
-          <Text style={styles.correctLabel}>{guessDescription}</Text>
+          <Text style={styles.correctLabel} numberOfLines={3} adjustsFontSizeToFit>
+            {guessDescription}
+          </Text>
           <View style={styles.pointsPill}>
-            <Gem color="#FF6437" size={13} fill="#ED225D" />
+            <Gem color="#FF8A71" size={14} fill="#FF5575" />
             <Text style={styles.pointsText}>{correct ? '+' + correctPoints : '0'} PUAN</Text>
           </View>
         </View>
@@ -122,57 +133,75 @@ export function RoundCompactOutcome({
 }
 
 const styles = StyleSheet.create({
-  scene: { flex: 1, minHeight: 0, alignItems: 'center', justifyContent: 'center', paddingTop: 28, paddingBottom: 8, overflow: 'hidden' },
+  scene: {
+    flex: 1, minHeight: 0, alignItems: 'center', justifyContent: 'center',
+    paddingTop: 16, paddingBottom: 10, overflow: 'hidden',
+  },
   confetti: { position: 'absolute', borderRadius: 1 },
-  phoneConfetti: { ...StyleSheet.absoluteFill, borderRadius: 22, overflow: 'hidden' },
-  phone: {
-    position: 'relative', borderColor: '#F7F9FF', borderWidth: 8, borderRadius: 31,
-    backgroundColor: '#0B4DAA', overflow: 'visible',
-    shadowColor: '#070225', shadowOpacity: 0.35, shadowRadius: 14, elevation: 12,
+  card: {
+    flexShrink: 1,
+    overflow: 'hidden',
+    borderRadius: 28,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: '#302344',
+    shadowColor: '#080311',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
   },
   crownTab: {
-    position: 'absolute', top: -35, alignSelf: 'center', zIndex: 10,
-    width: 67, height: 49, backgroundColor: '#FBFAFF', borderRadius: 15,
-    justifyContent: 'center', alignItems: 'center', elevation: 3,
+    width: 46, height: 46, borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)',
+    justifyContent: 'center', alignItems: 'center', marginBottom: 3,
   },
   upper: {
-    position: 'absolute', top: '6%', left: 0, right: 0, height: '49%',
-    alignItems: 'center', justifyContent: 'center', gap: 11, paddingHorizontal: 16,
+    flex: 1.16, alignItems: 'center', justifyContent: 'center',
+    gap: 7, paddingHorizontal: 20, paddingTop: 28, paddingBottom: 24,
   },
   ribbon: {
-    backgroundColor: '#45CB19', borderBottomColor: '#15930E', borderBottomWidth: 5,
-    paddingVertical: 5, paddingHorizontal: 19, minWidth: 120, alignItems: 'center',
-    transform: [{ rotate: '-1deg' }],
+    maxWidth: '100%',
+    backgroundColor: 'rgba(133, 230, 115, 0.16)',
+    borderWidth: 1, borderColor: 'rgba(169, 255, 142, 0.34)',
+    paddingVertical: 6, paddingHorizontal: 16, borderRadius: 999, alignItems: 'center',
   },
-  ribbonText: { fontSize: 11, fontFamily: 'Poppins-Bold', color: '#FFFFFF', letterSpacing: 0.3 },
-  avatarCluster: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', minHeight: 40 },
+  eyebrow: { fontSize: 10, fontFamily: 'Poppins-Bold', color: 'rgba(255,255,255,0.62)', letterSpacing: 1.6 },
+  ribbonText: { fontSize: 11, fontFamily: 'Poppins-Bold', color: '#BFF6A7', letterSpacing: 0.55 },
+  avatarCluster: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', minHeight: 42, marginVertical: 1 },
   avatarRound: {
-    width: 39, height: 39, borderRadius: 20, borderWidth: 3, borderColor: '#FFC345',
-    alignItems: 'center', justifyContent: 'center', backgroundColor: '#260F4F', overflow: 'hidden',
+    width: 42, height: 42, borderRadius: 21, borderWidth: 2, borderColor: '#F6C66B',
+    alignItems: 'center', justifyContent: 'center', backgroundColor: '#302344', overflow: 'hidden',
   },
-  avatarOverflow: { borderColor: '#FFD86E', backgroundColor: '#9C48C9' },
-  overflowText: { color: '#FFFFFF', fontFamily: 'Poppins-Bold', fontSize: 10 },
-  emptyAvatar: { width: 42, height: 42, alignItems: 'center', justifyContent: 'center' },
+  avatarOverflow: { borderColor: '#B99AF4', backgroundColor: '#61478A' },
+  overflowText: { color: '#FFFFFF', fontFamily: 'Poppins-Bold', fontSize: 11 },
+  emptyAvatar: { width: 42, height: 42, alignItems: 'center', justifyContent: 'center', marginVertical: 1 },
   trapCount: {
-    fontSize: 16, lineHeight: 20, fontFamily: 'Poppins-Bold', color: '#FFFFFF',
-    textAlign: 'center', textShadowColor: 'rgba(2,18,65,0.65)', textShadowRadius: 3,
+    fontSize: 19, lineHeight: 25, fontFamily: 'Poppins-Bold', color: '#FFFFFF',
+    width: '100%', flexShrink: 1,
+    textAlign: 'center', letterSpacing: -0.3,
   },
   pointsPill: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5,
-    backgroundColor: '#24055D', paddingHorizontal: 9, paddingVertical: 5,
-    borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    backgroundColor: 'rgba(12,7,24,0.28)', paddingHorizontal: 12, paddingVertical: 7,
+    borderRadius: 999, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', flexShrink: 0,
   },
-  pointsText: { color: '#FFFFFF', fontFamily: 'Poppins-Bold', fontSize: 11 },
+  pointsText: { color: '#FFFFFF', fontFamily: 'Poppins-Bold', fontSize: 11, letterSpacing: 0.2 },
   lower: {
-    position: 'absolute', top: '58%', bottom: 0, left: 0, right: 0,
-    alignItems: 'center', justifyContent: 'center', gap: 10,
+    flex: 0.84, alignItems: 'center', justifyContent: 'center',
+    gap: 10, paddingHorizontal: 18, paddingTop: 22, paddingBottom: 20,
+    backgroundColor: 'transparent',
   },
   medal: {
-    backgroundColor: '#FFD234', width: 71, height: 71, borderRadius: 36,
-    alignItems: 'center', justifyContent: 'center', elevation: 3,
+    backgroundColor: '#F5C85D', width: 58, height: 58, borderRadius: 22,
+    alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#E8B942', shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.25, shadowRadius: 12, elevation: 4,
   },
+  medalCorrect: { backgroundColor: '#7DE1AA', shadowColor: '#68D696' },
   correctLabel: {
     color: '#FFFFFF', fontFamily: 'Poppins-Bold', textAlign: 'center',
-    fontSize: 17, lineHeight: 20, textShadowColor: '#220660', textShadowRadius: 3,
+    width: '100%', flexShrink: 1, fontSize: 17, lineHeight: 22, letterSpacing: -0.2,
   },
 });

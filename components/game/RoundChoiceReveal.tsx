@@ -16,14 +16,24 @@ interface Props {
 }
 
 const BAR_COLORS = {
-  winner: { top: '#FFDD30', bottom: '#FFAE00', shadow: '#D97705', text: '#442100' },
-  correct: { top: '#B3FF59', bottom: '#36D500', shadow: '#248F00', text: '#164000' },
-  other: { top: '#F4F7FF', bottom: '#B4D6FF', shadow: '#6597EB', text: '#18356D' },
+  winner: {
+    top: '#FFE21B', bottom: '#FFB600', border: '#F7A900',
+    shadow: '#C77C08', text: '#472400', detail: '#5D3708',
+  },
+  correct: {
+    top: '#8BF20B', bottom: '#43D000', border: '#39B900',
+    shadow: '#258A00', text: '#174100', detail: '#24520B',
+  },
+  other: {
+    top: '#ECF4FF', bottom: '#B5D2FF', border: '#A1C4F5',
+    shadow: '#6395DC', text: '#15366E', detail: '#334F7A',
+  },
 };
 
 /**
  * Reference-matched, answer-only reveal screen.
- * Author avatar = left, voters = right. Details open in an overlay,
+ * Author avatar overlaps the left edge; voters overlap the bottom edge.
+ * Details open in an overlay,
  * never expand the rows or push the next answer below the fold.
  */
 export function RoundChoiceReveal({ choices, players, currentPlayerId, onReportPlayer }: Props) {
@@ -50,7 +60,7 @@ export function RoundChoiceReveal({ choices, players, currentPlayerId, onReportP
           const isWinner = row.choice.choiceIndex === winnerIndex;
           const palette = row.choice.isCorrect ? BAR_COLORS.correct
             : isWinner ? BAR_COLORS.winner : BAR_COLORS.other;
-          const votersInView = row.voters.slice(0, 6);
+          const votersInView = row.voters.slice(0, 4);
           return (
             <Pressable
               key={row.choice.choiceIndex}
@@ -66,63 +76,73 @@ export function RoundChoiceReveal({ choices, players, currentPlayerId, onReportP
               style={({ pressed }) => [
                 styles.barWrap,
                 isWinner && styles.barWinner,
-                { opacity: pressed ? 0.9 : 1 },
+                { opacity: pressed ? 0.88 : 1, transform: [{ scale: pressed ? 0.99 : 1 }] },
               ]}
             >
               {isWinner ? (
                 <View pointerEvents="none" style={styles.winnerHeading}>
-                  <Crown color="#FFE066" size={26} fill="#FFE066" strokeWidth={2} />
+                  <Crown color="#FFD27A" size={15} fill="#FFD27A" strokeWidth={2} />
                   <View style={styles.ribbon}>
                     <Text style={styles.ribbonText}>EN ZARTALAYAN!</Text>
                   </View>
                 </View>
               ) : null}
 
-              <View style={[styles.barShadow, { backgroundColor: palette.shadow }]}>
+              <View style={[styles.barShadow, { backgroundColor: palette.shadow, borderColor: palette.border }]}>
                 <LinearGradient
                   colors={[palette.top, palette.bottom]}
                   style={styles.bar}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 0, y: 1 }}
                 >
-                  <Text
-                    style={[styles.answer, { color: palette.text }]}
-                    numberOfLines={2}
-                    adjustsFontSizeToFit
-                    minimumFontScale={0.8}
-                  >
-                    {row.choice.text}
-                  </Text>
+                  <View style={styles.answerContent}>
+                    <Text
+                      style={[styles.answer, { color: palette.text }]}
+                      numberOfLines={2}
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.8}
+                    >
+                      {row.choice.text}
+                    </Text>
+                    <Text style={[styles.answerDetail, { color: palette.detail }]}>
+                      {row.choice.isCorrect ? 'DOĞRU CEVAP' : `${row.voteCount} kişi seçti`}
+                    </Text>
+                    <Text style={[styles.voterNames, { color: palette.detail }]}>
+                      {row.choice.isCorrect ? 'Doğruyu bulanlar: ' : 'Tuzağa düşenler: '}
+                      {row.voters.map((player) => player.name).join(', ') || 'Kimse'}
+                    </Text>
+                  </View>
                   {row.isMyPick ? (
                     <View style={styles.yourPickDot}>
                       <Check color="#FFFFFF" size={11} strokeWidth={3} />
                     </View>
                   ) : null}
-                  {row.voteCount > 0 ? (
-                    <View style={styles.voters}>
-                      {row.voteCount > votersInView.length ? (
-                        <View style={styles.extraVotes}>
-                          <Text style={styles.extraVotesText}>+{row.voteCount - votersInView.length}</Text>
-                        </View>
-                      ) : null}
-                      {votersInView.map((voter, voteIndex) => (
-                        <View
-                          key={voter.id}
-                          style={[styles.voter, {
-                            marginLeft: voteIndex > 0 ? -7 : 0,
-                            zIndex: votersInView.length - voteIndex,
-                            borderColor: voter.id === currentPlayerId ? '#FF6F37' : '#5A276F',
-                          }]}
-                        >
-                          <Avatar avatarKey={voter.avatarUrl ?? voter.avatarKey} userId={voter.id} size={22} />
-                        </View>
-                      ))}
-                    </View>
-                  ) : null}
                 </LinearGradient>
               </View>
 
-              <View style={[styles.author, { borderColor: isWinner ? '#FFDD58' : '#D2BFFA' }]}>
+              {row.voteCount > 0 ? (
+                <View style={styles.voters}>
+                  {row.voteCount > votersInView.length ? (
+                    <View style={styles.extraVotes}>
+                      <Text style={styles.extraVotesText}>+{row.voteCount - votersInView.length}</Text>
+                    </View>
+                  ) : null}
+                  {votersInView.map((voter, voteIndex) => (
+                    <View
+                      key={voter.id}
+                      style={[styles.voter, {
+                        marginLeft: voteIndex > 0 ? -8 : 0,
+                        zIndex: votersInView.length - voteIndex,
+                        borderColor: voter.id === currentPlayerId ? '#FF8B5C' : '#BDA6D6',
+                      }]}
+                    >
+                      <Avatar avatarKey={voter.avatarUrl ?? voter.avatarKey} userId={voter.id} size={23} />
+                    </View>
+                  ))}
+                </View>
+              ) : null}
+
+              <View style={[styles.author, { borderColor: palette.border }]}>
                 {row.author ? (
                   <Avatar
                     avatarKey={row.author.avatarUrl ?? row.author.avatarKey}
@@ -209,29 +229,46 @@ export function RoundChoiceReveal({ choices, players, currentPlayerId, onReportP
 const styles = StyleSheet.create({
   root: { flex: 1, width: '100%' },
   scroller: { flex: 1 },
-  list: { flexGrow: 1, paddingTop: 34, paddingBottom: 14, paddingHorizontal: 10, justifyContent: 'center', gap: 11 },
-  barWrap: { position: 'relative', marginLeft: 13, marginRight: 2 },
-  barWinner: { marginTop: 15 },
-  barShadow: { borderRadius: 15, paddingBottom: 5, overflow: 'hidden' },
-  bar: { minHeight: 51, borderRadius: 15, justifyContent: 'center', paddingLeft: 29, paddingRight: 38, overflow: 'visible' },
-  answer: { textAlign: 'center', fontFamily: 'Poppins-Bold', fontSize: 13.2, lineHeight: 18 },
+  list: { flexGrow: 1, paddingTop: 38, paddingBottom: 18, paddingHorizontal: 16, justifyContent: 'center', gap: 12 },
+  barWrap: { position: 'relative', marginHorizontal: 10, paddingBottom: 13 },
+  barWinner: { marginTop: 20 },
+  barShadow: {
+    borderRadius: 21, borderWidth: 1.5, paddingBottom: 4, overflow: 'hidden',
+    shadowColor: '#080311', shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.22, shadowRadius: 11, elevation: 4,
+  },
+  bar: { minHeight: 82, borderRadius: 19, flexDirection: 'row', alignItems: 'center', paddingLeft: 50, paddingRight: 16, gap: 8 },
+  answerContent: { flex: 1, minWidth: 0, justifyContent: 'center', gap: 4, paddingVertical: 13 },
+  answer: { textAlign: 'left', fontFamily: 'Poppins-Bold', fontSize: 15, lineHeight: 21 },
+  answerDetail: { fontFamily: 'Poppins-Bold', fontSize: 10, lineHeight: 14, letterSpacing: 0.7 },
+  voterNames: { fontFamily: 'Poppins-SemiBold', fontSize: 11, lineHeight: 16 },
   author: {
-    position: 'absolute', left: -14, top: 8, width: 40, height: 40, borderRadius: 20,
-    borderWidth: 2, backgroundColor: '#27143B', justifyContent: 'center', alignItems: 'center', overflow: 'hidden',
+    position: 'absolute', left: -13, top: 15, width: 46, height: 46, borderRadius: 23,
+    borderWidth: 2, backgroundColor: '#382C4B', justifyContent: 'center', alignItems: 'center', overflow: 'hidden',
   },
-  correctOwner: { width: 33, height: 33, borderRadius: 17, backgroundColor: '#2DA45C', alignItems: 'center', justifyContent: 'center' },
+  correctOwner: { width: 33, height: 33, borderRadius: 17, backgroundColor: '#31966C', alignItems: 'center', justifyContent: 'center' },
   unknownOwner: { color: '#FFFFFF', fontFamily: 'Poppins-Bold' },
-  voters: { position: 'absolute', right: 8, bottom: 3, flexDirection: 'row', alignItems: 'center' },
-  voter: {
-    width: 26, height: 26, borderRadius: 13, overflow: 'hidden', justifyContent: 'center',
-    alignItems: 'center', borderWidth: 2, backgroundColor: '#1D1434',
+  voters: {
+    position: 'absolute', right: 12, bottom: 0,
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 4, paddingVertical: 2, borderRadius: 99,
+    backgroundColor: '#342844', borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)',
   },
-  extraVotes: { zIndex: 1, borderRadius: 12, paddingHorizontal: 4, backgroundColor: '#E47F20', alignItems: 'center', justifyContent: 'center', minWidth: 23, height: 23 },
+  voter: {
+    width: 27, height: 27, borderRadius: 14, overflow: 'hidden', justifyContent: 'center',
+    alignItems: 'center', borderWidth: 2, backgroundColor: '#302044',
+  },
+  extraVotes: { zIndex: 5, borderRadius: 12, paddingHorizontal: 4, backgroundColor: '#7650A5', alignItems: 'center', justifyContent: 'center', minWidth: 23, height: 23, marginRight: 3 },
   extraVotesText: { color: '#FFFFFF', fontFamily: 'Poppins-Bold', fontSize: 9 },
-  winnerHeading: { position: 'absolute', top: -37, alignSelf: 'center', zIndex: 5, alignItems: 'center' },
-  ribbon: { minWidth: 117, alignItems: 'center', paddingHorizontal: 12, paddingVertical: 3, borderRadius: 3, backgroundColor: '#A226EA', borderBottomWidth: 4, borderBottomColor: '#5913A1', transform: [{ rotate: '-1deg' }] },
-  ribbonText: { fontFamily: 'Poppins-Bold', fontSize: 9, color: '#FFFFFF' },
-  yourPickDot: { position: 'absolute', top: 4, right: 5, width: 16, height: 16, borderRadius: 8, backgroundColor: '#B32269', alignItems: 'center', justifyContent: 'center' },
+  winnerHeading: {
+    position: 'absolute', top: -24, alignSelf: 'center', zIndex: 5,
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 11, paddingVertical: 3, borderRadius: 4,
+    backgroundColor: '#B51DE5', borderBottomWidth: 3, borderBottomColor: '#7711AB',
+  },
+  ribbon: { alignItems: 'center' },
+  ribbonText: { fontFamily: 'Poppins-Bold', fontSize: 8, color: '#FFFFFF', letterSpacing: 0.35 },
+  yourPickDot: { position: 'absolute', top: 6, right: 6, width: 17, height: 17, borderRadius: 9, backgroundColor: '#A84572', borderWidth: 1.5, borderColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(5,5,18,0.72)', justifyContent: 'center', padding: 20 },
   modalSheet: { borderRadius: 21, padding: 17, borderWidth: 1.5, gap: 10, maxHeight: '80%' },
   modalTitle: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10 },

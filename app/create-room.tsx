@@ -117,9 +117,6 @@ export default function CreateRoomScreen() {
   const visibleCategoryOptions = CATEGORY_OPTIONS.filter((category) =>
     categoryFilter === 'all' || category.groupId === categoryFilter
   );
-  const selectedCategoryOptions = CATEGORY_OPTIONS.filter((category) =>
-    selectedCats.includes(category.id)
-  );
 
   const handleCreate = async () => {
     if (submitting.current) return;
@@ -300,11 +297,39 @@ export default function CreateRoomScreen() {
                 <Text style={styles.exploreModesLinkText}>Tüm Modları Keşfet</Text>
               </Pressable>
             </View>
+            <Text style={styles.modeSectionHint}>Oyun tarzını seç, kurallar otomatik ayarlansın.</Text>
 
             <View style={styles.modesGrid}>
-              {CLASSIC_VARIANTS.map(variant => <Pressable key={variant.id} accessibilityRole="radio" accessibilityState={{checked:gameMode===variant.id}} onPress={()=>handleSelectGameMode(variant.id)} style={[styles.modeSelectCard,gameMode===variant.id&&styles.modeSelectCardActive]}>
-                <Text style={styles.modeSelectTitle}>{variant.name}</Text><Text style={styles.modeSelectDesc}>{variant.description}</Text>
-              </Pressable>)}
+              {CLASSIC_VARIANTS.map((variant) => {
+                const selected = gameMode === variant.id;
+                return (
+                  <Pressable
+                    key={variant.id}
+                    accessibilityRole="radio"
+                    accessibilityLabel={`${variant.name}. ${variant.description}`}
+                    accessibilityState={{ checked: selected }}
+                    onPress={() => handleSelectGameMode(variant.id)}
+                    style={({ pressed }) => [
+                      styles.modeSelectCard,
+                      selected && styles.modeSelectCardActive,
+                      pressed && styles.modeSelectCardPressed,
+                    ]}
+                  >
+                    <View style={styles.modeSelectContent}>
+                      <View style={styles.modeSelectTopRow}>
+                        <Text style={styles.modeSelectTitle} numberOfLines={2}>{variant.name}</Text>
+                        <View style={[
+                          styles.modeSelectCheck,
+                          selected && styles.modeSelectCheckSelected,
+                        ]}>
+                          {selected ? <Check color="#FFFFFF" size={12} strokeWidth={3} /> : null}
+                        </View>
+                      </View>
+                      <Text style={styles.modeSelectDesc} numberOfLines={3}>{variant.description}</Text>
+                    </View>
+                  </Pressable>
+                );
+              })}
             </View>
           </Card>
 
@@ -459,27 +484,10 @@ export default function CreateRoomScreen() {
               end={{ x: 1, y: 1 }}
               style={styles.modernCategoryHero}
             >
-              <View style={styles.modernCategoryHeroTop}>
-                <View style={styles.modernCategoryHeroBadge}>
-                  <Sparkles color="#FFD46F" size={14} />
-                  <Text style={styles.modernCategoryHeroBadgeText}>KATEGORİ EVRENİ</Text>
-                </View>
-                <View style={styles.modernCategoryCountBadge}>
-                  <Check color="#271B42" size={13} strokeWidth={3} />
-                  <Text style={styles.modernCategoryCountText}>
-                    {selectedCats.length} / {CATEGORY_OPTIONS.length}
-                  </Text>
-                </View>
-              </View>
               <Text style={styles.modernCategoryHeroTitle}>Hangi konularda yarışalım?</Text>
               <Text style={styles.modernCategoryHeroSubtitle}>
                 Sevdiğin konuları seç. Birden fazla kategoriyle daha sürprizli bir maç kur!
               </Text>
-              <View style={styles.modernCategorySelectionProgress}>
-                <View style={[styles.modernCategorySelectionFill, {
-                  width: `${Math.round(selectedCats.length / CATEGORY_OPTIONS.length * 100)}%` as const,
-                }]} />
-              </View>
             </LinearGradient>
 
             <View style={styles.modernCategoryBody}>
@@ -507,35 +515,6 @@ export default function CreateRoomScreen() {
                   </Text>
                 </Pressable>
               </View>
-
-              {selectedCategoryOptions.length > 0 ? (
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  keyboardShouldPersistTaps="always"
-                  contentContainerStyle={styles.modernCategoryChosenList}
-                  style={styles.modernCategoryChosenScroll}
-                >
-                  {selectedCategoryOptions.map((category) => (
-                    <Pressable
-                      key={category.id}
-                      onPress={() => toggleCategory(category.id)}
-                      accessibilityRole="button"
-                      accessibilityLabel={category.name + ' seçimini kaldır'}
-                      style={styles.modernCategoryChosenChip}
-                    >
-                      <Text style={styles.modernCategoryChosenLabel}>
-                        {category.emoji} {category.name}
-                      </Text>
-                      <Text style={styles.modernCategoryChosenRemove}>×</Text>
-                    </Pressable>
-                  ))}
-                </ScrollView>
-              ) : (
-                <View style={styles.modernCategoryEmptySelection}>
-                  <Text style={styles.modernCategoryEmptyText}>✨ Seçtiklerin burada görünecek</Text>
-                </View>
-              )}
 
               <ScrollView
                 horizontal
@@ -707,30 +686,16 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     marginBottom: spacing.lg,
     ...shadows.card,
   },
-  modernCategoryHero: { paddingHorizontal: 17, paddingTop: 17, paddingBottom: 16, gap: 8 },
-  modernCategoryHeroTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
-  modernCategoryHeroBadge: { flexDirection: 'row', gap: 6, alignItems: 'center' },
-  modernCategoryHeroBadgeText: { color: '#FFEAC8', fontFamily: 'Poppins-Bold', fontSize: 10, letterSpacing: 0.9 },
-  modernCategoryCountBadge: { flexDirection: 'row', gap: 4, alignItems: 'center', backgroundColor: '#FBD984', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 99 },
-  modernCategoryCountText: { color: '#271B42', fontFamily: 'Poppins-Bold', fontSize: 12 },
+  modernCategoryHero: { paddingHorizontal: 17, paddingTop: 16, paddingBottom: 15, gap: 5 },
   modernCategoryHeroTitle: { color: '#FFFFFF', fontFamily: 'Poppins-Bold', fontSize: 19, lineHeight: 27 },
   modernCategoryHeroSubtitle: { color: '#E7D7FA', fontFamily: 'Poppins-Medium', fontSize: 12, lineHeight: 18 },
-  modernCategorySelectionProgress: { height: 5, width: '100%', marginTop: 5, backgroundColor: 'rgba(255,255,255,0.24)', borderRadius: 8, overflow: 'hidden' },
-  modernCategorySelectionFill: { height: '100%', backgroundColor: '#FFD46F', borderRadius: 8 },
-  modernCategoryBody: { padding: 13, gap: 12 },
+  modernCategoryBody: { padding: 13, gap: 10 },
   modernCategoryActionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10 },
   modernCategorySummary: { flex: 1, minWidth: 0, gap: 2 },
   modernCategorySummaryTitle: { fontFamily: 'Poppins-Bold', fontSize: 13, color: colors.textPrimary },
   modernCategorySummaryMeta: { fontFamily: 'Poppins-Medium', fontSize: 11, color: colors.textSecondary },
   modernCategorySelectAll: { backgroundColor: colors.purpleSurface, borderWidth: 1, borderColor: colors.borderAccent, borderRadius: 99, paddingHorizontal: 12, paddingVertical: 9, minHeight: 38, justifyContent: 'center' },
   modernCategorySelectAllText: { fontFamily: 'Poppins-Bold', fontSize: 11, color: colors.purpleSoft },
-  modernCategoryChosenScroll: { flexGrow: 0 },
-  modernCategoryChosenList: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingVertical: 3 },
-  modernCategoryChosenChip: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.purpleSurface, borderColor: colors.borderAccent, borderWidth: 1, borderRadius: 99, paddingHorizontal: 10, paddingVertical: 8, minHeight: 36 },
-  modernCategoryChosenLabel: { color: colors.textPrimary, fontFamily: 'Poppins-SemiBold', fontSize: 11 },
-  modernCategoryChosenRemove: { color: colors.purpleSoft, fontFamily: 'Poppins-Bold', fontSize: 17, lineHeight: 19 },
-  modernCategoryEmptySelection: { paddingVertical: 7, alignItems: 'center', borderRadius: 11, borderWidth: 1, borderColor: colors.border, borderStyle: 'dashed' },
-  modernCategoryEmptyText: { fontFamily: 'Poppins-Medium', fontSize: 11, color: colors.textMuted },
   modernCategoryFilterScroll: { flexGrow: 0 },
   modernCategoryFilters: { gap: 7, alignItems: 'center', paddingVertical: 3 },
   modernCategoryFilter: { borderRadius: 99, backgroundColor: colors.bgSurfaceAlt, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 12, paddingVertical: 9, minHeight: 39, justifyContent: 'center' },
@@ -874,20 +839,59 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     color: colors.orange,
     fontSize: 11,
   },
+  modeSectionHint: {
+    ...typography.caption,
+    color: colors.textMuted,
+    marginTop: -2,
+    marginBottom: spacing.sm,
+  },
   modesGrid: {
-    gap: spacing.sm,
-    marginTop: spacing.xs,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    rowGap: 9,
   },
   modeSelectCard: {
-    padding: spacing.sm,
-    borderRadius: radii.lg,
-    borderWidth: 1.5,
-    borderColor: colors.borderStrong,
+    width: '48.5%',
+    minHeight: 112,
+    justifyContent: 'center',
+    padding: 11,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.border,
     backgroundColor: colors.bgSurfaceAlt,
   },
   modeSelectCardActive: {
     borderColor: colors.orange,
-    backgroundColor: 'rgba(255, 113, 59, 0.12)',
+    backgroundColor: colors.orangeSurface,
+  },
+  modeSelectCardPressed: {
+    opacity: 0.84,
+    transform: [{ scale: 0.98 }],
+  },
+  modeSelectContent: {
+    gap: 7,
+  },
+  modeSelectTopRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 5,
+  },
+  modeSelectCheck: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+    backgroundColor: colors.bgCard,
+  },
+  modeSelectCheckSelected: {
+    backgroundColor: colors.orange,
+    borderColor: colors.orange,
   },
   modeCardHeader: {
     flexDirection: 'row',
@@ -909,18 +913,17 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   modeSelectTitle: {
     fontFamily: 'Poppins-Bold',
-    fontSize: 13.5,
+    fontSize: 12,
+    lineHeight: 17,
     color: colors.textPrimary,
-  },
-  modeSelectTitleActive: {
-    color: colors.orange,
+    flex: 1,
+    flexShrink: 1,
   },
   modeSelectDesc: {
     ...typography.caption,
     color: colors.textSecondary,
-    fontSize: 11,
-    marginTop: 2,
-    lineHeight: 15,
+    fontSize: 10,
+    lineHeight: 14,
   },
   modeTinyBadge: {
     paddingHorizontal: 5,

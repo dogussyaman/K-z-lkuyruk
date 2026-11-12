@@ -167,7 +167,7 @@ export default function ResultScreen() {
   }
 
   return (
-    <Screen gradient diagonalSlice>
+    <Screen gradient diagonalSlice padded={stage !== 'celebration'}>
       {stage === 'celebration' ? (
         <RoundCompactOutcome
           trappedPlayers={trappedPlayers}
@@ -212,7 +212,7 @@ export default function ResultScreen() {
         />
       )}
 
-      <StickyActionBar>
+      <StickyActionBar style={stage === 'celebration' ? styles.celebrationActionBar : undefined}>
         {advanceError ? (
           <Text accessibilityRole="alert" style={[styles.error, { color: colors.dangerSoft }]}>{advanceError}</Text>
         ) : null}
@@ -233,6 +233,7 @@ export default function ResultScreen() {
 }
 
 const styles = StyleSheet.create({
+  celebrationActionBar: { paddingHorizontal: 18 },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 18, gap: 12 },
   status: { fontFamily: 'Poppins-SemiBold', fontSize: 13, textAlign: 'center' },
   error: { textAlign: 'center', fontFamily: 'Poppins-Medium', fontSize: 11, marginBottom: 5 },
