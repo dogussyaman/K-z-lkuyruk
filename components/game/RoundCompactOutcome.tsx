@@ -11,7 +11,6 @@ interface Props {
   correct: boolean;
   tricked: boolean;
   answered: boolean;
-  points: number;
   goldenMultiplier?: number;
 }
 
@@ -26,7 +25,7 @@ const CONFETTI = Array.from({ length: 54 }, (_, index) => ({
 
 /** Screenshot-inspired full-screen phone celebration, without any answer list. */
 export function RoundCompactOutcome({
-  trappedPlayers, trappedCount, correct, tricked, answered, points, goldenMultiplier = 1,
+  trappedPlayers, trappedCount, correct, tricked, answered, goldenMultiplier = 1,
 }: Props) {
   const { width, height } = useWindowDimensions();
   const frameWidth = Math.min(width * 0.72, 282);
@@ -118,9 +117,6 @@ export function RoundCompactOutcome({
           </View>
         </View>
       </View>
-      {points !== fakePoints + correctPoints && points > 0 ? (
-        <Text style={styles.totalPoints}>Toplam tur puanın: +{points}</Text>
-      ) : null}
     </View>
   );
 }
@@ -179,5 +175,4 @@ const styles = StyleSheet.create({
     color: '#FFFFFF', fontFamily: 'Poppins-Bold', textAlign: 'center',
     fontSize: 17, lineHeight: 20, textShadowColor: '#220660', textShadowRadius: 3,
   },
-  totalPoints: { marginTop: 12, fontFamily: 'Poppins-Bold', fontSize: 11, color: '#FFD166' },
 });
