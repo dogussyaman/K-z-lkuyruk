@@ -273,108 +273,108 @@ export default function ResultScreen() {
 
         {showDetails ? (
           <View style={styles.detailsContent}>
-        {roomState?.config.gameMode === 'suspicious' ? (
-          <>
-            <Text style={styles.sectionTitle}>DEDEKTİF ŞÜPHE RAPORU</Text>
-            <Card variant="surface" style={styles.summaryCard}>
-              {playersList.filter((p) => roundResults[p.id]?.suspectId).length > 0 ? (
-                playersList
-                  .filter((p) => roundResults[p.id]?.suspectId)
-                  .map((player) => {
-                    const row = roundResults[player.id];
-                    const suspected = playersList.find((cand) => cand.id === row?.suspectId);
-                    const wasCorrect = !!row?.suspectBonus;
-                    return (
-                      <View key={player.id} style={styles.deductionRow}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
-                          <Avatar avatarKey={player.avatarUrl ?? player.avatarKey} userId={player.id} size={26} />
-                          <Text style={styles.deductionPlayerName} numberOfLines={1}>{player.name}</Text>
-                          <ArrowRight size={13} color={colors.textSecondary} />
-                          <Avatar avatarKey={suspected?.avatarUrl ?? suspected?.avatarKey ?? 'fox'} userId={suspected?.id} size={26} />
-                          <Text style={styles.deductionSuspectName} numberOfLines={1}>{suspected?.name}</Text>
+          {roomState?.config.gameMode === 'suspicious' ? (
+            <>
+              <Text style={styles.sectionTitle}>DEDEKTİF ŞÜPHE RAPORU</Text>
+              <Card variant="surface" style={styles.summaryCard}>
+                {playersList.filter((p) => roundResults[p.id]?.suspectId).length > 0 ? (
+                  playersList
+                    .filter((p) => roundResults[p.id]?.suspectId)
+                    .map((player) => {
+                      const row = roundResults[player.id];
+                      const suspected = playersList.find((cand) => cand.id === row?.suspectId);
+                      const wasCorrect = !!row?.suspectBonus;
+                      return (
+                        <View key={player.id} style={styles.deductionRow}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
+                            <Avatar avatarKey={player.avatarUrl ?? player.avatarKey} userId={player.id} size={26} />
+                            <Text style={styles.deductionPlayerName} numberOfLines={1}>{player.name}</Text>
+                            <ArrowRight size={13} color={colors.textSecondary} />
+                            <Avatar avatarKey={suspected?.avatarUrl ?? suspected?.avatarKey ?? 'fox'} userId={suspected?.id} size={26} />
+                            <Text style={styles.deductionSuspectName} numberOfLines={1}>{suspected?.name}</Text>
+                          </View>
+                          <View style={[styles.deductionBadge, wasCorrect ? styles.deductionBadgeCorrect : styles.deductionBadgeWrong]}>
+                            <Text style={[styles.deductionBadgeText, wasCorrect ? styles.deductionBadgeTextCorrect : styles.deductionBadgeTextWrong]}>
+                              {wasCorrect ? '+1 DEDEKTİF' : 'YANILDI'}
+                            </Text>
+                          </View>
                         </View>
-                        <View style={[styles.deductionBadge, wasCorrect ? styles.deductionBadgeCorrect : styles.deductionBadgeWrong]}>
-                          <Text style={[styles.deductionBadgeText, wasCorrect ? styles.deductionBadgeTextCorrect : styles.deductionBadgeTextWrong]}>
-                            {wasCorrect ? '+1 DEDEKTİF' : 'YANILDI'}
-                          </Text>
-                        </View>
-                      </View>
-                    );
-                  })
-              ) : (
-                <Text style={styles.summaryMessage}>Bu tur kimse dedektif şüphesi göndermedi.</Text>
-              )}
-            </Card>
-          </>
-        ) : null}
+                      );
+                    })
+                ) : (
+                  <Text style={styles.summaryMessage}>Bu tur kimse dedektif şüphesi göndermedi.</Text>
+                )}
+              </Card>
+            </>
+          ) : null}
 
-        <Text style={styles.sectionTitle}>TUR PUANLARI</Text>
-        <View style={styles.playersListWrap}>
-          {playersList
-            .slice()
-            .sort((first, second) =>
-              (roundResults[second.id]?.pointsDelta ?? 0) - (roundResults[first.id]?.pointsDelta ?? 0)
-            )
-            .map((player, idx) => {
-              const result = roundResults[player.id];
-              const delta = result?.pointsDelta ?? 0;
-              const deltaColor = delta > 0
-                ? positiveScoreColor
-                : delta < 0
-                ? negativeScoreColor
-                : colors.textSecondary;
-              return (
-                <StaggerRow key={player.id} index={idx} delay={50}>
-                  <View style={[styles.playerRow, player.id === me?.id && styles.currentPlayerRow]}>
-                    <Avatar avatarKey={player.avatarUrl ?? player.avatarKey} userId={player.id} size={38} />
-                    <View style={styles.playerDetails}>
-                      <View style={styles.playerNameRow}>
-                        <Text style={styles.playerName} numberOfLines={1}>
-                          {player.name}{player.id === me?.id ? ' (Sen)' : ''}
-                        </Text>
-                        {service.kind === 'supabase' && roomCode && player.id !== me?.id && !player.isBot ? (
-                          <Pressable
-                            accessibilityRole="button"
-                            accessibilityLabel={`${player.name} oyuncusunu bildir`}
-                            style={styles.reportButton}
-                            onPress={() => router.push({
-                              pathname: '/report-player',
-                              params: { playerId: player.id, roomCode },
-                            })}
-                          >
-                            <Flag size={13} color={colors.textSecondary} />
-                            <Text style={styles.reportText}>Bildir</Text>
-                          </Pressable>
+          <Text style={styles.sectionTitle}>TUR PUANLARI</Text>
+          <View style={styles.playersListWrap}>
+            {playersList
+              .slice()
+              .sort((first, second) =>
+                (roundResults[second.id]?.pointsDelta ?? 0) - (roundResults[first.id]?.pointsDelta ?? 0)
+              )
+              .map((player, idx) => {
+                const result = roundResults[player.id];
+                const delta = result?.pointsDelta ?? 0;
+                const deltaColor = delta > 0
+                  ? positiveScoreColor
+                  : delta < 0
+                  ? negativeScoreColor
+                  : colors.textSecondary;
+                return (
+                  <StaggerRow key={player.id} index={idx} delay={50}>
+                    <View style={[styles.playerRow, player.id === me?.id && styles.currentPlayerRow]}>
+                      <Avatar avatarKey={player.avatarUrl ?? player.avatarKey} userId={player.id} size={38} />
+                      <View style={styles.playerDetails}>
+                        <View style={styles.playerNameRow}>
+                          <Text style={styles.playerName} numberOfLines={1}>
+                            {player.name}{player.id === me?.id ? ' (Sen)' : ''}
+                          </Text>
+                          {service.kind === 'supabase' && roomCode && player.id !== me?.id && !player.isBot ? (
+                            <Pressable
+                              accessibilityRole="button"
+                              accessibilityLabel={`${player.name} oyuncusunu bildir`}
+                              style={styles.reportButton}
+                              onPress={() => router.push({
+                                pathname: '/report-player',
+                                params: { playerId: player.id, roomCode },
+                              })}
+                            >
+                              <Flag size={13} color={colors.textSecondary} />
+                              <Text style={styles.reportText}>Bildir</Text>
+                            </Pressable>
+                          ) : null}
+                        </View>
+                        {result?.victimsCount ? (
+                          <Text style={styles.playerPointsHint}>
+                            {result.victimsCount} oyuncuyu tuzağa düşürdü
+                          </Text>
+                        ) : result?.deceivedByAuthorId ? (
+                          <Text style={styles.playerPointsHint}>
+                            {playersList.find((candidate) => candidate.id === result.deceivedByAuthorId)?.name ?? 'Bir oyuncunun'} tuzağına düştü
+                          </Text>
+                        ) : null}
+                        {result?.suspectBonus ? (
+                          <Text style={[styles.playerPointsHint, { color: colors.purpleSoft }]}>
+                            🕵️ Dedektif: Doğru tuzakçıyı bildi (+1)
+                          </Text>
+                        ) : null}
+                        {result?.speedBonus ? (
+                          <Text style={[styles.playerPointsHint, { color: colors.yellow }]}>
+                            ⚡ Yıldırım Hızı: İlk 3 saniyede bildi (+1)
+                          </Text>
                         ) : null}
                       </View>
-                      {result?.victimsCount ? (
-                        <Text style={styles.playerPointsHint}>
-                          {result.victimsCount} oyuncuyu tuzağa düşürdü
-                        </Text>
-                      ) : result?.deceivedByAuthorId ? (
-                        <Text style={styles.playerPointsHint}>
-                          {playersList.find((candidate) => candidate.id === result.deceivedByAuthorId)?.name ?? 'Bir oyuncunun'} tuzağına düştü
-                        </Text>
-                      ) : null}
-                      {result?.suspectBonus ? (
-                        <Text style={[styles.playerPointsHint, { color: colors.purpleSoft }]}>
-                          🕵️ Dedektif: Doğru tuzakçıyı bildi (+1)
-                        </Text>
-                      ) : null}
-                      {result?.speedBonus ? (
-                        <Text style={[styles.playerPointsHint, { color: colors.yellow }]}>
-                          ⚡ Yıldırım Hızı: İlk 3 saniyede bildi (+1)
-                        </Text>
-                      ) : null}
+                      <Text style={[styles.playerPoints, { color: deltaColor }]}>
+                        {delta > 0 ? '+' : ''}{delta} P
+                      </Text>
                     </View>
-                    <Text style={[styles.playerPoints, { color: deltaColor }]}>
-                      {delta > 0 ? '+' : ''}{delta} P
-                    </Text>
-                  </View>
-                </StaggerRow>
-              );
-            })}
-        </View>
+                  </StaggerRow>
+                );
+              })}
+          </View>
           </View>
         ) : null}
 
@@ -405,27 +405,6 @@ const createStyles = (colors: ThemeColors, mode: 'dark' | 'light') => StyleSheet
   moreDetailsText: { fontFamily: 'Poppins-SemiBold', fontSize: 11.5 },
   detailsContent: { paddingTop: 9 },
 
-  resultHero: { borderWidth: 2.5, borderRadius: 26, padding: 17, paddingBottom: 22, gap: 8, alignItems: 'center', marginBottom: 13, overflow: 'hidden' },
-  resultMascot: { width: 160, height: 64 },
-  heroIconBadge: { width: 55, height: 55, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginTop: 3 },
-  resultHeroTitle: { fontFamily: 'Poppins-Bold', fontSize: 20, lineHeight: 27, textAlign: 'center' },
-  resultHeroDescription: { fontFamily: 'Poppins-Medium', fontSize: 13, lineHeight: 19, textAlign: 'center' },
-  resultHeroPoints: { paddingHorizontal: 18, paddingVertical: 7, borderRadius: 99 },
-  resultHeroPointsText: { fontFamily: 'Poppins-Bold', fontSize: 16 },
-  heroVictimGroup: { width: '100%', gap: 6, marginTop: 4, alignItems: 'center' },
-  heroVictimLabel: { fontFamily: 'Poppins-Bold', fontSize: 10, letterSpacing: 0.5 },
-  heroVictimList: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' },
-  heroVictim: { gap: 3, alignItems: 'center', maxWidth: 90 },
-  heroVictimName: { fontFamily: 'Poppins-SemiBold', fontSize: 10, textAlign: 'center' },
-  doubleSuccess: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(6,28,33,0.42)', borderRadius: 99, paddingHorizontal: 11, paddingVertical: 6 },
-  doubleSuccessText: { color: '#FFFFFF', fontFamily: 'Poppins-Bold', fontSize: 11 },
-  personalPick: { borderWidth: 2, borderRadius: 18, padding: 14, gap: 5, marginBottom: 11 },
-  personalPickLabel: { fontFamily: 'Poppins-Bold', fontSize: 10, letterSpacing: 0.7 },
-  personalPickText: { fontFamily: 'Poppins-Bold', fontSize: 18, lineHeight: 25 },
-  personalPickExplanation: { fontFamily: 'Poppins-SemiBold', fontSize: 12, lineHeight: 18 },
-  correctAnswerStrip: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 15, borderColor: '#36C96B', borderWidth: 1.5, padding: 12, marginBottom: 16 },
-  correctStripLabel: { fontFamily: 'Poppins-Bold', fontSize: 10, letterSpacing: 0.5 },
-  correctStripText: { fontFamily: 'Poppins-Bold', fontSize: 14, lineHeight: 21 },
   revealStatusCard: { padding: 14, alignItems: 'center', marginBottom: 14 },
   revealRetryButton: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#6D35B6', borderRadius: 99, paddingHorizontal: 13, paddingVertical: 8, marginTop: 9 },
   revealRetryText: { color: '#FFFFFF', fontFamily: 'Poppins-Bold', fontSize: 12 },
@@ -441,60 +420,6 @@ const createStyles = (colors: ThemeColors, mode: 'dark' | 'light') => StyleSheet
     paddingBottom: spacing.md,
     paddingTop: 4,
   },
-  topHeader: {
-    alignItems: 'center',
-    paddingVertical: spacing.md,
-  },
-  mascotImage: {
-    width: 230,
-    height: 82,
-    marginBottom: spacing.sm,
-  },
-  roundBadge: {
-    backgroundColor: colors.bgSurfaceAlt,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: radii.pill,
-    marginBottom: 6,
-    borderWidth: 1,
-    borderColor: colors.borderStrong,
-  },
-  roundText: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    fontFamily: 'Poppins-Bold',
-  },
-  headerTitleText: {
-    fontFamily: 'Poppins-Bold',
-    fontSize: 16,
-    color: colors.textPrimary,
-    textAlign: 'center',
-    paddingHorizontal: 20,
-  },
-  scorePill: {
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: radii.pill,
-    borderWidth: 2,
-    marginTop: 8,
-  },
-  scorePillPos: {
-    backgroundColor: mode === 'light' ? 'rgba(122, 164, 36, 0.13)' : 'rgba(198, 243, 107, 0.15)',
-    borderColor: mode === 'light' ? '#7AA424' : colors.lime,
-  },
-  scorePillNeg: {
-    backgroundColor: mode === 'light' ? 'rgba(180, 35, 24, 0.08)' : 'rgba(239, 68, 68, 0.15)',
-    borderColor: colors.danger,
-  },
-  scorePillZero: {
-    backgroundColor: colors.bgCard,
-    borderColor: colors.borderStrong,
-  },
-  mainScoreText: {
-    fontFamily: 'Poppins-Bold',
-    fontSize: 22,
-    letterSpacing: 1,
-  },
   sectionTitle: {
     fontFamily: 'Poppins-Bold',
     fontSize: 11,
@@ -503,172 +428,17 @@ const createStyles = (colors: ThemeColors, mode: 'dark' | 'light') => StyleSheet
     marginBottom: spacing.xs,
     marginTop: spacing.sm,
   },
-  personalTrapCard: {
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-    backgroundColor: mode === 'light' ? 'rgba(239, 68, 68, 0.07)' : 'rgba(239, 68, 68, 0.11)',
-    borderWidth: 1,
-    borderColor: mode === 'light' ? '#E8A7A7' : 'rgba(239, 68, 68, 0.5)',
-    gap: 6,
-  },
-  personalTrapLabel: { ...typography.caption, color: colors.dangerSoft, fontFamily: 'Poppins-Bold' },
-  personalTrapAnswer: { fontFamily: 'Poppins-Bold', fontSize: 17, color: colors.textPrimary, lineHeight: 24 },
-  personalTrapAuthor: { ...typography.small, color: colors.textSecondary },
   summaryCard: {
     padding: spacing.md,
     marginBottom: spacing.md,
     borderWidth: 1,
     borderColor: colors.borderStrong,
   },
-  correctAnswerBox: {
-    backgroundColor: mode === 'light' ? 'rgba(34, 197, 94, 0.08)' : 'rgba(34, 197, 94, 0.12)',
-    borderWidth: 1,
-    borderColor: mode === 'light' ? 'rgba(21, 128, 61, 0.35)' : 'rgba(74, 222, 128, 0.35)',
-    borderRadius: radii.md,
-    paddingVertical: spacing.xs + 3,
-    paddingHorizontal: spacing.sm + 2,
-    gap: 4,
-  },
-  correctAnswerHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.xs,
-  },
-  correctBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: mode === 'light' ? 'rgba(34, 197, 94, 0.18)' : 'rgba(34, 197, 94, 0.22)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: radii.xs,
-  },
-  correctBadgeText: {
-    fontFamily: 'Poppins-Bold',
-    fontSize: 9.5,
-    color: mode === 'light' ? '#15803D' : '#4ADE80',
-    letterSpacing: 0.5,
-  },
-  correctSolversText: {
-    ...typography.caption,
-    fontFamily: 'Poppins-Medium',
-    fontSize: 10.5,
-    color: mode === 'light' ? '#166534' : '#86EFAC',
-  },
-  correctAnswerText: {
-    fontFamily: 'Poppins-Bold',
-    fontSize: 14,
-    color: colors.textPrimary,
-    lineHeight: 19,
-  },
-  summaryDivider: {
-    height: 1,
-    backgroundColor: colors.borderStrong,
-    marginVertical: spacing.sm,
-  },
   summaryMessage: {
     ...typography.small,
     color: colors.textSecondary,
     textAlign: 'center',
     paddingVertical: spacing.sm,
-  },
-  trapList: {
-    gap: spacing.sm,
-  },
-  trapRow: {
-    flexDirection: 'column',
-    alignItems: 'stretch',
-    gap: spacing.sm,
-    paddingVertical: spacing.xs + 2,
-    paddingHorizontal: spacing.xs + 2,
-    borderRadius: radii.md,
-  },
-  trapMatchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  trapAnswerBox: {
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    paddingTop: 5,
-    gap: 2,
-  },
-  trapAnswerLabel: { fontFamily: 'Poppins-Bold', fontSize: 10, color: colors.textMuted },
-  trapAnswerText: { fontFamily: 'Poppins-SemiBold', fontSize: 13, color: colors.textPrimary, lineHeight: 19 },
-  trapRowMyTrap: {
-    backgroundColor: mode === 'light' ? 'rgba(34, 197, 94, 0.12)' : 'rgba(34, 197, 94, 0.14)',
-    borderWidth: 1.5,
-    borderColor: mode === 'light' ? 'rgba(21, 128, 61, 0.5)' : 'rgba(74, 222, 128, 0.5)',
-  },
-  trapAuthor: {
-    flex: 1,
-    minWidth: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  trapAuthorDetails: {
-    flex: 1,
-    minWidth: 0,
-    gap: 2,
-  },
-  trapPlayerName: {
-    ...typography.caption,
-    color: colors.textPrimary,
-    fontFamily: 'Poppins-Bold',
-  },
-  trapRoleBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: mode === 'light' ? 'rgba(34, 197, 94, 0.15)' : 'rgba(34, 197, 94, 0.20)',
-    borderColor: mode === 'light' ? 'rgba(21, 128, 61, 0.4)' : 'rgba(34, 197, 94, 0.4)',
-    borderWidth: 1,
-    borderRadius: radii.xs,
-    paddingHorizontal: 5,
-    paddingVertical: 1.5,
-  },
-  trapRoleBadgeMine: {
-    backgroundColor: mode === 'light' ? 'rgba(34, 197, 94, 0.25)' : 'rgba(34, 197, 94, 0.35)',
-    borderColor: '#22C55E',
-  },
-  trapRole: {
-    fontFamily: 'Poppins-Bold',
-    fontSize: 9,
-    color: mode === 'light' ? '#15803D' : '#4ADE80',
-    letterSpacing: 0.5,
-  },
-  trapRoleMine: {
-    color: mode === 'light' ? '#166534' : '#86EFAC',
-  },
-  trapVictims: {
-    flex: 1.3,
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    flexWrap: 'wrap',
-    gap: spacing.xs,
-  },
-  trapVictim: {
-    maxWidth: '100%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: mode === 'light' ? 'rgba(239, 68, 68, 0.12)' : 'rgba(239, 68, 68, 0.18)',
-    borderWidth: 1,
-    borderColor: mode === 'light' ? 'rgba(220, 38, 38, 0.45)' : 'rgba(239, 68, 68, 0.5)',
-    borderRadius: radii.pill,
-    paddingVertical: 3,
-    paddingHorizontal: 6,
-  },
-  trapVictimMe: {
-    backgroundColor: mode === 'light' ? 'rgba(220, 38, 38, 0.22)' : 'rgba(239, 68, 68, 0.32)',
-    borderColor: '#EF4444',
-  },
-  trapVictimName: {
-    ...typography.caption,
-    color: mode === 'light' ? '#991B1B' : '#FCA5A5',
-    fontFamily: 'Poppins-Medium',
-    maxWidth: 90,
   },
   playersListWrap: {
     gap: 8,
