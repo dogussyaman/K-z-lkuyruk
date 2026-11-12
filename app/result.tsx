@@ -141,7 +141,7 @@ export default function ResultScreen() {
   const myPicked = revealed.find((r) => r.isMyPick);
   const myTrappedPlayers = revealed.filter((r) => r.isMyTrap).flatMap((r) => r.voters);
   const correctAnswerText = revealChoices?.find((c) => c.isCorrect)?.text
-    ?? roomState?.choices?.find((c) => c.isCorrect)?.text ?? question.correctAnswer;
+    ?? roomState?.choices?.find((c) => c.isCorrect)?.text ?? question.correctAnswer ?? 'Açıklanmış doğru cevap yok';
   const outcome = myResult?.outcome;
   const pointsDelta = myResult?.pointsDelta ?? 0;
   const victimsCount = myResult?.victimsCount ?? outcome?.victimsCount ?? myTrappedPlayers.length;
