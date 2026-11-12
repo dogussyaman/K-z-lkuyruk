@@ -90,8 +90,6 @@ export default function ResultScreen() {
       return;
     }
     let cancelled = false;
-    setRevealChoices(null);
-    setRevealLoadError(null);
     void service.getRoundReveal(roomCode)
       .then((rows) => {
         if (!cancelled) {
@@ -289,7 +287,7 @@ export default function ResultScreen() {
           <Card variant="surface" style={styles.revealStatusCard}>
             <Text accessibilityRole="alert" style={styles.summaryMessage}>Seçimler alınamadı: {revealLoadError}</Text>
             <Pressable accessibilityRole="button" accessibilityLabel="Seçimleri yeniden yükle"
-              style={styles.revealRetryButton} onPress={() => setRevealRetry((n) => n + 1)}>
+              style={styles.revealRetryButton} onPress={() => { setRevealChoices(null); setRevealLoadError(null); setRevealRetry((n) => n + 1); }}>
               <RotateCcw size={14} color="#FFFFFF" />
               <Text style={styles.revealRetryText}>Tekrar Dene</Text>
             </Pressable>
