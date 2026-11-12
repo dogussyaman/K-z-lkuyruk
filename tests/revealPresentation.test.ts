@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { buildRevealedChoices } from '../features/game/revealPresentation';
+import { buildRevealedChoices, orderRevealedChoices } from '../features/game/revealPresentation';
 import type { RoundRevealChoice } from '../services/types';
 import type { Player } from '../types/game';
 
@@ -60,4 +60,31 @@ describe('round choice reveal presentation', () => {
     ], players, 'a');
     assert.equal(rows[0].isMostConvincingFake, false);
   });
+  it('matches reference order: biggest fake first, correct second, others following', () => {
+    const rows = orderRevealedChoices(buildRevealedChoices(choices, players, 'b'));
+    assert.deepEqual(rows.map((row) => row.choice.text), ['Kanada', 'Avustralya', 'Meksika']);
+    assert.equal(rows[0].voteCount, 2);
+    assert.deepEqual(rows[0].voters.map((voter) => voter.name), ['Berk', 'Cem']);
+  });
+
+  it('shows correct answer at the top if nobody fell for a fake answer', () => {
+    const none = [
+      { choiceIndex: 0, text: 'Yanlış', authorId: 'b', isCorrect: false, pickedBy: [] },
+      { choiceIndex: 1, text: 'Doğru', authorId: null, isCorrect: true, pickedBy: ['a'] },
+    ];
+    const rows = orderRevealedChoices(buildRevealedChoices(none, players, 'a'));
+    assert.deepEqual(rows.map((row) => row.choice.text), ['Doğru', 'Yanlış']);
+  });
+
+  it('breaks ties deterministically and never crowns the correct answer', () => {
+    const tied: RoundRevealChoice[] = [
+      { choiceIndex: 9, text: 'B', authorId: 'a', isCorrect: false, pickedBy: ['b'] },
+      { choiceIndex: 3, text: 'A', authorId: 'b', isCorrect: false, pickedBy: ['a'] },
+      { choiceIndex: 4, text: 'Doğru', authorId: null, isCorrect: true, pickedBy: ['c'] },
+    ];
+    const rows = orderRevealedChoices(buildRevealedChoices(tied, players, 'c'));
+    assert.deepEqual(rows.map((row) => row.choice.choiceIndex), [3, 4, 9]);
+    assert.equal(rows[1].choice.isCorrect, true);
+  });
+
 });
