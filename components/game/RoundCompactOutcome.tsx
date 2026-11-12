@@ -1,105 +1,169 @@
-import { Image, StyleSheet, Text, View } from 'react-native';
-import { Check, Crown, Sparkles } from 'lucide-react-native';
-import { mascotImages } from '@/assets/illustrations';
-import { useTheme } from '@/theme/ThemeProvider';
+import { useWindowDimensions, StyleSheet, Text, View, type DimensionValue } from 'react-native';
+import { Check, Crown, Gem, X } from 'lucide-react-native';
+import Svg, { Path } from 'react-native-svg';
+import { Avatar } from '@/components/ui/Avatar';
+import type { Player } from '@/types/game';
+import { POINTS } from '@/features/game/outcomes';
 
 interface Props {
-  round: number;
-  totalRounds: number;
-  points: number;
+  trappedPlayers: Player[];
   trappedCount: number;
   correct: boolean;
   tricked: boolean;
   answered: boolean;
-  pickedAnswer: string | null;
-  correctAnswer: string;
-  trickedBy?: string | null;
+  points: number;
+  goldenMultiplier?: number;
 }
 
-/** The entire personal result stays in a small strip above the answer list. */
+const CONFETTI = Array.from({ length: 54 }, (_, index) => ({
+  left: (index * 43 + (index % 5) * 11) % 100,
+  top: (index * 17 + (index % 3) * 7) % 37,
+  width: index % 4 === 0 ? 9 : 5,
+  height: index % 3 === 0 ? 4 : 8,
+  color: ['#FCE66A', '#FF6A36', '#F94875', '#31BEF4', '#E3ADFF'][index % 5],
+  rotate: (index * 47) % 155,
+}));
+
+/** Screenshot-inspired full-screen phone celebration, without any answer list. */
 export function RoundCompactOutcome({
-  round, totalRounds, points, trappedCount, correct, tricked,
-  answered, pickedAnswer, correctAnswer, trickedBy,
+  trappedPlayers, trappedCount, correct, tricked, answered, points, goldenMultiplier = 1,
 }: Props) {
-  const { colors, mode } = useTheme();
-  const light = mode === 'light';
-  const guessLabel = correct ? 'DOĞRU BİLDİN!'
-    : tricked ? 'TUZAĞA DÜŞTÜN!'
-    : answered ? 'YANLIŞ TAHMİN' : 'CEVAP VERMEDİN';
-  const guessDetail = correct ? pickedAnswer ?? correctAnswer
-    : tricked ? (trickedBy ?? 'Bir oyuncu') + ' kandırdı'
-    : answered ? pickedAnswer ?? 'Yanlış cevap'
-    : 'Bu tur cevap yok';
-  const guessAccent = correct ? '#4FCF5B' : tricked ? '#EE7B9E' : colors.borderStrong;
-  const guessBg = correct
-    ? (light ? '#E1F7D8' : '#15543B')
-    : tricked ? (light ? '#FFE8EF' : '#522B47')
-    : colors.bgSurfaceAlt;
+  const { width, height } = useWindowDimensions();
+  const frameWidth = Math.min(width * 0.72, 282);
+  const frameHeight = Math.min(height * 0.61, 475);
+  const fakePoints = trappedCount * POINTS.fakeChosenBonus * (correct ? goldenMultiplier : 1);
+  const correctPoints = correct ? POINTS.correct * goldenMultiplier : 0;
+  const achievementTitle = trappedCount > 0 ? 'HARİKASIN!' : 'BİR SONRAKİ TURDA!';
+  const achievementDescription = trappedCount > 0
+    ? String(trappedCount) + ' Kişiyi\nZartlattın!'
+    : 'Bu tur kimse\nsahte cevabına kanmadı';
+  const guessDescription = correct ? 'Doğru Cevap\nVerdin'
+    : tricked ? 'Tuzağa\nDüştün'
+    : answered ? 'Bu Tur\nYanlış Bildin'
+    : 'Bu Tur\nCevap Vermedin';
 
   return (
-    <View style={styles.wrapper}>
-      <View style={styles.header}>
-        <View style={styles.brand}>
-          <Image source={mascotImages.brand} style={styles.logo} resizeMode="contain" />
-          <View>
-            <Text style={[styles.kicker, { color: colors.textMuted }]}>TUR {round} / {totalRounds}</Text>
-            <Text style={[styles.title, { color: colors.textPrimary }]}>Tur sonuçları</Text>
-          </View>
-        </View>
-        <View style={[styles.points, { backgroundColor: points > 0 ? colors.goldSurface : colors.bgSurfaceAlt }]}>
-          <Text style={[styles.pointsText, {
-            color: points > 0 ? (light ? '#6E4104' : colors.yellow)
-              : points < 0 ? colors.dangerSoft : colors.textPrimary,
-          }]}>{points > 0 ? '+' : ''}{points} P</Text>
-        </View>
+    <View style={styles.scene} accessibilityLabel="Turun kişisel sonuçları">
+      <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+        {CONFETTI.map((item, i) => (
+          <View key={i} style={[styles.confetti, {
+            left: (item.left + '%') as DimensionValue,
+            top: (item.top + '%') as DimensionValue,
+            width: item.width,
+            height: item.height,
+            backgroundColor: item.color,
+            transform: [{ rotate: item.rotate + 'deg' }],
+          }]} />
+        ))}
       </View>
-
-      <View style={styles.outcomes}>
-        {trappedCount > 0 ? (
-          <View style={[styles.outcome, { backgroundColor: light ? '#FFF1C6' : '#513181', borderColor: '#F9BF42' }]}>
-            <View style={[styles.icon, { backgroundColor: '#F9BF42' }]}>
-              <Crown color="#4B2A13" fill="#4B2A13" size={17} />
-            </View>
-            <View style={styles.copy}>
-              <Text style={[styles.outcomeTitle, { color: light ? '#7B4000' : '#FFE7AC' }]}>ZARTLATTIN!</Text>
-              <Text style={[styles.outcomeDetail, { color: colors.textPrimary }]}>{trappedCount} kişi kandı</Text>
-            </View>
+      <View style={[styles.phone, { width: frameWidth, height: frameHeight }]}>
+        <Svg width="100%" height="100%" viewBox="0 0 280 470" preserveAspectRatio="none" style={StyleSheet.absoluteFill}>
+          <Path d="M 0 0 H 280 V 248 L 0 283 Z" fill="#0758B4" />
+          <Path d="M 0 283 L 280 248 V 470 H 0 Z" fill="#5713B7" />
+          <Path d="M 0 0 H 280 V 62 L 0 82 Z" fill="#0B6AC5" opacity={0.5} />
+          <Path d="M 0 308 L 280 275 V 350 L 0 375 Z" fill="#7C26DC" opacity={0.4} />
+        </Svg>
+        <View style={styles.crownTab}>
+          <Crown color="#FF6F00" size={34} fill="#FFB528" strokeWidth={2.8} />
+        </View>
+        <View style={styles.upper}>
+          <View style={styles.ribbon}>
+            <Text style={styles.ribbonText}>{achievementTitle}</Text>
           </View>
-        ) : null}
-        <View style={[styles.outcome, { backgroundColor: guessBg, borderColor: guessAccent }]}>
-          <View style={[styles.icon, { backgroundColor: guessAccent }]}>
+          {trappedCount > 0 ? (
+            <View style={styles.avatarCluster}>
+              {trappedPlayers.slice(0, 6).map((player, index) => (
+                <View key={player.id} style={[styles.avatarRound, { marginLeft: index ? -10 : 0, zIndex: 6 - index }]}>
+                  <Avatar avatarKey={player.avatarUrl ?? player.avatarKey} userId={player.id} size={34} />
+                </View>
+              ))}
+              {trappedCount > trappedPlayers.length ? (
+                <View style={[styles.avatarRound, styles.avatarOverflow, { marginLeft: trappedPlayers.length ? -10 : 0 }]}>
+                  <Text style={styles.overflowText}>+{trappedCount - trappedPlayers.length}</Text>
+                </View>
+              ) : null}
+            </View>
+          ) : (
+            <View style={styles.emptyAvatar}><Crown color="#FFE070" size={29} /></View>
+          )}
+          <Text style={styles.trapCount}>{achievementDescription}</Text>
+          <View style={styles.pointsPill}>
+            <Gem color="#FF6437" size={13} fill="#ED225D" />
+            <Text style={styles.pointsText}>{trappedCount > 0 ? '+' + fakePoints : '0'} PUAN</Text>
+          </View>
+        </View>
+        <View style={styles.lower}>
+          <View style={styles.medal}>
             {correct
-              ? <Check color="#1C4320" size={18} strokeWidth={3} />
-              : <Sparkles color={tricked ? '#662040' : colors.textPrimary} size={17} />}
+              ? <Check size={40} strokeWidth={4.5} color="#7833D0" />
+              : <X size={35} strokeWidth={4} color="#7833D0" />}
           </View>
-          <View style={styles.copy}>
-            <Text style={[styles.outcomeTitle, {
-              color: correct ? (light ? '#166534' : '#C5FAC1')
-                : tricked ? (light ? '#9F1239' : '#FBC8DB') : colors.textPrimary,
-            }]}>{guessLabel}</Text>
-            <Text style={[styles.outcomeDetail, { color: colors.textPrimary }]} numberOfLines={1}>
-              {guessDetail}
-            </Text>
+          <Text style={styles.correctLabel}>{guessDescription}</Text>
+          <View style={styles.pointsPill}>
+            <Gem color="#FF6437" size={13} fill="#ED225D" />
+            <Text style={styles.pointsText}>{correct ? '+' + correctPoints : '0'} PUAN</Text>
           </View>
         </View>
       </View>
+      {points !== fakePoints + correctPoints && points > 0 ? (
+        <Text style={styles.totalPoints}>Toplam tur puanın: +{points}</Text>
+      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrapper: { marginBottom: 10, gap: 9 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, minHeight: 41 },
-  brand: { flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 },
-  logo: { width: 47, height: 31 },
-  kicker: { fontFamily: 'Poppins-Bold', fontSize: 9, letterSpacing: 0.6 },
-  title: { fontFamily: 'Poppins-Bold', fontSize: 16, lineHeight: 22 },
-  points: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
-  pointsText: { fontFamily: 'Poppins-Bold', fontSize: 16 },
-  outcomes: { flexDirection: 'row', gap: 7 },
-  outcome: { flex: 1, minWidth: 0, minHeight: 62, flexDirection: 'row', alignItems: 'center', gap: 7, borderWidth: 1.5, borderRadius: 15, paddingHorizontal: 8, paddingVertical: 8 },
-  icon: { width: 28, height: 28, borderRadius: 9, justifyContent: 'center', alignItems: 'center' },
-  copy: { flex: 1, minWidth: 0, gap: 1 },
-  outcomeTitle: { fontFamily: 'Poppins-Bold', fontSize: 10, lineHeight: 14 },
-  outcomeDetail: { fontFamily: 'Poppins-Medium', fontSize: 10, lineHeight: 14 },
+  scene: { flex: 1, minHeight: 0, alignItems: 'center', justifyContent: 'center', paddingTop: 28, paddingBottom: 8, overflow: 'hidden' },
+  confetti: { position: 'absolute', borderRadius: 1 },
+  phone: {
+    position: 'relative', borderColor: '#F7F9FF', borderWidth: 8, borderRadius: 31,
+    backgroundColor: '#0B4DAA', overflow: 'visible',
+    shadowColor: '#070225', shadowOpacity: 0.35, shadowRadius: 14, elevation: 12,
+  },
+  crownTab: {
+    position: 'absolute', top: -35, alignSelf: 'center', zIndex: 10,
+    width: 67, height: 49, backgroundColor: '#FBFAFF', borderRadius: 15,
+    justifyContent: 'center', alignItems: 'center', elevation: 3,
+  },
+  upper: {
+    position: 'absolute', top: '6%', left: 0, right: 0, height: '49%',
+    alignItems: 'center', justifyContent: 'center', gap: 11, paddingHorizontal: 16,
+  },
+  ribbon: {
+    backgroundColor: '#45CB19', borderBottomColor: '#15930E', borderBottomWidth: 5,
+    paddingVertical: 5, paddingHorizontal: 19, minWidth: 120, alignItems: 'center',
+    transform: [{ rotate: '-1deg' }],
+  },
+  ribbonText: { fontSize: 11, fontFamily: 'Poppins-Bold', color: '#FFFFFF', letterSpacing: 0.3 },
+  avatarCluster: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', minHeight: 40 },
+  avatarRound: {
+    width: 39, height: 39, borderRadius: 20, borderWidth: 3, borderColor: '#FFC345',
+    alignItems: 'center', justifyContent: 'center', backgroundColor: '#260F4F', overflow: 'hidden',
+  },
+  avatarOverflow: { borderColor: '#FFD86E', backgroundColor: '#9C48C9' },
+  overflowText: { color: '#FFFFFF', fontFamily: 'Poppins-Bold', fontSize: 10 },
+  emptyAvatar: { width: 42, height: 42, alignItems: 'center', justifyContent: 'center' },
+  trapCount: {
+    fontSize: 16, lineHeight: 20, fontFamily: 'Poppins-Bold', color: '#FFFFFF',
+    textAlign: 'center', textShadowColor: 'rgba(2,18,65,0.65)', textShadowRadius: 3,
+  },
+  pointsPill: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5,
+    backgroundColor: '#24055D', paddingHorizontal: 9, paddingVertical: 5,
+    borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
+  },
+  pointsText: { color: '#FFFFFF', fontFamily: 'Poppins-Bold', fontSize: 11 },
+  lower: {
+    position: 'absolute', top: '58%', bottom: 0, left: 0, right: 0,
+    alignItems: 'center', justifyContent: 'center', gap: 10,
+  },
+  medal: {
+    backgroundColor: '#FFD234', width: 71, height: 71, borderRadius: 36,
+    alignItems: 'center', justifyContent: 'center', elevation: 3,
+  },
+  correctLabel: {
+    color: '#FFFFFF', fontFamily: 'Poppins-Bold', textAlign: 'center',
+    fontSize: 17, lineHeight: 20, textShadowColor: '#220660', textShadowRadius: 3,
+  },
+  totalPoints: { marginTop: 12, fontFamily: 'Poppins-Bold', fontSize: 11, color: '#FFD166' },
 });
