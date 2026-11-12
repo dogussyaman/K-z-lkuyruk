@@ -175,7 +175,6 @@ export default function ResultScreen() {
           correct={correct}
           tricked={tricked}
           answered={answered}
-          points={myResult?.pointsDelta ?? 0}
           goldenMultiplier={myResult?.goldenMultiplier ?? 1}
         />
       ) : revealError ? (
