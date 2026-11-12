@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Check, ChevronDown, Crown, Users } from 'lucide-react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Check, Crown, Flag, X } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Avatar } from '@/components/ui/Avatar';
-import { buildRevealedChoices } from '@/features/game/revealPresentation';
+import { buildRevealedChoices, orderRevealedChoices, type RevealedChoiceView } from '@/features/game/revealPresentation';
 import { useTheme } from '@/theme/ThemeProvider';
 import type { Player } from '@/types/game';
 import type { RoundRevealChoice } from '@/services/types';
@@ -11,186 +12,235 @@ interface Props {
   choices: RoundRevealChoice[];
   players: Player[];
   currentPlayerId?: string | null;
+  onReportPlayer?: (playerId: string) => void;
 }
 
+const BAR_COLORS = {
+  winner: { top: '#FFDD30', bottom: '#FFAE00', shadow: '#D97705', text: '#442100' },
+  correct: { top: '#B3FF59', bottom: '#36D500', shadow: '#248F00', text: '#164000' },
+  other: { top: '#F4F7FF', bottom: '#B4D6FF', shadow: '#6597EB', text: '#18356D' },
+};
+
 /**
- * Compact answer distribution: the primary facts fit into one glance.
- * Tap an answer for its author and voters instead of forcing everyone to
- * scroll through expanded voter lists by default.
+ * Reference-matched, answer-only reveal screen.
+ * Author avatar = left, voters = right. Details open in an overlay,
+ * never expand the rows or push the next answer below the fold.
  */
-export function RoundChoiceReveal({ choices, players, currentPlayerId }: Props) {
-  const { colors, mode } = useTheme();
-  const [expandedChoice, setExpandedChoice] = useState<number | null>(null);
-  const rows = buildRevealedChoices(choices, players, currentPlayerId);
-  const totalVotes = rows.reduce((total, row) => total + row.voteCount, 0);
-  const isLight = mode === 'light';
+export function RoundChoiceReveal({ choices, players, currentPlayerId, onReportPlayer }: Props) {
+  const { colors } = useTheme();
+  const [selectedRow, setSelectedRow] = useState<RevealedChoiceView | null>(null);
+  const rows = orderRevealedChoices(buildRevealedChoices(choices, players, currentPlayerId));
+  const winner = rows.find((row) => row.isMostConvincingFake && !row.choice.isCorrect);
+  const winnerIndex = winner?.choice.choiceIndex;
+  const authorName = selectedRow?.choice.isCorrect
+    ? 'Gerçek doğru cevap'
+    : selectedRow?.author?.name ?? 'Sahte cevap yazarı bilinmiyor';
+  const voters = selectedRow?.voters ?? [];
+  const canReport = !!selectedRow?.author && !selectedRow.author.isBot
+    && selectedRow.author.id !== currentPlayerId && !!onReportPlayer;
 
   return (
-    <View style={styles.wrapper}>
-      <View style={styles.heading}>
-        <Text style={[styles.headingText, { color: colors.textPrimary }]}>Kim hangi cevabı seçti?</Text>
-        <View style={[styles.totalBadge, { backgroundColor: colors.purpleSurface }]}>
-          <Users color={colors.purpleSoft} size={12} />
-          <Text style={[styles.totalBadgeText, { color: colors.textPrimary }]}>{totalVotes} oy</Text>
-        </View>
-      </View>
-      {rows.map((row) => {
-        const isExpanded = expandedChoice === row.choice.choiceIndex;
-        const isWinningTrap = row.isMostConvincingFake;
-        const isCorrect = row.choice.isCorrect;
-        const isTricked = row.isMyPick && !isCorrect;
-        const background = isCorrect ? (isLight ? '#D9F7D7' : '#125134')
-          : isWinningTrap ? (isLight ? '#FFF0BD' : '#6B410E')
-          : isTricked ? (isLight ? '#FBE4EC' : '#52263F')
-          : (isLight ? '#E8F2FF' : '#1A3975');
-        const border = isCorrect ? '#55D64A'
-          : isWinningTrap ? '#F9B52F'
-          : isTricked ? '#EF83A8' : (isLight ? '#A3C6FA' : '#3577D1');
-        const ink = isLight ? '#173459' : '#FFFFFF';
-        const authorText = isCorrect ? 'Gerçek cevap'
-          : row.author ? (row.isMyTrap ? 'Senin blöfün' : row.author.name + ' yazdı')
-          : 'Sahte cevap';
-        const names = row.voters.map((voter) =>
-          voter.id === currentPlayerId ? 'Sen' : voter.name
-        );
+    <View style={styles.root}>
+      <ScrollView
+        style={styles.scroller}
+        contentContainerStyle={styles.list}
+        showsVerticalScrollIndicator={false}
+      >
+        {rows.map((row, index) => {
+          const isWinner = row.choice.choiceIndex === winnerIndex;
+          const palette = row.choice.isCorrect ? BAR_COLORS.correct
+            : isWinner ? BAR_COLORS.winner : BAR_COLORS.other;
+          const votersInView = row.voters.slice(0, 6);
+          return (
+            <Pressable
+              key={row.choice.choiceIndex}
+              accessibilityRole="button"
+              accessibilityLabel={
+                row.choice.text + '. ' + (row.choice.isCorrect ? 'Doğru cevap. ' : '') +
+                (row.author?.name ? row.author.name + ' yazdı. ' : '') +
+                row.voteCount + ' kişi seçti: ' +
+                (row.voters.map((player) => player.name).join(', ') || 'kimse')
+              }
+              accessibilityHint="Seçen oyuncuların adlarını görmek için dokun"
+              onPress={() => setSelectedRow(row)}
+              style={({ pressed }) => [
+                styles.barWrap,
+                isWinner && styles.barWinner,
+                { opacity: pressed ? 0.9 : 1 },
+              ]}
+            >
+              {isWinner ? (
+                <View pointerEvents="none" style={styles.winnerHeading}>
+                  <Crown color="#FFE066" size={26} fill="#FFE066" strokeWidth={2} />
+                  <View style={styles.ribbon}>
+                    <Text style={styles.ribbonText}>EN ZARTALAYAN!</Text>
+                  </View>
+                </View>
+              ) : null}
 
-        return (
-          <Pressable
-            key={row.choice.choiceIndex}
-            accessibilityRole="button"
-            accessibilityState={{ expanded: isExpanded }}
-            accessibilityLabel={row.choice.text + ', ' + row.voteCount + ' kişi seçti' + (isCorrect ? ', doğru cevap' : '')}
-            accessibilityHint="Cevabı yazanı ve bu cevabı seçen oyuncuları görmek için dokun"
-            onPress={() => setExpandedChoice(isExpanded ? null : row.choice.choiceIndex)}
-            style={({ pressed }) => [
-              styles.choiceCard,
-              { backgroundColor: background, borderColor: border, opacity: pressed ? 0.88 : 1 },
-            ]}
-          >
-            <View style={styles.choiceRow}>
-              <View style={[styles.authorAvatar, { borderColor: border }]}>
-                {row.author ? (
-                  <Avatar avatarKey={row.author.avatarUrl ?? row.author.avatarKey} userId={row.author.id} size={25} />
-                ) : (
-                  <Check size={18} strokeWidth={3} color={isCorrect ? '#4ADE80' : ink} />
-                )}
-              </View>
-              <View style={styles.choiceCopy}>
-                <View style={styles.answerLine}>
-                  <Text style={[styles.answerText, { color: ink }]} numberOfLines={2}>
+              <View style={[styles.barShadow, { backgroundColor: palette.shadow }]}>
+                <LinearGradient
+                  colors={[palette.top, palette.bottom]}
+                  style={styles.bar}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 0, y: 1 }}
+                >
+                  <Text
+                    style={[styles.answer, { color: palette.text }]}
+                    numberOfLines={2}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.8}
+                  >
                     {row.choice.text}
                   </Text>
-                  {isCorrect ? <Check color={isLight ? '#166534' : '#86EFAC'} size={15} strokeWidth={3} />
-                    : isWinningTrap ? <Crown color="#FFD76F" size={16} fill="#FFD76F" />
-                    : null}
-                </View>
-                <View style={styles.statusLine}>
-                  <Text style={[styles.authorLabel, { color: ink }]} numberOfLines={1}>{authorText}</Text>
                   {row.isMyPick ? (
-                    <View style={[styles.meBadge, { backgroundColor: isTricked ? '#C03569' : '#18834D' }]}>
-                      <Text style={styles.meBadgeText}>SENİN SEÇİMİN</Text>
-                    </View>
-                  ) : row.isMyTrap ? (
-                    <View style={[styles.meBadge, { backgroundColor: '#B87918' }]}>
-                      <Text style={styles.meBadgeText}>SENİN TUZAĞIN</Text>
+                    <View style={styles.yourPickDot}>
+                      <Check color="#FFFFFF" size={11} strokeWidth={3} />
                     </View>
                   ) : null}
-                </View>
+                  {row.voteCount > 0 ? (
+                    <View style={styles.voters}>
+                      {row.voteCount > votersInView.length ? (
+                        <View style={styles.extraVotes}>
+                          <Text style={styles.extraVotesText}>+{row.voteCount - votersInView.length}</Text>
+                        </View>
+                      ) : null}
+                      {votersInView.map((voter, voteIndex) => (
+                        <View
+                          key={voter.id}
+                          style={[styles.voter, {
+                            marginLeft: voteIndex > 0 ? -7 : 0,
+                            zIndex: votersInView.length - voteIndex,
+                            borderColor: voter.id === currentPlayerId ? '#FF6F37' : '#5A276F',
+                          }]}
+                        >
+                          <Avatar avatarKey={voter.avatarUrl ?? voter.avatarKey} userId={voter.id} size={22} />
+                        </View>
+                      ))}
+                    </View>
+                  ) : null}
+                </LinearGradient>
               </View>
-              <View style={styles.voteColumn}>
-                <View style={styles.avatarStack}>
-                  {row.voters.slice(0, 4).map((voter, i) => (
-                    <View
-                      key={voter.id}
-                      style={[styles.voterAvatar, {
-                        marginLeft: i ? -8 : 0,
-                        zIndex: 5 - i,
-                        borderColor: voter.id === currentPlayerId ? '#F8AD37' : border,
-                      }]}
-                    >
-                      <Avatar avatarKey={voter.avatarUrl ?? voter.avatarKey} userId={voter.id} size={22} />
-                    </View>
-                  ))}
-                  {row.voteCount > 4 ? (
-                    <View style={[styles.moreAvatar, { marginLeft: -8, borderColor: border }]}>
-                      <Text style={styles.moreText}>+{row.voteCount - 4}</Text>
-                    </View>
-                  ) : null}
-                  {row.voteCount === 0 ? <Text style={[styles.zeroText, { color: ink }]}>—</Text> : null}
-                </View>
-                <View style={styles.voteCountLine}>
-                  <Text style={[styles.voteCountText, { color: ink }]}>{row.voteCount} kişi</Text>
-                  <ChevronDown
-                    color={ink}
-                    size={12}
-                    style={{ transform: [{ rotate: isExpanded ? '180deg' : '0deg' }] }}
+
+              <View style={[styles.author, { borderColor: isWinner ? '#FFDD58' : '#D2BFFA' }]}>
+                {row.author ? (
+                  <Avatar
+                    avatarKey={row.author.avatarUrl ?? row.author.avatarKey}
+                    userId={row.author.id}
+                    size={33}
                   />
-                </View>
+                ) : (
+                  <View style={styles.correctOwner}>
+                    {row.choice.isCorrect
+                      ? <Check color="#FFFFFF" size={18} strokeWidth={3} />
+                      : <Text style={styles.unknownOwner}>?</Text>}
+                  </View>
+                )}
               </View>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+
+      <Modal
+        visible={!!selectedRow}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSelectedRow(null)}
+      >
+        <Pressable style={styles.modalBackdrop} onPress={() => setSelectedRow(null)}>
+          <Pressable
+            accessibilityRole="none"
+            onPress={() => {}}
+            style={[styles.modalSheet, { backgroundColor: colors.bgCard, borderColor: colors.borderAccent }]}
+          >
+            <View style={styles.modalTitle}>
+              <Text style={[styles.modalQuestion, { color: colors.textPrimary }]}>
+                {selectedRow?.choice.text}
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Kapat"
+                onPress={() => setSelectedRow(null)}
+                style={styles.modalClose}
+              >
+                <X size={19} color={colors.textPrimary} />
+              </Pressable>
             </View>
-            {isExpanded ? (
-              <View style={[styles.details, { borderTopColor: isLight ? 'rgba(0,0,0,0.14)' : 'rgba(255,255,255,0.25)' }]}>
-                <Text style={[styles.detailText, { color: ink }]}>
-                  {isCorrect ? '✓ Bu turun gerçek doğru cevabı' : 'Blöfü yazan: ' + (row.author?.name ?? 'Bilinmeyen oyuncu')}
-                </Text>
-                <Text style={[styles.detailText, { color: ink }]}>
-                  {names.length ? 'Seçenler: ' + names.join(', ') : row.voteCount > 0 ? row.voteCount + ' kişi seçti' : 'Bu cevabı kimse seçmedi'}
-                </Text>
-                {isWinningTrap ? (
-                  <Text style={[styles.detailEmphasis, { color: ink }]}>👑 En çok seçilen sahte cevap</Text>
-                ) : null}
-              </View>
+            <Text style={[styles.modalAuthor, { color: colors.textSecondary }]}>
+              {selectedRow?.choice.isCorrect ? '✓ ' : 'Yazan: '}{authorName}
+            </Text>
+            <Text style={[styles.modalVotersLabel, { color: colors.textPrimary }]}>
+              Seçenler ({selectedRow?.voteCount ?? 0})
+            </Text>
+            <View style={styles.modalVoters}>
+              {voters.length ? voters.map((player) => (
+                <View key={player.id} style={[styles.playerChip, { backgroundColor: colors.bgSurfaceAlt }]}>
+                  <Avatar avatarKey={player.avatarUrl ?? player.avatarKey} userId={player.id} size={24} />
+                  <Text style={[styles.playerName, { color: colors.textPrimary }]}>
+                    {player.id === currentPlayerId ? 'Sen' : player.name}
+                  </Text>
+                </View>
+              )) : (
+                <Text style={{ color: colors.textMuted }}>Bu cevabı kimse seçmedi.</Text>
+              )}
+            </View>
+            {canReport && selectedRow?.author ? (
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => {
+                  const id = selectedRow.author!.id;
+                  setSelectedRow(null);
+                  onReportPlayer?.(id);
+                }}
+                style={styles.report}
+              >
+                <Flag size={12} color={colors.textMuted} />
+                <Text style={{ color: colors.textMuted, fontSize: 11 }}>Oyuncuyu bildir</Text>
+              </Pressable>
             ) : null}
           </Pressable>
-        );
-      })}
-      <Text style={[styles.tapHint, { color: colors.textMuted }]}>
-        Ayrıntılar için cevap kartına dokun.
-      </Text>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrapper: { gap: 7, marginBottom: 9 },
-  heading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 3 },
-  headingText: { fontFamily: 'Poppins-Bold', fontSize: 13.5, flex: 1 },
-  totalBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 4, paddingHorizontal: 8, borderRadius: 99 },
-  totalBadgeText: { fontFamily: 'Poppins-Bold', fontSize: 10 },
-  choiceCard: {
-    borderRadius: 16,
-    borderWidth: 1.5,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    minHeight: 60,
-    justifyContent: 'center',
+  root: { flex: 1, width: '100%' },
+  scroller: { flex: 1 },
+  list: { flexGrow: 1, paddingTop: 34, paddingBottom: 14, paddingHorizontal: 10, justifyContent: 'center', gap: 11 },
+  barWrap: { position: 'relative', marginLeft: 13, marginRight: 2 },
+  barWinner: { marginTop: 15 },
+  barShadow: { borderRadius: 15, paddingBottom: 5, overflow: 'hidden' },
+  bar: { minHeight: 51, borderRadius: 15, justifyContent: 'center', paddingLeft: 29, paddingRight: 38, overflow: 'visible' },
+  answer: { textAlign: 'center', fontFamily: 'Poppins-Bold', fontSize: 13.2, lineHeight: 18 },
+  author: {
+    position: 'absolute', left: -14, top: 8, width: 40, height: 40, borderRadius: 20,
+    borderWidth: 2, backgroundColor: '#27143B', justifyContent: 'center', alignItems: 'center', overflow: 'hidden',
   },
-  choiceRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  authorAvatar: {
-    width: 31, height: 31, borderRadius: 16, borderWidth: 1.5,
-    alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
-    backgroundColor: 'rgba(255,255,255,0.12)',
+  correctOwner: { width: 33, height: 33, borderRadius: 17, backgroundColor: '#2DA45C', alignItems: 'center', justifyContent: 'center' },
+  unknownOwner: { color: '#FFFFFF', fontFamily: 'Poppins-Bold' },
+  voters: { position: 'absolute', right: 8, bottom: 3, flexDirection: 'row', alignItems: 'center' },
+  voter: {
+    width: 26, height: 26, borderRadius: 13, overflow: 'hidden', justifyContent: 'center',
+    alignItems: 'center', borderWidth: 2, backgroundColor: '#1D1434',
   },
-  choiceCopy: { flex: 1, minWidth: 0, gap: 1 },
-  answerLine: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  answerText: { fontFamily: 'Poppins-Bold', fontSize: 13, lineHeight: 18, flexShrink: 1 },
-  statusLine: { flexDirection: 'row', alignItems: 'center', gap: 5, minWidth: 0, flexWrap: 'wrap' },
-  authorLabel: { fontFamily: 'Poppins-Medium', fontSize: 9, opacity: 0.8, maxWidth: '100%', flexShrink: 1 },
-  meBadge: { borderRadius: 5, paddingVertical: 1.5, paddingHorizontal: 5 },
-  meBadgeText: { color: '#FFFFFF', fontFamily: 'Poppins-Bold', fontSize: 7.5 },
-  voteColumn: { minWidth: 64, maxWidth: 104, alignItems: 'flex-end', gap: 2 },
-  avatarStack: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', minHeight: 27 },
-  voterAvatar: {
-    width: 26, height: 26, borderRadius: 13, borderWidth: 2,
-    justifyContent: 'center', alignItems: 'center', overflow: 'hidden',
-  },
-  moreAvatar: { width: 26, height: 26, borderRadius: 13, borderWidth: 2, backgroundColor: '#2D1D4B', alignItems: 'center', justifyContent: 'center' },
-  moreText: { color: '#FFFFFF', fontFamily: 'Poppins-Bold', fontSize: 9 },
-  zeroText: { fontFamily: 'Poppins-Bold', fontSize: 14 },
-  voteCountLine: { flexDirection: 'row', gap: 3, alignItems: 'center' },
-  voteCountText: { fontFamily: 'Poppins-SemiBold', fontSize: 9.5 },
-  details: { borderTopWidth: 1, paddingTop: 6, marginTop: 7, gap: 3 },
-  detailText: { fontFamily: 'Poppins-Medium', fontSize: 10.5, lineHeight: 16 },
-  detailEmphasis: { fontFamily: 'Poppins-Bold', fontSize: 10 },
-  tapHint: { fontFamily: 'Poppins-Medium', fontSize: 9.5, textAlign: 'center', marginTop: 2 },
+  extraVotes: { zIndex: 1, borderRadius: 12, paddingHorizontal: 4, backgroundColor: '#E47F20', alignItems: 'center', justifyContent: 'center', minWidth: 23, height: 23 },
+  extraVotesText: { color: '#FFFFFF', fontFamily: 'Poppins-Bold', fontSize: 9 },
+  winnerHeading: { position: 'absolute', top: -37, alignSelf: 'center', zIndex: 5, alignItems: 'center' },
+  ribbon: { minWidth: 117, alignItems: 'center', paddingHorizontal: 12, paddingVertical: 3, borderRadius: 3, backgroundColor: '#A226EA', borderBottomWidth: 4, borderBottomColor: '#5913A1', transform: [{ rotate: '-1deg' }] },
+  ribbonText: { fontFamily: 'Poppins-Bold', fontSize: 9, color: '#FFFFFF' },
+  yourPickDot: { position: 'absolute', top: 4, right: 5, width: 16, height: 16, borderRadius: 8, backgroundColor: '#B32269', alignItems: 'center', justifyContent: 'center' },
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(5,5,18,0.72)', justifyContent: 'center', padding: 20 },
+  modalSheet: { borderRadius: 21, padding: 17, borderWidth: 1.5, gap: 10, maxHeight: '80%' },
+  modalTitle: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10 },
+  modalQuestion: { fontFamily: 'Poppins-Bold', fontSize: 18, lineHeight: 24, flex: 1 },
+  modalClose: { padding: 5, borderRadius: 15 },
+  modalAuthor: { fontFamily: 'Poppins-Medium', fontSize: 12 },
+  modalVotersLabel: { fontFamily: 'Poppins-Bold', fontSize: 12, marginTop: 5 },
+  modalVoters: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
+  playerChip: { flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 16, padding: 5 },
+  playerName: { fontFamily: 'Poppins-Medium', fontSize: 11 },
+  report: { flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start', paddingVertical: 7 },
 });
