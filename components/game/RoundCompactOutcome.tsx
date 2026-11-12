@@ -63,6 +63,19 @@ export function RoundCompactOutcome({
           <Path d="M 0 0 H 280 V 62 L 0 82 Z" fill="#0B6AC5" opacity={0.5} />
           <Path d="M 0 308 L 280 275 V 350 L 0 375 Z" fill="#7C26DC" opacity={0.4} />
         </Svg>
+        <View style={styles.phoneConfetti} pointerEvents="none">
+          {CONFETTI.slice(0, 24).map((item, i) => (
+            <View key={i} style={[styles.confetti, {
+              left: (item.left + '%') as DimensionValue,
+              top: (item.top + '%') as DimensionValue,
+              width: item.width,
+              height: item.height,
+              backgroundColor: item.color,
+              transform: [{ rotate: item.rotate + 'deg' }],
+              opacity: 0.92,
+            }]} />
+          ))}
+        </View>
         <View style={styles.crownTab}>
           <Crown color="#FF6F00" size={34} fill="#FFB528" strokeWidth={2.8} />
         </View>
@@ -115,6 +128,7 @@ export function RoundCompactOutcome({
 const styles = StyleSheet.create({
   scene: { flex: 1, minHeight: 0, alignItems: 'center', justifyContent: 'center', paddingTop: 28, paddingBottom: 8, overflow: 'hidden' },
   confetti: { position: 'absolute', borderRadius: 1 },
+  phoneConfetti: { ...StyleSheet.absoluteFillObject, borderRadius: 22, overflow: 'hidden' },
   phone: {
     position: 'relative', borderColor: '#F7F9FF', borderWidth: 8, borderRadius: 31,
     backgroundColor: '#0B4DAA', overflow: 'visible',
