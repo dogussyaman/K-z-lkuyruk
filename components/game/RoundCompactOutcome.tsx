@@ -124,7 +124,7 @@ export function RoundCompactOutcome({
 const styles = StyleSheet.create({
   scene: { flex: 1, minHeight: 0, alignItems: 'center', justifyContent: 'center', paddingTop: 28, paddingBottom: 8, overflow: 'hidden' },
   confetti: { position: 'absolute', borderRadius: 1 },
-  phoneConfetti: { ...StyleSheet.absoluteFillObject, borderRadius: 22, overflow: 'hidden' },
+  phoneConfetti: { ...StyleSheet.absoluteFill, borderRadius: 22, overflow: 'hidden' },
   phone: {
     position: 'relative', borderColor: '#F7F9FF', borderWidth: 8, borderRadius: 31,
     backgroundColor: '#0B4DAA', overflow: 'visible',
