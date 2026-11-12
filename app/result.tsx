@@ -1,15 +1,14 @@
 import { useTheme, useThemeStyles } from '@/theme/ThemeProvider';
 import type { ThemeColors } from '@/theme/ThemeProvider';
 import { useEffect, useRef, useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, Image, Pressable } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, Pressable } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { ArrowRight, Check, Crown, Sparkles, Flag, RotateCcw } from 'lucide-react-native';
+import { ArrowRight, ChevronDown, Flag, RotateCcw } from 'lucide-react-native';
 import {
   Screen,
   Button,
   Card,
   Avatar,
-  PopView,
   StaggerRow,
   StickyActionBar,
 } from '@/components/ui';
@@ -19,10 +18,10 @@ import { useHaptics } from '@/hooks/useHaptics';
 import { QUESTIONS, type Question } from '@/features/game/questions';
 import { resolveZartoRound } from '@/features/game/engine';
 import type { RoundRevealChoice } from '@/services/types';
-import { mascotImages } from '@/assets/illustrations';
 import { soundService } from '@/services/soundService';
 import { buildRevealedChoices } from '@/features/game/revealPresentation';
 import { RoundChoiceReveal } from '@/components/game/RoundChoiceReveal';
+import { RoundCompactOutcome } from '@/components/game/RoundCompactOutcome';
 
 export default function ResultScreen() {
   const { colors, mode } = useTheme();
@@ -48,6 +47,7 @@ export default function ResultScreen() {
   const { trigger } = useHaptics();
   const [advanceError, setAdvanceError] = useState<string | null>(null);
   const [advancing, setAdvancing] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
   const [loadedQuestion, setLoadedQuestion] = useState<Question | null>(null);
   const [revealChoices, setRevealChoices] = useState<RoundRevealChoice[] | null>(null);
   const [revealLoadError, setRevealLoadError] = useState<string | null>(null);
@@ -204,106 +204,75 @@ export default function ResultScreen() {
     );
   }
 
-  const heroTitle = zartaladın && isCorrect ? 'HEM BİLDİN HEM ZARTLATTIN!'
-    : zartaladın ? 'TUZAĞIN İŞE YARADI!'
-    : isCorrect ? 'DOĞRU BİLDİN!'
-    : zartalandın ? 'TUZAĞA DÜŞTÜN!'
-    : didPick ? 'BU TUR DOĞRUYU BULAMADIN' : 'CEVAP VERMEDİN';
-  const heroDescription = zartaladın ? String(victimsCount) + ' oyuncu sahte cevabına kandı!'
-    : isCorrect ? 'Tuzaklardan kaçtın, doğru cevabı buldun.'
-    : zartalandın ? (myDeceptionAuthor?.name ?? 'Bir oyuncu') + ' seni zartlattı.'
-    : didPick ? 'Bir sonraki turda yeniden dene.' : 'Bu turda seçim yapmadın.';
-  const heroAccent = zartaladın ? '#F4B83F' : isCorrect ? '#4DD96F'
-    : zartalandın ? '#F778A5' : colors.borderStrong;
-  const heroBg = zartaladın ? (mode === 'light' ? '#FFF0C7' : '#422177')
-    : isCorrect ? (mode === 'light' ? '#DDF8DF' : '#114F57')
-    : zartalandın ? (mode === 'light' ? '#FFE5ED' : '#54265B')
-    : colors.bgCardAlt;
-  const heroText = mode === 'light' ? '#2C1847' : '#FFFFFF';
-
   return (
     <Screen gradient diagonalSlice>
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <View style={[styles.resultHero, { backgroundColor: heroBg, borderColor: heroAccent }]}>
-          <Image source={mascotImages.brand} style={styles.resultMascot} resizeMode="contain" />
-          <View style={styles.roundBadge}>
-            <Text style={styles.roundText}>TUR {resultRound} / {roomState?.config.totalRounds ?? 5} · SONUÇLAR</Text>
-          </View>
-          <View style={[styles.heroIconBadge, { backgroundColor: heroAccent }]}>
-            {zartaladın ? <Crown size={27} color="#35204F" strokeWidth={2.5} />
-              : isCorrect ? <Check size={28} color="#15462E" strokeWidth={3} />
-              : <Sparkles size={26} color="#35204F" />}
-          </View>
-          <Text style={[styles.resultHeroTitle, { color: heroText }]}>{heroTitle}</Text>
-          <Text style={[styles.resultHeroDescription, { color: heroText }]}>{heroDescription}</Text>
-          <PopView delay={100} duration={350}>
-            <View style={[styles.resultHeroPoints, { backgroundColor: mode === 'light' ? '#FFFFFF' : 'rgba(9, 9, 35, 0.35)' }]}>
-              <Text style={[styles.resultHeroPointsText, { color: mode === 'light' ? '#3F245B' : '#FFFFFF' }]}>
-                {pointsDelta > 0 ? '+' : ''}{pointsDelta} PUAN
-              </Text>
-            </View>
-          </PopView>
-          {zartaladın && myTrappedPlayers.length > 0 ? (
-            <View style={styles.heroVictimGroup}>
-              <Text style={[styles.heroVictimLabel, { color: heroText }]}>TUZAĞINA DÜŞENLER</Text>
-              <View style={styles.heroVictimList}>
-                {myTrappedPlayers.map((p) => (
-                  <View key={p.id} style={styles.heroVictim}>
-                    <Avatar avatarKey={p.avatarUrl ?? p.avatarKey} userId={p.id} size={31} />
-                    <Text style={[styles.heroVictimName, { color: heroText }]} numberOfLines={1}>{p.name}</Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-          ) : null}
-          {zartaladın && isCorrect ? (
-            <View style={styles.doubleSuccess}><Check size={16} color="#4ADE80" />
-              <Text style={styles.doubleSuccessText}>Üstelik doğru cevabı da bildin!</Text>
-            </View>
-          ) : null}
-        </View>
-
-        {didPick ? (
-          <View style={[styles.personalPick, { backgroundColor: colors.bgCard, borderColor: isCorrect ? '#36C96B' : zartalandın ? '#F36B90' : colors.borderStrong }]}>
-            <Text style={[styles.personalPickLabel, { color: colors.textSecondary }]}>SENİN SEÇİMİN</Text>
-            <Text style={[styles.personalPickText, { color: colors.textPrimary }]}>“{myChoiceText}”</Text>
-            <Text style={[styles.personalPickExplanation, { color: isCorrect ? positiveScoreColor : zartalandın ? negativeScoreColor : colors.textSecondary }]}>
-              {isCorrect ? '✓ Doğru bildin!' : zartalandın
-                ? (myDeceptionAuthor?.name ?? 'Bir oyuncu') + ' bu sahte cevabı yazdı. Tuzağa düştün.'
-                : 'Maalesef yanlış cevap.'}
-            </Text>
-          </View>
-        ) : null}
-
-        <View style={[styles.correctAnswerStrip, { backgroundColor: colors.successSurface }]}>
-          <Check size={19} color={mode === 'light' ? '#166534' : '#86EFAC'} strokeWidth={3} />
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.correctStripLabel, { color: mode === 'light' ? '#166534' : '#86EFAC' }]}>GERÇEK DOĞRU CEVAP</Text>
-            <Text style={[styles.correctStripText, { color: colors.textPrimary }]}>{correctAnswerText}</Text>
-          </View>
-        </View>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+      >
+        <RoundCompactOutcome
+          round={resultRound}
+          totalRounds={roomState?.config.totalRounds ?? 5}
+          points={pointsDelta}
+          trappedCount={zartaladın ? victimsCount : 0}
+          correct={isCorrect}
+          tricked={zartalandın}
+          answered={didPick}
+          pickedAnswer={myChoiceText}
+          correctAnswer={correctAnswerText}
+          trickedBy={myDeceptionAuthor?.name}
+        />
 
         {revealLoadError ? (
           <Card variant="surface" style={styles.revealStatusCard}>
             <Text accessibilityRole="alert" style={styles.summaryMessage}>Seçimler alınamadı: {revealLoadError}</Text>
-            <Pressable accessibilityRole="button" accessibilityLabel="Seçimleri yeniden yükle"
-              style={styles.revealRetryButton} onPress={() => { setRevealChoices(null); setRevealLoadError(null); setRevealRetry((n) => n + 1); }}>
+            <Text style={styles.summaryMessage}>Gerçek cevap: {correctAnswerText}</Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Seçimleri yeniden yükle"
+              style={styles.revealRetryButton}
+              onPress={() => {
+                setRevealChoices(null);
+                setRevealLoadError(null);
+                setRevealRetry((n) => n + 1);
+              }}
+            >
               <RotateCcw size={14} color="#FFFFFF" />
               <Text style={styles.revealRetryText}>Tekrar Dene</Text>
             </Pressable>
           </Card>
         ) : revealChoices === null ? (
           <Card variant="surface" style={styles.revealStatusCard}>
-            <Text style={styles.summaryMessage}>Oyuncuların seçimleri yükleniyor…</Text>
+            <Text style={styles.summaryMessage}>Seçimler yükleniyor…</Text>
           </Card>
         ) : revealChoices.length === 0 ? (
           <Card variant="surface" style={styles.revealStatusCard}>
-            <Text style={styles.summaryMessage}>Bu tur açıklanan bir seçenek bulunamadı.</Text>
+            <Text style={styles.summaryMessage}>Bu tur için seçenek dağılımı bulunamadı.</Text>
+            <Text style={styles.summaryMessage}>Gerçek cevap: {correctAnswerText}</Text>
           </Card>
         ) : (
           <RoundChoiceReveal choices={revealChoices} players={playersList} currentPlayerId={me?.id} />
         )}
 
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ expanded: showDetails }}
+          onPress={() => setShowDetails((previous) => !previous)}
+          style={[styles.moreDetails, { borderColor: colors.borderStrong, backgroundColor: colors.bgCard }]}
+        >
+          <Text style={[styles.moreDetailsText, { color: colors.textPrimary }]}>
+            Tur puanları ve diğer ayrıntılar
+          </Text>
+          <ChevronDown
+            color={colors.purpleSoft}
+            size={17}
+            style={{ transform: [{ rotate: showDetails ? '180deg' : '0deg' }] }}
+          />
+        </Pressable>
+
+        {showDetails ? (
+          <View style={styles.detailsContent}>
         {roomState?.config.gameMode === 'suspicious' ? (
           <>
             <Text style={styles.sectionTitle}>DEDEKTİF ŞÜPHE RAPORU</Text>
@@ -406,6 +375,8 @@ export default function ResultScreen() {
               );
             })}
         </View>
+          </View>
+        ) : null}
 
       </ScrollView>
       <StickyActionBar>
@@ -427,6 +398,13 @@ export default function ResultScreen() {
 }
 
 const createStyles = (colors: ThemeColors, mode: 'dark' | 'light') => StyleSheet.create({
+  moreDetails: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    borderWidth: 1, borderRadius: 13, minHeight: 41, paddingHorizontal: 12, marginTop: 3,
+  },
+  moreDetailsText: { fontFamily: 'Poppins-SemiBold', fontSize: 11.5 },
+  detailsContent: { paddingTop: 9 },
+
   resultHero: { borderWidth: 2.5, borderRadius: 26, padding: 17, paddingBottom: 22, gap: 8, alignItems: 'center', marginBottom: 13, overflow: 'hidden' },
   resultMascot: { width: 160, height: 64 },
   heroIconBadge: { width: 55, height: 55, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginTop: 3 },
