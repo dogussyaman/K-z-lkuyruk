@@ -477,7 +477,7 @@ export default function CreateRoomScreen() {
               </Text>
               <View style={styles.modernCategorySelectionProgress}>
                 <View style={[styles.modernCategorySelectionFill, {
-                  width: (selectedCats.length / CATEGORY_OPTIONS.length * 100) + '%',
+                  width: `${Math.round(selectedCats.length / CATEGORY_OPTIONS.length * 100)}%` as const,
                 }]} />
               </View>
             </LinearGradient>
