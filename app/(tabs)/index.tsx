@@ -220,7 +220,7 @@ export default function HomeScreen() {
         {/* Hero Area: Asymmetric Card with 3D Fox Mascot */}
         <View style={styles.heroContainer}>
           <LinearGradient
-            colors={[colors.bgSurfaceAlt, colors.bgSurface]}
+            colors={[colors.bgSurfaceAlt, colors.bgCard]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.heroCard}
@@ -284,19 +284,19 @@ export default function HomeScreen() {
           style={({ pressed }) => [styles.modeSpotlight, pressed && styles.modeSpotlightPressed]}
         >
           <LinearGradient
-            colors={['#3A1D2D', '#20243A', '#172B3B']}
+            colors={[colors.bgSurfaceAlt, colors.bgCardAlt, colors.bgCard]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={StyleSheet.absoluteFill}
           />
           <View style={styles.modeSpotlightIcon}>
-            <Gamepad2 color="#FF936B" size={23} />
+            <Gamepad2 color={colors.orange} size={23} />
           </View>
           <View style={styles.modeSpotlightCopy}>
             <Text style={styles.modeSpotlightKicker}>YENİ OYUN TARZLARI</Text>
             <Text style={styles.modeSpotlightTitle}>Aynı ekip, başka oyun</Text>
             <Text style={styles.modeSpotlightText}>Soygun planla, gizli tilkiyi bul, birlikte kilitleri aç veya Gece Pazarı’nda pazarlık yap. Herkes kendi cihazında.</Text>
-            <View style={styles.modeSpotlightLink}><Text style={styles.modeSpotlightLinkText}>Tüm oyun modlarını keşfet</Text><ChevronRight color="#17101F" size={16} /></View>
+            <View style={styles.modeSpotlightLink}><Text style={styles.modeSpotlightLinkText}>Tüm oyun modlarını keşfet</Text><ChevronRight color="#FFFFFF" size={16} /></View>
           </View>
           <Text style={styles.modeSpotlightFox}>🦊</Text>
         </Pressable>
@@ -584,8 +584,8 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   heroCard: {
     borderRadius: radii['2xl'],
-    borderWidth: 1.5,
-    borderColor: colors.borderAccent,
+    borderWidth: 1,
+    borderColor: colors.border,
     padding: spacing.xl,
     overflow: 'hidden',
     ...shadows.card,
@@ -597,6 +597,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     width: 140,
     height: 220,
     backgroundColor: colors.orangeSurface,
+    opacity: 0.55,
     transform: [{ rotate: '-24deg' }],
   },
   heroContentRow: {
@@ -669,7 +670,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     padding: 16,
     borderRadius: 22,
     borderWidth: 1,
-    borderColor: 'rgba(255,147,107,0.42)',
+    borderColor: colors.border,
     overflow: 'hidden',
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -678,16 +679,16 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   modeSpotlightPressed: { opacity: 0.9, transform: [{ scale: 0.99 }] },
   modeSpotlightIcon: {
     width: 44, height: 44, borderRadius: 14,
-    backgroundColor: 'rgba(255,147,107,0.15)',
-    borderWidth: 1, borderColor: 'rgba(255,147,107,0.32)',
+    backgroundColor: colors.orangeSurface,
+    borderWidth: 1, borderColor: colors.border,
     alignItems: 'center', justifyContent: 'center',
   },
   modeSpotlightCopy: { flex: 1, minWidth: 0, paddingRight: 8 },
-  modeSpotlightKicker: { color: '#FFAD88', fontSize: 9, fontWeight: '900', letterSpacing: 1.4 },
-  modeSpotlightTitle: { color: '#FFFFFF', fontFamily: 'Poppins-Bold', fontSize: 22, marginTop: 3 },
-  modeSpotlightText: { color: 'rgba(255,255,255,0.72)', fontSize: 12, lineHeight: 18, marginTop: 4 },
-  modeSpotlightLink: { alignSelf: 'flex-start', marginTop: 12, minHeight: 34, borderRadius: 11, backgroundColor: '#FF936B', paddingHorizontal: 11, flexDirection: 'row', alignItems: 'center', gap: 4 },
-  modeSpotlightLinkText: { color: '#17101F', fontSize: 10, fontWeight: '900' },
+  modeSpotlightKicker: { color: colors.orange, fontSize: 9, fontWeight: '900', letterSpacing: 1.4 },
+  modeSpotlightTitle: { color: colors.textPrimary, fontFamily: 'Poppins-Bold', fontSize: 22, marginTop: 3 },
+  modeSpotlightText: { color: colors.textSecondary, fontSize: 12, lineHeight: 18, marginTop: 4 },
+  modeSpotlightLink: { alignSelf: 'flex-start', marginTop: 12, minHeight: 34, borderRadius: 11, backgroundColor: colors.orangeDeep, paddingHorizontal: 11, flexDirection: 'row', alignItems: 'center', gap: 4 },
+  modeSpotlightLinkText: { color: '#FFFFFF', fontSize: 10, fontWeight: '900' },
   modeSpotlightFox: { position: 'absolute', right: 11, top: 10, fontSize: 28, opacity: 0.82 },
   miniRulesRow: {
     flexDirection: 'row',
