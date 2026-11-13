@@ -135,11 +135,11 @@ interface LiquidGlassTabBarProps {
 }
 
 const TAB_CONFIGS = {
-  index: { label: 'Ana Sayfa', icon: HomeTabIcon, activeColor: colors.purpleSoft },
-  oyna: { label: 'Oyna', icon: GameTabIcon, activeColor: colors.orange },
-  arkadaslar: { label: 'Arkadaşlar', icon: FriendsTabIcon, activeColor: colors.blueSoft },
-  liderlik: { label: 'Liderlik', icon: LeadershipTabIcon, activeColor: colors.yellow },
-  profil: { label: 'Profil', icon: ProfileTabIcon, activeColor: colors.lime },
+  index: { label: 'Ana Sayfa', icon: HomeTabIcon, activeColor: colors.orangeDeep },
+  oyna: { label: 'Oyna', icon: GameTabIcon, activeColor: colors.orangeDeep },
+  arkadaslar: { label: 'Arkadaşlar', icon: FriendsTabIcon, activeColor: colors.orangeDeep },
+  liderlik: { label: 'Liderlik', icon: LeadershipTabIcon, activeColor: colors.orangeDeep },
+  profil: { label: 'Profil', icon: ProfileTabIcon, activeColor: colors.orangeDeep },
 } as const;
 
 function clampX(width: number, x: number) {
@@ -296,7 +296,7 @@ export function LiquidGlassTabBar({ state, navigation, descriptors }: LiquidGlas
   }));
 
   const ringStyle = useAnimatedStyle(() => ({
-    opacity: (1 - ripple.value) * 0.4,
+    opacity: (1 - ripple.value) * 0.18,
     transform: [{ scale: 1 + ripple.value * 0.9 }],
   }));
 
@@ -322,7 +322,7 @@ export function LiquidGlassTabBar({ state, navigation, descriptors }: LiquidGlas
             animatedProps={pathProps}
             fill={themeColors.bgCard}
             stroke={themeColors.borderStrong}
-            strokeWidth={1.75}
+            strokeWidth={1.2}
           />
         </Svg>
 
@@ -333,7 +333,7 @@ export function LiquidGlassTabBar({ state, navigation, descriptors }: LiquidGlas
               TAB_CONFIGS[route.name as keyof typeof TAB_CONFIGS] ?? {
                 label: descriptors[route.key]?.options.title ?? route.name,
                 icon: Home,
-                activeColor: colors.purpleSoft,
+                activeColor: colors.orangeDeep,
               };
 
             const onPress = () => {
@@ -415,11 +415,11 @@ const styles = StyleSheet.create({
   },
   bar: {
     height: BAR_H,
-    shadowColor: colors.blueDeep,
-    shadowOpacity: 0.42,
-    shadowRadius: 18,
+    shadowColor: '#000000',
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
     shadowOffset: { width: 0, height: 8 },
-    elevation: 12,
+    elevation: 7,
   },
   tabsRow: {
     ...StyleSheet.absoluteFill,
@@ -459,9 +459,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 2,
     borderColor: colors.bgSurfaceMuted,
-    shadowOpacity: 0.42,
-    shadowRadius: 14,
+    shadowOpacity: 0.16,
+    shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
-    elevation: 9,
+    elevation: 5,
   },
 });
