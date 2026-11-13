@@ -904,7 +904,7 @@ export class SupabaseGameService implements GameService {
     return data.filter((value): value is MatchTitleStat => {
       if (!value || typeof value !== 'object') return false;
       const row = value as Record<string, unknown>;
-      return typeof row.playerId === 'string' && typeof row.correct === 'number'
+      return typeof row.playerId === 'string' && typeof row.rounds === 'number' && typeof row.correct === 'number'
         && typeof row.victims === 'number' && typeof row.trapped === 'number';
     });
   }
