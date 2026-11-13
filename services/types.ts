@@ -85,7 +85,7 @@ export interface ServiceEvent {
 export type ServiceEventHandler = (event: ServiceEvent) => void;
 
 export interface RoundReadyStatus { readyCount: number; totalCount: number; isReady: boolean; allReady: boolean; }
-export interface MatchTitleStat { playerId: string; correct: number; victims: number; trapped: number; }
+export interface MatchTitleStat { playerId: string; rounds: number; correct: number; victims: number; trapped: number; }
 
 export interface RoundRevealChoice { choiceIndex: number; text: string; authorId: string | null; isCorrect: boolean; pickedBy: string[]; }
 

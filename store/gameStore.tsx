@@ -36,6 +36,7 @@ interface GameStoreValue {
   setRoomState: (state: GameState | null) => void;
   setError: (e: string | null) => void;
   refreshRoom: () => Promise<void>;
+  resumeCurrentRoom: () => Promise<GameState>;
   continueSavedRoom: () => Promise<GameState>;
   dismissRecoveryOffer: () => void;
 }
@@ -63,6 +64,7 @@ export function GameStoreProvider({ children }: { children: ReactNode }) {
   const currentPlayerId = useRef<string | null>(null);
   const roomOwnerId = useRef<string | null>(null);
   const activeRoomCode = useRef<string | null>(null);
+  const previousConnection = useRef<ConnectionState>('connecting');
   const applyRoomState = useCallback((state: GameState | null) => {
     if (state && activeRoomCode.current && state.config.code !== activeRoomCode.current) return;
     setRoomState(previous => selectRoomSnapshot(previous, state));
@@ -85,7 +87,24 @@ export function GameStoreProvider({ children }: { children: ReactNode }) {
       switch (event.type) {
         case 'connection': {
           const s = (event.payload as { state: ConnectionState })?.state;
-          if (s) setConnection(s);
+          if (s) {
+            const wasDisconnected = ['offline', 'reconnecting', 'error'].includes(previousConnection.current);
+            previousConnection.current = s;
+            setConnection(s);
+            if (s === 'online' && wasDisconnected && activeRoomCode.current) {
+              const code = activeRoomCode.current;
+              void service.restoreRoom(code).then((state) => {
+                if (state && activeRoomCode.current === code) applyRoomState(state);
+              }).catch((cause) => {
+                if ((cause as { code?: string })?.code === 'ROOM_MEMBERSHIP_INVALID') {
+                  updateRoomCode(null);
+                  applyRoomState(null);
+                } else {
+                  setError(cause instanceof Error ? cause.message : 'Bağlantı sonrası oda yenilenemedi.');
+                }
+              });
+            }
+          }
           break;
         }
         case 'state': {
@@ -254,6 +273,19 @@ export function GameStoreProvider({ children }: { children: ReactNode }) {
     applyRoomState(snap);
   }, [roomCode, service, applyRoomState]);
 
+  const resumeCurrentRoom = useCallback(async (): Promise<GameState> => {
+    const code = activeRoomCode.current;
+    if (!code) throw new Error('Devam edilecek aktif oda yok.');
+    const state = await service.restoreRoom(code);
+    if (!state || !state.players[currentPlayerId.current ?? '']) {
+      throw new Error('Bu odaya artık erişemiyorsun. Ana sayfadan yeni bir oyuna katıl.');
+    }
+    if (activeRoomCode.current !== code) throw new Error('Oda değişti; güncel odayı tekrar aç.');
+    applyRoomState(state);
+    setError(null);
+    return state;
+  }, [applyRoomState, service]);
+
   // Keep expiry/recovery alive even after the player leaves the question screen.
   useEffect(() => {
     if (!isLive || !roomCode) return;
@@ -333,10 +365,11 @@ export function GameStoreProvider({ children }: { children: ReactNode }) {
       setRoomState: applyRoomState,
       setError,
       refreshRoom,
+      resumeCurrentRoom,
       continueSavedRoom,
       dismissRecoveryOffer,
     }),
-    [service, isLive, isInitialized, authStatus, isAnonymous, currentPlayer, connection, roomCode, roomState, lastNudge, error, recoveryStatus, recoveryCode, recoveryRoom, init, setCurrentPlayer, updateRoomCode, applyRoomState, refreshRoom, continueSavedRoom, dismissRecoveryOffer]
+    [service, isLive, isInitialized, authStatus, isAnonymous, currentPlayer, connection, roomCode, roomState, lastNudge, error, recoveryStatus, recoveryCode, recoveryRoom, init, setCurrentPlayer, updateRoomCode, applyRoomState, refreshRoom, resumeCurrentRoom, continueSavedRoom, dismissRecoveryOffer]
   );
 
   return <GameStoreContext.Provider value={value}>{children}</GameStoreContext.Provider>;

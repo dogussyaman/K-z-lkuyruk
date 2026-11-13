@@ -68,4 +68,28 @@ describe('match Fox titles', () => {
     assert.deepEqual(champion?.playerIds, ['fox', 'owl']);
     assert.deepEqual(sharpMind?.playerIds, ['fox', 'owl']);
   });
+  test('uses server match totals when roomState.history is empty', () => {
+    const online = state();
+    online.history = [];
+    const stats = [
+      { playerId: 'fox', rounds: 4, correct: 3, victims: 5, trapped: 0 },
+      { playerId: 'owl', rounds: 4, correct: 1, victims: 0, trapped: 3 },
+    ];
+    const titles = getFoxTitles(online, stats);
+    assert.deepEqual(titles.find((title) => title.id === 'trap_master')?.playerIds, ['fox']);
+    assert.deepEqual(titles.find((title) => title.id === 'never_fooled')?.playerIds, ['fox']);
+    assert.deepEqual(titles.find((title) => title.id === 'easy_target')?.playerIds, ['owl']);
+  });
+
+  test('never grants no-traps title when match has no recorded rounds', () => {
+    const empty = state();
+    empty.history = [];
+    const titles = getFoxTitles(empty, [
+      { playerId: 'fox', rounds: 0, correct: 0, victims: 0, trapped: 0 },
+      { playerId: 'owl', rounds: 0, correct: 0, victims: 0, trapped: 0 },
+    ]);
+    assert.ok(!titles.some((title) => title.id === 'never_fooled'));
+  });
+
+
 });
