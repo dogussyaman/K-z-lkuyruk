@@ -472,8 +472,8 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   abilityCardSelected: {
     borderColor: colors.orange,
-    backgroundColor: 'rgba(255, 113, 59, 0.15)',
-    ...shadows.glowOrange,
+    backgroundColor: colors.orangeSurface,
+    ...shadows.card,
   },
   abilityCardUnavailable: {
     opacity: 0.82,
@@ -550,8 +550,8 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     borderColor: colors.border,
   },
   targetChipActive: {
-    backgroundColor: colors.orange,
-    borderColor: '#FFA07A',
+    backgroundColor: colors.orangeDeep,
+    borderColor: colors.orange,
   },
   targetName: {
     ...typography.caption,
