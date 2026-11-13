@@ -214,7 +214,7 @@ export default function ScoreboardScreen() {
             fullWidth
             loading={advancing}
             disabled={advancing}
-            icon={<Sparkles color="#FFF" size={20} />
+            icon={<Sparkles color="#FFF" size={20} />}
           />
         ) : isHost ? (
           <Button
@@ -224,7 +224,7 @@ export default function ScoreboardScreen() {
             fullWidth
             loading={advancing}
             disabled={advancing}
-            icon={<ArrowRight color="#FFF" size={20} />
+            icon={<ArrowRight color="#FFF" size={20} />}
           />
         ) : (
           <View style={styles.waitingNotice}>
