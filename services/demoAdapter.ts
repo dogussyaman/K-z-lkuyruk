@@ -487,9 +487,9 @@ export class DemoGameService implements GameService {
       throw new ServiceError('ROOM_ACCESS_DENIED', 'Oda erişim izniniz yok.');
     }
     if (room.phase !== 'game_over') throw new ServiceError('WRONG_PHASE', 'Maç henüz bitmedi.');
-    const result = new Map(Object.keys(room.players).map((id) => [
+    const result = new Map<string, MatchTitleStat>(Object.keys(room.players).map((id) => [
       id, { playerId: id, rounds: 0, correct: 0, victims: 0, trapped: 0 },
-    ] as const));
+    ] as [string, MatchTitleStat]));
     for (const round of room.history) for (const row of round) {
       const total = result.get(row.playerId);
       if (!total) continue;
