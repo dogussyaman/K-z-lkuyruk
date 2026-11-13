@@ -29,7 +29,7 @@ export default function OynaScreen() {
 
         {/* Hero Banner with Fox Lobby Mascot */}
         <LinearGradient
-          colors={[colors.zartoSurface, '#391866', '#221140']}
+          colors={[colors.bgSurfaceAlt, colors.bgCard]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.hero}
@@ -52,7 +52,7 @@ export default function OynaScreen() {
                   <Text style={styles.tagText}>Hızlı Turlar</Text>
                 </View>
                 <View style={styles.tag}>
-                  <Shield color={colors.lime} size={13} />
+                  <Shield color={colors.purpleSoft} size={13} />
                   <Text style={styles.tagText}>Gizli Roller</Text>
                 </View>
               </View>
@@ -67,7 +67,7 @@ export default function OynaScreen() {
         {/* 2-Column Action Cards */}
         <View style={styles.actions}>
           <Card variant="surface" style={styles.actionCard}>
-            <View style={[styles.actionIcon, { backgroundColor: 'rgba(255, 113, 59, 0.2)' }]}>
+            <View style={[styles.actionIcon, { backgroundColor: colors.orangeSurface }]}>
               <Plus color={colors.orange} size={24} strokeWidth={2.5} />
             </View>
             <Text style={styles.actionTitle}>Yeni Oda Kur</Text>
@@ -84,7 +84,7 @@ export default function OynaScreen() {
           </Card>
 
           <Card variant="surface" style={styles.actionCard}>
-            <View style={[styles.actionIcon, { backgroundColor: 'rgba(139, 92, 246, 0.2)' }]}>
+            <View style={[styles.actionIcon, { backgroundColor: colors.purpleSurface }]}>
               <LogIn color={colors.purpleSoft} size={24} strokeWidth={2.5} />
             </View>
             <Text style={styles.actionTitle}>Odaya Katıl</Text>
@@ -229,7 +229,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     marginTop: spacing.xs,
     borderRadius: radii['2xl'],
     borderWidth: 1.5,
-    borderColor: 'rgba(255, 113, 59, 0.3)',
+    borderColor: colors.border,
     padding: spacing.xl,
     overflow: 'hidden',
     ...shadows.card,
@@ -240,7 +240,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     right: -40,
     width: 140,
     height: 220,
-    backgroundColor: 'rgba(139, 92, 246, 0.14)',
+    backgroundColor: colors.purpleSurface,
     transform: [{ rotate: '-22deg' }],
   },
   heroRow: {
@@ -252,7 +252,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(255, 209, 102, 0.15)',
+    backgroundColor: colors.goldSurface,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: radii.sm,
@@ -266,13 +266,13 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     letterSpacing: 0.8,
   },
   heroTitle: {
-    color: '#FFF7FF',
+    color: colors.textPrimary,
     fontFamily: 'Poppins-Bold',
     fontSize: 22,
     lineHeight: 28,
   },
   heroCopy: {
-    color: '#D8CCE6',
+    color: colors.textSecondary,
     fontFamily: 'Poppins-Regular',
     fontSize: 12,
     lineHeight: 17,
@@ -292,12 +292,12 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: colors.bgSurfaceMuted,
     borderRadius: radii.pill,
     paddingHorizontal: 8,
     paddingVertical: 4,
   },
-  tagText: { color: '#FFF7FF', fontFamily: 'Poppins-Medium', fontSize: 10 },
+  tagText: { color: colors.textSecondary, fontFamily: 'Poppins-Medium', fontSize: 10 },
   actions: { flexDirection: 'row', gap: 12, marginTop: spacing.lg },
   actionCard: {
     flex: 1,
