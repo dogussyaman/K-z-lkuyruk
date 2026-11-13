@@ -479,7 +479,7 @@ export default function CreateRoomScreen() {
           {/* Multi-select category picker: compact, discoverable and mobile friendly. */}
           <View style={styles.modernCategoryPanel}>
             <LinearGradient
-              colors={['#5C2AA1', '#2D194A']}
+              colors={[colors.bgSurfaceAlt, colors.bgCard]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.modernCategoryHero}
@@ -687,33 +687,33 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     ...shadows.card,
   },
   modernCategoryHero: { paddingHorizontal: 17, paddingTop: 16, paddingBottom: 15, gap: 5 },
-  modernCategoryHeroTitle: { color: '#FFFFFF', fontFamily: 'Poppins-Bold', fontSize: 19, lineHeight: 27 },
-  modernCategoryHeroSubtitle: { color: '#E7D7FA', fontFamily: 'Poppins-Medium', fontSize: 12, lineHeight: 18 },
+  modernCategoryHeroTitle: { color: colors.textPrimary, fontFamily: 'Poppins-Bold', fontSize: 19, lineHeight: 27 },
+  modernCategoryHeroSubtitle: { color: colors.textSecondary, fontFamily: 'Poppins-Medium', fontSize: 12, lineHeight: 18 },
   modernCategoryBody: { padding: 13, gap: 10 },
   modernCategoryActionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10 },
   modernCategorySummary: { flex: 1, minWidth: 0, gap: 2 },
   modernCategorySummaryTitle: { fontFamily: 'Poppins-Bold', fontSize: 13, color: colors.textPrimary },
   modernCategorySummaryMeta: { fontFamily: 'Poppins-Medium', fontSize: 11, color: colors.textSecondary },
-  modernCategorySelectAll: { backgroundColor: colors.purpleSurface, borderWidth: 1, borderColor: colors.borderAccent, borderRadius: 99, paddingHorizontal: 12, paddingVertical: 9, minHeight: 38, justifyContent: 'center' },
-  modernCategorySelectAllText: { fontFamily: 'Poppins-Bold', fontSize: 11, color: colors.purpleSoft },
+  modernCategorySelectAll: { backgroundColor: colors.orangeSurface, borderWidth: 1, borderColor: colors.border, borderRadius: 99, paddingHorizontal: 12, paddingVertical: 9, minHeight: 38, justifyContent: 'center' },
+  modernCategorySelectAllText: { fontFamily: 'Poppins-Bold', fontSize: 11, color: colors.orange },
   modernCategoryFilterScroll: { flexGrow: 0 },
   modernCategoryFilters: { gap: 7, alignItems: 'center', paddingVertical: 3 },
   modernCategoryFilter: { borderRadius: 99, backgroundColor: colors.bgSurfaceAlt, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 12, paddingVertical: 9, minHeight: 39, justifyContent: 'center' },
-  modernCategoryFilterActive: { backgroundColor: colors.purple, borderColor: colors.purple },
+  modernCategoryFilterActive: { backgroundColor: colors.orangeDeep, borderColor: colors.orangeDeep },
   modernCategoryFilterText: { fontFamily: 'Poppins-SemiBold', color: colors.textSecondary, fontSize: 11 },
   modernCategoryFilterTextActive: { color: '#FFFFFF' },
   modernCategoryList: { gap: 9 },
   modernCategoryCard: { minHeight: 78, flexDirection: 'row', alignItems: 'center', gap: 11, borderRadius: 16, borderColor: colors.border, borderWidth: 1.3, backgroundColor: colors.bgSurfaceAlt, padding: 7 },
-  modernCategoryCardSelected: { borderColor: colors.purpleSoft, backgroundColor: colors.purpleSurface, borderWidth: 2 },
+  modernCategoryCardSelected: { borderColor: colors.orange, backgroundColor: colors.orangeSurface, borderWidth: 1.5 },
   modernCategoryThumb: { width: 64, height: 62, borderRadius: 12, overflow: 'hidden', alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 5 },
   modernCategoryThumbImage: { borderRadius: 12, resizeMode: 'cover' },
   modernCategoryThumbEmoji: { fontSize: 23 },
   modernCategoryCardBody: { flex: 1, gap: 3, minWidth: 0 },
   modernCategoryName: { fontFamily: 'Poppins-Bold', fontSize: 14, lineHeight: 20, color: colors.textPrimary },
-  modernCategoryNameSelected: { color: colors.purpleSoft },
+  modernCategoryNameSelected: { color: colors.textPrimary },
   modernCategoryDescription: { fontFamily: 'Poppins-Medium', fontSize: 10, lineHeight: 15, color: colors.textSecondary },
   modernCategoryTick: { width: 27, height: 27, borderRadius: 14, borderWidth: 1.5, borderColor: colors.borderStrong, backgroundColor: colors.bgCard, alignItems: 'center', justifyContent: 'center', marginRight: 3 },
-  modernCategoryTickSelected: { backgroundColor: colors.purple, borderColor: colors.purple },
+  modernCategoryTickSelected: { backgroundColor: colors.orangeDeep, borderColor: colors.orangeDeep },
 
   topBar: {
     flexDirection: 'row',
@@ -1088,17 +1088,17 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     justifyContent: 'center',
   },
   segmentBtnActive: {
-    backgroundColor: colors.purple,
-    borderColor: '#A78BFA',
+    backgroundColor: colors.purpleDeep,
+    borderColor: colors.purple,
     borderBottomWidth: 3.5,
-    borderBottomColor: '#7C3AED',
+    borderBottomColor: colors.purpleDeep,
     ...shadows.glow,
   },
   segmentBtnActiveTime: {
-    backgroundColor: colors.orange,
-    borderColor: '#FFA07A',
+    backgroundColor: colors.orangeDeep,
+    borderColor: colors.orange,
     borderBottomWidth: 3.5,
-    borderBottomColor: '#D9480F',
+    borderBottomColor: colors.orangeDeep,
     ...shadows.glowOrange,
   },
   segmentText: {
