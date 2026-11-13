@@ -1,6 +1,6 @@
 import { useTheme, useThemeStyles } from '@/theme/ThemeProvider';
 import type { ThemeColors } from '@/theme/ThemeProvider';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View, ScrollView } from 'react-native';
 import { router } from 'expo-router';
 import { Trophy, ArrowRight, Sparkles, Crown, Medal } from 'lucide-react-native';
@@ -25,6 +25,8 @@ export default function ScoreboardScreen() {
   const styles = useThemeStyles(createStyles);
   const { roomState, currentPlayer, roomCode, service } = useGameStore();
   const { trigger } = useHaptics();
+  const [advancing, setAdvancing] = useState(false);
+  const [advanceError, setAdvanceError] = useState<string | null>(null);
 
   // Watch for phase change
   useEffect(() => {
@@ -51,18 +53,19 @@ export default function ScoreboardScreen() {
   const restPlayers = playersList.slice(3);
 
   const handleNextRound = async () => {
+    // Only the host may advance server-authoritative rounds. Non-hosts remain
+    // on the scoreboard until the realtime phase switches.
+    if (!roomCode || !isHost || advancing) return;
     trigger('medium');
-    if (!roomCode) return;
-    if (isFinalRound) {
-      try {
-        await service.advancePhase(roomCode);
-      } catch {
-        // Non-host might not have advance authority, continue to game-over
-      }
-      router.replace('/game-over');
-    } else {
+    setAdvancing(true);
+    setAdvanceError(null);
+    try {
       await service.advancePhase(roomCode);
-      router.replace('/ability-select');
+      router.replace(isFinalRound ? '/game-over' : '/ability-select');
+    } catch (cause) {
+      setAdvanceError(cause instanceof Error ? cause.message : 'Tur ilerletilemedi. Yeniden dene.');
+    } finally {
+      setAdvancing(false);
     }
   };
 
@@ -198,13 +201,20 @@ export default function ScoreboardScreen() {
 
       </ScrollView>
       <StickyActionBar>
-        {isFinalRound ? (
+        {advanceError ? (
+          <Text accessibilityRole="alert" style={[styles.advanceError, { color: colors.dangerSoft }]}>
+            {advanceError}
+          </Text>
+        ) : null}
+        {isFinalRound && isHost ? (
           <Button
             label="Final Podyumunu Aç!"
             onPress={handleNextRound}
             variant="orange"
             fullWidth
-            icon={<Sparkles color="#FFF" size={20} />}
+            loading={advancing}
+            disabled={advancing}
+            icon={<Sparkles color="#FFF" size={20} />
           />
         ) : isHost ? (
           <Button
@@ -212,12 +222,14 @@ export default function ScoreboardScreen() {
             onPress={handleNextRound}
             variant="orange"
             fullWidth
-            icon={<ArrowRight color="#FFF" size={20} />}
+            loading={advancing}
+            disabled={advancing}
+            icon={<ArrowRight color="#FFF" size={20} />
           />
         ) : (
           <View style={styles.waitingNotice}>
             <Text style={styles.waitingText}>
-              Oda kurucusunun sonraki turu başlatması bekleniyor…
+              {isFinalRound ? 'Oda kurucusunun finali açması bekleniyor…' : 'Oda kurucusunun sonraki turu başlatması bekleniyor…'}
             </Text>
           </View>
         )}
@@ -227,6 +239,7 @@ export default function ScoreboardScreen() {
 }
 
 const createStyles = (colors: ThemeColors) => StyleSheet.create({
+  advanceError: { fontFamily: 'Poppins-Medium', fontSize: 11, textAlign: 'center', marginBottom: 7 },
   scroll: {
     paddingBottom: spacing.md,
     paddingTop: 4,
