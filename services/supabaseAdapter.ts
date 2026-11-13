@@ -12,6 +12,8 @@ import type {
   RelationshipStatus,
   RoomSummary,
   RoundRevealChoice,
+  RoundReadyStatus,
+  MatchTitleStat,
   RoomAccessPreflight,
   PlayerReportCategory,
   SocialPlayer,
@@ -862,6 +864,49 @@ export class SupabaseGameService implements GameService {
       await this.setupRealtimeSubscription(cleanCode);
     }
     return state;
+  }
+
+  private parseRoundReadyStatus(data: unknown): RoundReadyStatus {
+    if (!data || typeof data !== 'object') {
+      throw new ServiceError('READY_STATUS_INVALID', 'Hazırlık bilgisi okunamadı.');
+    }
+    const row = data as Record<string, unknown>;
+    if (typeof row.readyCount !== 'number' || typeof row.totalCount !== 'number'
+      || typeof row.isReady !== 'boolean' || typeof row.allReady !== 'boolean') {
+      throw new ServiceError('READY_STATUS_INVALID', 'Hazırlık bilgisi eksik.');
+    }
+    return { readyCount: row.readyCount, totalCount: row.totalCount,
+      isReady: row.isReady, allReady: row.allReady };
+  }
+
+  async getRoundReady(code: string): Promise<RoundReadyStatus> {
+    const { data, error } = await ensureSupabase().rpc('get_classic_round_ready_secure', {
+      p_room_code: code.trim().toUpperCase(),
+    });
+    if (error) throw new ServiceError('READY_STATUS_FAILED', error.message);
+    return this.parseRoundReadyStatus(data);
+  }
+
+  async markRoundReady(code: string): Promise<RoundReadyStatus> {
+    const { data, error } = await ensureSupabase().rpc('mark_classic_round_ready_secure', {
+      p_room_code: code.trim().toUpperCase(),
+    });
+    if (error) throw new ServiceError('READY_MARK_FAILED', error.message);
+    return this.parseRoundReadyStatus(data);
+  }
+
+  async getMatchTitleStats(code: string): Promise<MatchTitleStat[]> {
+    const { data, error } = await ensureSupabase().rpc('get_classic_match_titles_secure', {
+      p_room_code: code.trim().toUpperCase(),
+    });
+    if (error) throw new ServiceError('MATCH_TITLES_FAILED', error.message);
+    if (!Array.isArray(data)) throw new ServiceError('MATCH_TITLES_INVALID', 'Maç istatistikleri alınamadı.');
+    return data.filter((value): value is MatchTitleStat => {
+      if (!value || typeof value !== 'object') return false;
+      const row = value as Record<string, unknown>;
+      return typeof row.playerId === 'string' && typeof row.correct === 'number'
+        && typeof row.victims === 'number' && typeof row.trapped === 'number';
+    });
   }
 
   async getRoomProgress(code: string): Promise<RoundProgress> {
