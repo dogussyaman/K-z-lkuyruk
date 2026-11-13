@@ -7,15 +7,15 @@ import type { ThemeColors } from '@/theme/ThemeProvider';
 type Tone = 'purple' | 'orange' | 'yellow' | 'lime' | 'blue' | 'coral' | 'success' | 'warning' | 'danger' | 'neutral';
 
 const getTones = (colors: ThemeColors): Record<Tone, { bg: string; fg: string; border: string }> => ({
-  purple: { bg: 'rgba(139, 92, 246, 0.25)', fg: colors.purpleSoft, border: colors.purple },
-  orange: { bg: 'rgba(255, 113, 59, 0.25)', fg: colors.orange, border: colors.orange },
-  yellow: { bg: 'rgba(255, 209, 102, 0.25)', fg: colors.yellow, border: colors.yellow },
-  lime: { bg: 'rgba(198, 243, 107, 0.25)', fg: colors.lime, border: colors.lime },
-  blue: { bg: 'rgba(59, 130, 246, 0.25)', fg: colors.blueSoft, border: colors.blue },
-  coral: { bg: 'rgba(255, 113, 59, 0.25)', fg: colors.orange, border: colors.orange },
-  success: { bg: 'rgba(16, 185, 129, 0.25)', fg: colors.successSoft, border: colors.success },
-  warning: { bg: 'rgba(255, 209, 102, 0.25)', fg: colors.warning, border: colors.warning },
-  danger: { bg: 'rgba(239, 68, 68, 0.25)', fg: colors.dangerSoft, border: colors.danger },
+  purple: { bg: colors.purpleSurface, fg: colors.purpleSoft, border: colors.borderAccent },
+  orange: { bg: colors.orangeSurface, fg: colors.orange, border: colors.borderAccent },
+  yellow: { bg: colors.goldSurface, fg: colors.yellow, border: colors.borderStrong },
+  lime: { bg: colors.successSurface, fg: colors.lime, border: colors.borderStrong },
+  blue: { bg: colors.purpleSurface, fg: colors.blueSoft, border: colors.borderStrong },
+  coral: { bg: colors.orangeSurface, fg: colors.orange, border: colors.borderAccent },
+  success: { bg: colors.successSurface, fg: colors.successSoft, border: colors.borderStrong },
+  warning: { bg: colors.goldSurface, fg: colors.warning, border: colors.borderStrong },
+  danger: { bg: colors.dangerSurface, fg: colors.dangerSoft, border: colors.borderStrong },
   neutral: { bg: colors.bgSurfaceAlt, fg: colors.textSecondary, border: colors.borderStrong },
 });
 
@@ -69,11 +69,10 @@ const styles = StyleSheet.create({
   },
   sticker: {
     borderRadius: radii.sm,
-    transform: [{ rotate: '-2deg' }],
   },
   text: {
     ...typography.caption,
     fontFamily: 'Poppins-Bold',
-    letterSpacing: 0.6,
+    letterSpacing: 0.25,
   },
 });
