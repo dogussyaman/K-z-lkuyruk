@@ -26,24 +26,24 @@ const getVariants = (colors: ThemeColors): Record<
   { bg: string; fg: string; border: string; bottomBorder: string; shadow?: object }
 > => ({
   primary: {
-    bg: colors.purple,
+    bg: colors.purpleDeep,
     fg: colors.textOnAccent,
-    border: '#A78BFA',
-    bottomBorder: '#6D28D9',
+    border: colors.purple,
+    bottomBorder: colors.purpleDeep,
     shadow: shadows.glow,
   },
   orange: {
-    bg: colors.orange,
+    bg: colors.orangeDeep,
     fg: colors.textOnAccent,
-    border: '#FFA07A',
-    bottomBorder: '#D9480F',
+    border: colors.orange,
+    bottomBorder: colors.orangeDeep,
     shadow: shadows.glowOrange,
   },
   secondary: {
     bg: colors.bgSurfaceAlt,
     fg: colors.textPrimary,
     border: colors.borderStrong,
-    bottomBorder: 'rgba(255, 247, 255, 0.20)',
+    bottomBorder: colors.borderStrong,
   },
   ghost: {
     bg: 'transparent',
@@ -54,20 +54,20 @@ const getVariants = (colors: ThemeColors): Record<
   danger: {
     bg: colors.danger,
     fg: colors.textOnAccent,
-    border: '#F87171',
-    bottomBorder: '#DC2626',
+    border: colors.dangerSoft,
+    bottomBorder: colors.danger,
   },
   success: {
     bg: colors.success,
     fg: colors.textOnAccent,
-    border: '#6EE7B7',
-    bottomBorder: '#059669',
+    border: colors.successSoft,
+    bottomBorder: colors.success,
   },
   lime: {
     bg: colors.lime,
     fg: '#171026',
-    border: '#E2F899',
-    bottomBorder: '#84CC16',
+    border: colors.limeSoft,
+    bottomBorder: colors.lime,
     shadow: shadows.glowLime,
   },
 });
@@ -110,11 +110,11 @@ export function Button({
           v.shadow,
           {
             height,
-            backgroundColor: hovered && variant === 'orange' ? themeColors.orangeDeep : v.bg,
+            backgroundColor: hovered && variant === 'orange' ? themeColors.orange : v.bg,
             borderColor: hovered && variant === 'secondary' ? themeColors.purple : v.border,
             borderBottomColor: v.bottomBorder,
-            borderBottomWidth: disabled ? 1 : 3.5,
-            transform: [{ translateY: pressed ? 2.5 : 0 }, { scale: pressed ? 0.97 : 1 }],
+            borderBottomWidth: disabled ? 1 : 2,
+            transform: [{ translateY: pressed ? 1 : 0 }, { scale: pressed ? 0.985 : 1 }],
             opacity: disabled ? 0.45 : pressed ? 0.92 : hovered ? 0.98 : 1,
           },
           fullWidth && { width: '100%' },
@@ -137,7 +137,7 @@ export function Button({
 const styles = StyleSheet.create({
   base: {
     borderRadius: radii.lg,
-    borderWidth: 1.5,
+    borderWidth: 1,
     paddingHorizontal: spacing.xl,
     justifyContent: 'center',
     alignItems: 'center',
@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
   label: {
     ...typography.bodyMedium,
     fontFamily: 'Poppins-Bold',
-    letterSpacing: 0.3,
+    letterSpacing: 0.1,
     flexShrink: 1,
     textAlign: 'center',
   },
