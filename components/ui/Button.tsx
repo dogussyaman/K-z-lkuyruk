@@ -110,7 +110,7 @@ export function Button({
           v.shadow,
           {
             height,
-            backgroundColor: hovered && variant === 'orange' ? themeColors.orange : v.bg,
+            backgroundColor: v.bg,
             borderColor: hovered && variant === 'secondary' ? themeColors.purple : v.border,
             borderBottomColor: v.bottomBorder,
             borderBottomWidth: disabled ? 1 : 2,
