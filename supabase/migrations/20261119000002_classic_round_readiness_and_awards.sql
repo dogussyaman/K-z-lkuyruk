@@ -96,11 +96,12 @@ BEGIN
   END IF;
   -- Rematch deletes previous-game round_results; these totals are only this match.
   SELECT coalesce(jsonb_agg(jsonb_build_object(
-    'playerId',s.player_id,'correct',s.correct_count,
+    'playerId',s.player_id,'rounds',s.round_count,'correct',s.correct_count,
     'victims',s.victim_count,'trapped',s.trapped_count
   )), '[]'::jsonb) INTO v_result
   FROM (
     SELECT rp.player_id,
+      count(rr.id)::integer AS round_count,
       count(rr.id) FILTER (WHERE rr.answered_correctly)::integer AS correct_count,
       coalesce(sum(rr.victims_count),0)::integer AS victim_count,
       count(rr.id) FILTER (WHERE rr."zartalandın")::integer AS trapped_count
