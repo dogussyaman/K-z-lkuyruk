@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import {
@@ -13,8 +13,9 @@ import {
 } from '@expo-google-fonts/poppins';
 import { SplashScreen } from 'expo-router';
 import { colors } from '@/theme';
-import { ActivityIndicator, Platform, View } from 'react-native';
+import { ActivityIndicator, Platform, View, Text, Pressable } from 'react-native';
 import { GameStoreProvider, useGameStore } from '@/store/gameStore';
+import { getRoomRecoveryRoute } from '@/services/roomRecovery';
 import { KizilkuyrukLoading } from '@/components/loading/KizilkuyrukLoading';
 import { BotDirector } from '@/components/BotDirector';
 import { soundService } from '@/services/soundService';
@@ -95,6 +96,58 @@ export default function RootLayout() {
   );
 }
 
+function ConnectionRecoveryBanner() {
+  const { roomCode, connection, currentPlayer, resumeCurrentRoom } = useGameStore();
+  const [recovering, setRecovering] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  if (!roomCode || connection === 'online' || connection === 'connecting') return null;
+
+  const retry = async () => {
+    if (recovering) return;
+    setRecovering(true);
+    setError(null);
+    try {
+      const state = await resumeCurrentRoom();
+      router.replace(getRoomRecoveryRoute(state, currentPlayer?.id ?? ''));
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Odaya yeniden bağlanılamadı.');
+    } finally {
+      setRecovering(false);
+    }
+  };
+  return (
+    <View pointerEvents="box-none" style={{
+      position: 'absolute', top: 34, left: 12, right: 12, zIndex: 100,
+    }}>
+      <View style={{
+        backgroundColor: '#281943', borderColor: '#E5B652', borderWidth: 1,
+        borderRadius: 14, paddingHorizontal: 12, paddingVertical: 10,
+        flexDirection: 'row', alignItems: 'center', gap: 8,
+      }}>
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: '#FFFFFF', fontFamily: 'Poppins-Bold', fontSize: 12 }}>
+            {connection === 'reconnecting' ? 'Bağlantı yeniden kuruluyor…' : 'Bağlantı kesildi'}
+          </Text>
+          <Text style={{ color: '#DDD0EF', fontFamily: 'Poppins-Medium', fontSize: 10 }}>
+            {error ?? 'Cevapların kaydedildiyse sunucuda korunur.'}
+          </Text>
+        </View>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Odaya yeniden bağlan"
+          onPress={() => { void retry(); }}
+          disabled={recovering}
+          style={{ backgroundColor: '#F5B83E', borderRadius: 9, paddingHorizontal: 10, paddingVertical: 9 }}
+        >
+          <Text style={{ color: '#29113E', fontFamily: 'Poppins-Bold', fontSize: 11 }}>
+            {recovering ? 'Bağlanıyor' : 'Geri Dön'}
+          </Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
 function RootNavigator() {
   const { mode } = useTheme();
   const { isInitialized } = useGameStore();
@@ -153,6 +206,7 @@ function RootNavigator() {
         <Stack.Screen name="+not-found" />
       </Stack>
       <BotDirector />
+      <ConnectionRecoveryBanner />
       <StatusBar style={mode === 'light' ? 'dark' : 'light'} />
     </>
   );
