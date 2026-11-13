@@ -387,11 +387,7 @@ export function LiquidGlassTabBar({ state, navigation, descriptors }: LiquidGlas
           }]}>
             <Animated.View style={activeIconStyle}>
               <ActiveIcon
-                color={
-                  activeConfig.activeColor === colors.yellow || activeConfig.activeColor === colors.lime
-                    ? themeColors.textInverse
-                    : '#FFFFFF'
-                }
+                color="#FFFFFF"
                 size={29}
                 strokeWidth={2.5}
               />
