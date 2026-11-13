@@ -56,7 +56,7 @@ export function RoundChoiceReveal({ choices, players, currentPlayerId, onReportP
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
       >
-        {rows.map((row, index) => {
+        {rows.map((row) => {
           const isWinner = row.choice.choiceIndex === winnerIndex;
           const palette = row.choice.isCorrect ? BAR_COLORS.correct
             : isWinner ? BAR_COLORS.winner : BAR_COLORS.other;
@@ -106,10 +106,6 @@ export function RoundChoiceReveal({ choices, players, currentPlayerId, onReportP
                     </Text>
                     <Text style={[styles.answerDetail, { color: palette.detail }]}>
                       {row.choice.isCorrect ? 'DOĞRU CEVAP' : `${row.voteCount} kişi seçti`}
-                    </Text>
-                    <Text style={[styles.voterNames, { color: palette.detail }]}>
-                      {row.choice.isCorrect ? 'Doğruyu bulanlar: ' : 'Tuzağa düşenler: '}
-                      {row.voters.map((player) => player.name).join(', ') || 'Kimse'}
                     </Text>
                   </View>
                   {row.isMyPick ? (
@@ -229,21 +225,20 @@ export function RoundChoiceReveal({ choices, players, currentPlayerId, onReportP
 const styles = StyleSheet.create({
   root: { flex: 1, width: '100%' },
   scroller: { flex: 1 },
-  list: { flexGrow: 1, paddingTop: 38, paddingBottom: 18, paddingHorizontal: 16, justifyContent: 'center', gap: 12 },
-  barWrap: { position: 'relative', marginHorizontal: 10, paddingBottom: 13 },
-  barWinner: { marginTop: 20 },
+  list: { flexGrow: 1, paddingTop: 23, paddingBottom: 8, paddingHorizontal: 14, justifyContent: 'center', gap: 7 },
+  barWrap: { position: 'relative', marginHorizontal: 8, paddingBottom: 9 },
+  barWinner: { marginTop: 16 },
   barShadow: {
-    borderRadius: 21, borderWidth: 1.5, paddingBottom: 4, overflow: 'hidden',
+    borderRadius: 19, borderWidth: 1.5, paddingBottom: 3, overflow: 'hidden',
     shadowColor: '#080311', shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.22, shadowRadius: 11, elevation: 4,
   },
-  bar: { minHeight: 82, borderRadius: 19, flexDirection: 'row', alignItems: 'center', paddingLeft: 50, paddingRight: 16, gap: 8 },
-  answerContent: { flex: 1, minWidth: 0, justifyContent: 'center', gap: 4, paddingVertical: 13 },
-  answer: { textAlign: 'left', fontFamily: 'Poppins-Bold', fontSize: 15, lineHeight: 21 },
-  answerDetail: { fontFamily: 'Poppins-Bold', fontSize: 10, lineHeight: 14, letterSpacing: 0.7 },
-  voterNames: { fontFamily: 'Poppins-SemiBold', fontSize: 11, lineHeight: 16 },
+  bar: { minHeight: 57, borderRadius: 18, flexDirection: 'row', alignItems: 'center', paddingLeft: 44, paddingRight: 13, gap: 5 },
+  answerContent: { flex: 1, minWidth: 0, justifyContent: 'center', gap: 1, paddingVertical: 7 },
+  answer: { textAlign: 'left', fontFamily: 'Poppins-Bold', fontSize: 14, lineHeight: 19 },
+  answerDetail: { fontFamily: 'Poppins-Bold', fontSize: 9, lineHeight: 12, letterSpacing: 0.25 },
   author: {
-    position: 'absolute', left: -13, top: 15, width: 46, height: 46, borderRadius: 23,
+    position: 'absolute', left: -12, top: 8, width: 40, height: 40, borderRadius: 20,
     borderWidth: 2, backgroundColor: '#382C4B', justifyContent: 'center', alignItems: 'center', overflow: 'hidden',
   },
   correctOwner: { width: 33, height: 33, borderRadius: 17, backgroundColor: '#31966C', alignItems: 'center', justifyContent: 'center' },
