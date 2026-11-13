@@ -1,80 +1,82 @@
+/**
+ * Quiet Fox palette
+ * One visual hierarchy: ink surfaces, warm tangerine actions, muted violet
+ * for secondary focus. Gold, green and red are reserved for meaning.
+ *
+ * Keep these token names stable: screens and game modes share the same API.
+ */
 export const colors = {
-  // ZARTO Core Palette
-  zartoNight: '#110D1B',     // Ana gece moru
-  zartoSurface: '#28183D',   // Derin mor yüzey
-  zartoPurple: '#A16BFF',    // Marka moru
-  zartoOrange: '#FF713D',    // ZARTO turuncusu
-  zartoYellow: '#FFD166',    // Sıcak sarı
-  zartoLime: '#C6F36B',      // Lime vurgu
-  zartoCream: '#FFF7FF',     // Açık metin ve yüzeyler
+  // Brand: restrained warmth over neutral graphite
+  zartoNight: '#14151D',
+  zartoSurface: '#24232E',
+  zartoPurple: '#9783BB',
+  zartoOrange: '#D87B57',
+  zartoYellow: '#E6BC78',
+  zartoLime: '#A9C799',
+  zartoCream: '#F4F0EA',
 
-  // Backgrounds - Night & Deep Purple
-  bgDarkest: '#110D1B',
-  bgDark: '#1A1228',
-  bgSurface: '#28183D',
-  bgSurfaceAlt: '#35204C',
-  bgSurfaceMuted: '#21172F',
-  bgElevated: '#35204C',
-  bgCard: '#28183D',
-  bgCardAlt: '#35204C',
+  // Backgrounds: neutral foundation prevents a rainbow of competing cards
+  bgDarkest: '#14151D',
+  bgDark: '#1A1B24',
+  bgSurface: '#23232E',
+  bgSurfaceAlt: '#2B2A37',
+  bgSurfaceMuted: '#20212B',
+  bgElevated: '#302F3D',
+  bgCard: '#23232E',
+  bgCardAlt: '#292936',
 
-  // Accents - Electric Purple
-  purple: '#A16BFF',
-  purpleDeep: '#7547C4',
-  purpleSoft: '#B88EFF',
-  purpleGlow: 'rgba(161, 107, 255, 0.28)',
+  // Secondary focus accent, not a second primary CTA
+  purple: '#9783BB',
+  purpleDeep: '#79629A',
+  purpleSoft: '#B0A0CC',
+  purpleGlow: 'rgba(151, 131, 187, 0.12)',
 
-  // Accents - ZARTO Orange / Coral
-  orange: '#FF713D',
-  orangeDeep: '#D9562B',
-  orangeGlow: 'rgba(255, 113, 61, 0.28)',
-  coral: '#FF713D',
-  coralDeep: '#D9562B',
-  coralSoft: '#FF9872',
+  // Single primary call-to-action. Deep tone stays legible with white text.
+  orange: '#D87B57',
+  orangeDeep: '#B95A3D',
+  orangeGlow: 'rgba(216, 123, 87, 0.12)',
+  coral: '#D87B57',
+  coralDeep: '#B95A3D',
+  coralSoft: '#E7A186',
 
-  // Accents - Warm Yellow & Electric Lime
-  yellow: '#FFD166',
-  lime: '#C6F36B',
-  limeSoft: '#D8F796',
+  // Semantic / occasional celebration accents
+  yellow: '#E6BC78',
+  lime: '#A9C799',
+  limeSoft: '#C3D6B7',
+  blue: '#86A8BE',
+  blueDeep: '#547C9A',
+  blueSoft: '#A2C2D6',
+  blueGlow: 'rgba(134, 168, 190, 0.12)',
 
-  // Accents - Electric Blue
-  blue: '#3B82F6',
-  blueDeep: '#1D4ED8',
-  blueSoft: '#60A5FA',
-  blueGlow: 'rgba(59, 130, 246, 0.45)',
+  success: '#6EB79C',
+  successSoft: '#92D0B4',
+  successGlow: 'rgba(110, 183, 156, 0.12)',
+  successSurface: 'rgba(110, 183, 156, 0.11)',
+  warning: '#E6BC78',
+  warningGlow: 'rgba(230, 188, 120, 0.12)',
+  danger: '#D16F74',
+  dangerSoft: '#EB9A9D',
+  dangerGlow: 'rgba(209, 111, 116, 0.12)',
+  dangerSurface: 'rgba(209, 111, 116, 0.11)',
+  purpleSurface: 'rgba(151, 131, 187, 0.11)',
+  orangeSurface: 'rgba(216, 123, 87, 0.11)',
+  goldSurface: 'rgba(230, 188, 120, 0.12)',
+  silverSurface: 'rgba(174, 174, 186, 0.10)',
+  categoryOverlayTop: 'rgba(20, 21, 29, 0.18)',
+  categoryOverlayBottom: 'rgba(20, 21, 29, 0.84)',
+  imageIconSurface: 'rgba(20, 21, 29, 0.54)',
 
-  // Semantic
-  success: '#10B981',
-  successSoft: '#34D399',
-  successGlow: 'rgba(16, 185, 129, 0.45)',
-  successSurface: 'rgba(198, 243, 107, 0.14)',
-  warning: '#FFD166',
-  warningGlow: 'rgba(255, 209, 102, 0.45)',
-  danger: '#EF4444',
-  dangerSoft: '#F87171',
-  dangerGlow: 'rgba(239, 68, 68, 0.45)',
-  dangerSurface: 'rgba(239, 68, 68, 0.14)',
-  purpleSurface: 'rgba(161, 107, 255, 0.14)',
-  orangeSurface: 'rgba(255, 113, 61, 0.14)',
-  goldSurface: 'rgba(255, 209, 102, 0.18)',
-  silverSurface: 'rgba(185, 173, 201, 0.14)',
-  categoryOverlayTop: 'rgba(17, 13, 27, 0.12)',
-  categoryOverlayBottom: 'rgba(17, 13, 27, 0.82)',
-  imageIconSurface: 'rgba(17, 13, 27, 0.48)',
-
-  // Text
-  textPrimary: '#FFF7FF',
-  textSecondary: '#B9ADC9',
-  textMuted: '#91849F',
+  textPrimary: '#F5F2EE',
+  textSecondary: '#BCB8C5',
+  textMuted: '#9691A2',
   textOnAccent: '#FFFFFF',
-  textInverse: '#110D1B',
+  textInverse: '#14151D',
 
-  // Borders / overlays
-  border: 'rgba(255, 247, 255, 0.09)',
-  borderStrong: 'rgba(255, 247, 255, 0.16)',
-  borderAccent: 'rgba(161, 107, 255, 0.30)',
-  overlay: 'rgba(17, 13, 27, 0.78)',
-  overlayLight: 'rgba(40, 24, 61, 0.65)',
+  border: 'rgba(245, 242, 238, 0.09)',
+  borderStrong: 'rgba(245, 242, 238, 0.16)',
+  borderAccent: 'rgba(216, 123, 87, 0.33)',
+  overlay: 'rgba(15, 16, 23, 0.83)',
+  overlayLight: 'rgba(35, 35, 46, 0.78)',
 } as const;
 
 export type ColorKey = keyof typeof colors;
