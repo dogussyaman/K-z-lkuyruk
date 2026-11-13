@@ -84,6 +84,9 @@ export interface ServiceEvent {
 
 export type ServiceEventHandler = (event: ServiceEvent) => void;
 
+export interface RoundReadyStatus { readyCount: number; totalCount: number; isReady: boolean; allReady: boolean; }
+export interface MatchTitleStat { playerId: string; correct: number; victims: number; trapped: number; }
+
 export interface RoundRevealChoice { choiceIndex: number; text: string; authorId: string | null; isCorrect: boolean; pickedBy: string[]; }
 
 export interface GameService {
@@ -158,6 +161,9 @@ export interface GameService {
   rematch(code: string): Promise<void>;
   advanceExpiredPhase(code: string): Promise<boolean>;
   getRoomProgress(code: string): Promise<RoundProgress>;
+  getRoundReady(code: string): Promise<RoundReadyStatus>;
+  markRoundReady(code: string): Promise<RoundReadyStatus>;
+  getMatchTitleStats(code: string): Promise<MatchTitleStat[]>;
 
   // Backward-compatible submit
   submitAnswer(code: string, submission: AnswerSubmission): Promise<void>;
