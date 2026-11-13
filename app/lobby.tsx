@@ -303,7 +303,7 @@ export default function LobbyScreen() {
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
       >
-        <Card variant="surface" glow="orange" style={styles.codeCard}>
+        <Card variant="surface" style={styles.codeCard}>
           <View style={styles.codeTopRow}>
             <View style={styles.kickerWrap}>
               <Flame color={colors.orange} size={14} />
@@ -659,7 +659,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
-    backgroundColor: 'rgba(255, 209, 102, 0.2)',
+    backgroundColor: colors.goldSurface,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: radii.sm,
@@ -711,7 +711,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: radii.md,
-    backgroundColor: 'rgba(255, 113, 59, 0.2)',
+    backgroundColor: colors.orangeSurface,
     borderWidth: 1,
     borderColor: colors.orange,
     alignItems: 'center',
