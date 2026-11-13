@@ -488,11 +488,12 @@ export class DemoGameService implements GameService {
     }
     if (room.phase !== 'game_over') throw new ServiceError('WRONG_PHASE', 'Maç henüz bitmedi.');
     const result = new Map(Object.keys(room.players).map((id) => [
-      id, { playerId: id, correct: 0, victims: 0, trapped: 0 },
+      id, { playerId: id, rounds: 0, correct: 0, victims: 0, trapped: 0 },
     ] as const));
     for (const round of room.history) for (const row of round) {
       const total = result.get(row.playerId);
       if (!total) continue;
+      total.rounds++;
       if (row.outcome.correct) total.correct++;
       total.victims += row.victimsCount;
       if (row.outcome.zartalandın) total.trapped++;
