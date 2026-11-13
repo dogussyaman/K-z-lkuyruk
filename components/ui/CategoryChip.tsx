@@ -21,14 +21,14 @@ export function CategoryChip({ name, emoji, selected, onPress, disabled }: Categ
       style={({ pressed }) => [
         styles.chip,
         {
-          backgroundColor: selected ? colors.purpleGlow : colors.bgSurfaceAlt,
-          borderColor: selected ? colors.purpleSoft : colors.border,
+          backgroundColor: selected ? colors.orangeSurface : colors.bgSurfaceAlt,
+          borderColor: selected ? colors.orange : colors.border,
           opacity: disabled ? 0.5 : pressed ? 0.85 : 1,
         },
       ]}
     >
       <Text style={styles.emoji}>{emoji}</Text>
-      <Text style={[styles.label, { color: selected ? colors.purpleSoft : colors.textPrimary }]}>
+      <Text style={[styles.label, { color: selected ? colors.textPrimary : colors.textSecondary }]}>
         {name}
       </Text>
       {selected ? <Text style={styles.check}>✓</Text> : null}
@@ -43,11 +43,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     borderRadius: radii.lg,
-    borderWidth: 1.5,
+    borderWidth: 1,
   },
   emoji: { fontSize: 20, marginRight: spacing.sm },
   label: { ...typography.bodyMedium, flex: 1 },
-  check: { color: colors.purpleSoft, fontSize: 18, fontWeight: 'bold' },
+  check: { color: colors.orange, fontSize: 18, fontWeight: 'bold' },
 });
 
 void View;
