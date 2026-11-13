@@ -1,4 +1,5 @@
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { useTheme } from '@/theme/ThemeProvider';
 import type { ReactNode } from 'react';
 
 export function StickyActionBar({
@@ -8,7 +9,8 @@ export function StickyActionBar({
   children: ReactNode;
   style?: StyleProp<ViewStyle>;
 }) {
-  return <View style={[styles.container, style]}>{children}</View>;
+  const { colors } = useTheme();
+  return <View style={[styles.container, { borderTopColor: colors.border }, style]}>{children}</View>;
 }
 
 const styles = StyleSheet.create({
@@ -16,7 +18,7 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     paddingBottom: 8,
     backgroundColor: 'transparent',
-    borderTopWidth: 0,
+    borderTopWidth: 1,
     zIndex: 10,
   },
 });

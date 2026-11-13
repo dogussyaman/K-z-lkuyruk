@@ -154,7 +154,7 @@ export default function ArkadaslarScreen() {
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
         {/* Room Share Card */}
-        <Card variant="surface" glow="orange" style={{ marginTop: spacing.xs }}>
+        <Card variant="surface" style={{ marginTop: spacing.xs }}>
           <View style={styles.inviteRow}>
             <View style={styles.inviteIconCircle}>
               <UserPlus color={colors.orange} size={22} strokeWidth={2.5} />
@@ -387,7 +387,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(255, 113, 59, 0.15)',
+    backgroundColor: colors.orangeSurface,
     alignItems: 'center',
     justifyContent: 'center',
   },

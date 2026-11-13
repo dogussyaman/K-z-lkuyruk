@@ -27,8 +27,10 @@ export function Screen({
   const { colors: themeColors } = useTheme();
   const { roomState } = useGameStore();
   const modeTheme = roomState?.config.gameMode ? getGameModeTheme(roomState.config.gameMode) : null;
-  const background = modeTheme?.background ?? themeColors.bgDarkest;
-  const middle = modeTheme?.surface ?? themeColors.bgDark;
+  // Use one surface family across screens. Mode personality stays in subtle
+  // artwork and glow rather than changing the entire background hue.
+  const background = themeColors.bgDarkest;
+  const middle = themeColors.bgDark;
 
   return (
     <View style={[styles.root, { backgroundColor: background }]}>
@@ -36,7 +38,7 @@ export function Screen({
         <LinearGradient
           pointerEvents="none"
           colors={[background, middle, background]}
-          locations={[0, 0.55, 1]}
+          locations={[0, 0.6, 1]}
           style={StyleSheet.absoluteFill}
         />
       ) : (
@@ -127,7 +129,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     top: -145,
     right: -135,
-    opacity: 0.85,
+    opacity: 0.34,
   },
   modeGlowBottom: {
     position: 'absolute',
@@ -136,14 +138,14 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     bottom: -160,
     left: -140,
-    opacity: 0.5,
+    opacity: 0.20,
   },
   modeMark: {
     position: 'absolute',
     right: 18,
     top: 74,
     fontSize: 54,
-    opacity: 0.065,
+    opacity: 0.042,
     transform: [{ rotate: '10deg' }],
   },
   diagonalWrapper: {
@@ -160,7 +162,7 @@ const styles = StyleSheet.create({
     right: -60,
     width: 260,
     height: 180,
-    backgroundColor: 'rgba(161, 107, 255, 0.08)',
+    backgroundColor: 'rgba(151, 131, 187, 0.035)',
     borderRadius: radii['2xl'],
     transform: [{ rotate: '-18deg' }, { skewX: '-10deg' }],
   },
@@ -170,7 +172,7 @@ const styles = StyleSheet.create({
     left: -80,
     width: 240,
     height: 160,
-    backgroundColor: 'rgba(255, 113, 61, 0.06)',
+    backgroundColor: 'rgba(216, 123, 87, 0.025)',
     borderRadius: radii['2xl'],
     transform: [{ rotate: '15deg' }],
   },

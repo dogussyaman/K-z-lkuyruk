@@ -200,7 +200,7 @@ export default function WaitingScreen() {
         </View>
 
         {/* Status Card with Neon Progress */}
-        <Card variant="surface" glow="orange" style={styles.statusCard}>
+        <Card variant="surface" style={styles.statusCard}>
           <View style={styles.statusRow}>
             <Text style={styles.statusLabel}>Cevap ilerlemesi</Text>
             <Badge tone={submittedCount === totalCount ? 'lime' : 'orange'} sticker>
@@ -561,12 +561,12 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(255, 209, 102, 0.15)',
+    backgroundColor: colors.goldSurface,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: radii.md,
     borderWidth: 1,
-    borderColor: 'rgba(255, 209, 102, 0.3)',
+    borderColor: colors.borderStrong,
   },
   pendingText: {
     ...typography.caption,
@@ -610,7 +610,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   playerRowNudged: {
     borderColor: colors.orange,
     borderWidth: 1.5,
-    backgroundColor: 'rgba(255, 113, 59, 0.12)',
+    backgroundColor: colors.orangeSurface,
   },
   playerIdentity: {
     flexDirection: 'row',
@@ -634,7 +634,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     borderRadius: radii.md,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255, 113, 59, 0.18)',
+    backgroundColor: colors.orangeSurface,
     borderWidth: 1,
     borderColor: colors.orange,
   },
@@ -699,7 +699,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: radii.pill,
-    backgroundColor: 'rgba(255, 113, 59, 0.15)',
+    backgroundColor: colors.orangeSurface,
     borderWidth: 1.5,
     borderColor: colors.orange,
     alignItems: 'center',

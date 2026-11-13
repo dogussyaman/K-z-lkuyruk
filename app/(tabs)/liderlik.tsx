@@ -261,7 +261,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(255, 113, 59, 0.15)',
+    backgroundColor: colors.orangeSurface,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: radii.pill,
@@ -293,7 +293,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   filterBtnActive: {
     backgroundColor: colors.orange,
-    ...shadows.glowOrange,
+    ...shadows.card,
   },
   filterText: {
     ...typography.small,

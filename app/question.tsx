@@ -690,7 +690,7 @@ export default function QuestionScreen() {
             </View>
           ) : null}
           {/* Question Prompt Card */}
-          <Card variant="surface" glow="purple" style={styles.promptCard}>
+          <Card variant="surface" style={styles.promptCard}>
             <View style={styles.questionIconRow}>
               <Text style={styles.questionKicker}>TUZAK SORUSU</Text>
             </View>
@@ -699,7 +699,7 @@ export default function QuestionScreen() {
 
           {/* STAGE 1: ENTER FAKE ANSWER */}
           {isEliminated ? (
-            <Card variant="surface" glow="orange" style={styles.stageWrap}>
+            <Card variant="surface" style={styles.stageWrap}>
               <Text style={styles.blockNoticeTitle}>Bu maçta elendin 🦊</Text>
               <Text style={styles.blockNoticeText}>Canların bitti. Maç tamamlanana kadar sonuçları izleyebilirsin; bu maçta artık cevap gönderemezsin.</Text>
             </Card>
@@ -1241,7 +1241,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   choiceCardSelected: {
     borderColor: colors.orange,
     borderWidth: 2.5,
-    backgroundColor: 'rgba(255, 113, 59, 0.15)',
+    backgroundColor: colors.orangeSurface,
     ...shadows.glowOrange,
   },
   choiceCardOwn: {
@@ -1261,7 +1261,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.orange,
   },
   letterCircleOwn: {
-    backgroundColor: 'rgba(255, 209, 102, 0.2)',
+    backgroundColor: colors.goldSurface,
   },
   letterText: {
     fontFamily: 'Poppins-Bold',
@@ -1394,10 +1394,10 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: 'rgba(255, 113, 59, 0.12)',
+    backgroundColor: colors.orangeSurface,
     borderRadius: radii.md,
     borderWidth: 1,
-    borderColor: 'rgba(255, 113, 59, 0.3)',
+    borderColor: colors.borderAccent,
     padding: spacing.sm,
     marginTop: spacing.xs,
     marginBottom: spacing.sm,
@@ -1413,7 +1413,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(255, 209, 102, 0.15)',
+    backgroundColor: colors.goldSurface,
     borderWidth: 1,
     borderColor: 'rgba(255, 209, 102, 0.35)',
     borderRadius: radii.md,
@@ -1432,9 +1432,9 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(161, 107, 255, 0.15)',
+    backgroundColor: colors.purpleSurface,
     borderWidth: 1,
-    borderColor: 'rgba(161, 107, 255, 0.35)',
+    borderColor: colors.borderAccent,
     borderRadius: radii.md,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs + 2,
@@ -1451,7 +1451,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     marginTop: spacing.md,
     backgroundColor: colors.bgSurface,
     borderWidth: 1.5,
-    borderColor: 'rgba(161, 107, 255, 0.3)',
+    borderColor: colors.borderAccent,
     borderRadius: radii.lg,
     padding: spacing.md,
     gap: spacing.xs,
@@ -1492,7 +1492,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   suspectCardActive: {
     borderColor: colors.purple,
-    backgroundColor: 'rgba(161, 107, 255, 0.18)',
+    backgroundColor: colors.purpleSurface,
   },
   suspectName: {
     fontFamily: 'Poppins-Medium',

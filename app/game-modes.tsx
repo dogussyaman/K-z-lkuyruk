@@ -7,13 +7,14 @@ import { getGameModeTheme } from '@/features/game/themes';
 import { gameModeImages } from '@/assets/game-modes';
 import { soundService } from '@/services/soundService';
 import { goBackOrReplace } from '@/lib/backNavigation';
+import { colors } from '@/theme';
 export default function GameModesScreen() {
   const games = FEATURED_GAMES;
   return (
     <View style={s.root}>
       <LinearGradient
         pointerEvents="none"
-        colors={['#20162F', '#10151F', '#18101E']}
+        colors={[colors.bgDark, colors.bgDarkest, colors.bgDark]}
         style={StyleSheet.absoluteFill}
       />
       <ScrollView contentContainerStyle={s.content}>
@@ -45,7 +46,7 @@ export default function GameModesScreen() {
               }}
               style={({ pressed }) => [
                 s.card,
-                { backgroundColor: t.surface, borderColor: t.accent + '55' },
+                { backgroundColor: colors.bgCard, borderColor: colors.borderStrong },
                 pressed && { opacity: 0.8 },
               ]}
             >
@@ -57,16 +58,16 @@ export default function GameModesScreen() {
               >
                 <LinearGradient
                   pointerEvents="none"
-                  colors={['rgba(8, 9, 18, 0.20)', 'rgba(8, 9, 18, 0.76)', 'rgba(8, 9, 18, 0.96)']}
+                  colors={['rgba(15, 16, 23, 0.25)', 'rgba(15, 16, 23, 0.80)', 'rgba(15, 16, 23, 0.96)']}
                   locations={[0, 0.48, 1]}
                   style={StyleSheet.absoluteFill}
                 />
                 <View style={s.cardContent}>
                   <View style={s.row}>
-                    <View style={[s.typePill, { backgroundColor: `${t.accent}1D`, borderColor: `${t.accent}55` }]}>
-                      <Text style={[s.badge, { color: t.accent }]}>{getGameFamilyLabel(g.id)}</Text>
+                    <View style={[s.typePill, { backgroundColor: colors.orangeSurface, borderColor: colors.borderStrong }]}>
+                      <Text style={[s.badge, { color: colors.coralSoft }]}>{getGameFamilyLabel(g.id)}</Text>
                     </View>
-                    <ArrowUpRight size={21} color={t.accent} />
+                    <ArrowUpRight size={21} color={colors.coralSoft} />
                   </View>
                   <View style={s.cardHeading}>
                     <Text style={s.symbol}>{t.heroEmoji}</Text>
@@ -110,7 +111,7 @@ export default function GameModesScreen() {
   );
 }
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#15101e' },
+  root: { flex: 1, backgroundColor: colors.bgDarkest },
   content: {
     padding: 20,
     paddingTop: 54,
@@ -122,19 +123,19 @@ const s = StyleSheet.create({
   },
   top: { flexDirection: 'row', alignItems: 'center', gap: 15 },
   eyebrow: {
-    color: '#c6b1dd',
+    color: colors.coralSoft,
     fontSize: 10,
     letterSpacing: 2,
     fontWeight: '800',
   },
   title: {
-    color: '#fff',
-    fontSize: 39,
+    color: colors.textPrimary,
+    fontSize: 34,
     lineHeight: 43,
     fontWeight: '900',
     marginTop: 20,
   },
-  lead: { color: '#c5bdcf', fontSize: 15, lineHeight: 23, maxWidth: 570 },
+  lead: { color: colors.textSecondary, fontSize: 15, lineHeight: 23, maxWidth: 570 },
   filters: { gap: 8, paddingVertical: 8 },
   filter: {
     padding: 12,
@@ -142,11 +143,11 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ffffff25',
   },
-  active: { backgroundColor: '#7049a0', borderColor: '#b998e4' },
-  text: { color: '#eee7f6', fontSize: 12, fontWeight: '700' },
-  card: { borderRadius: 27, borderWidth: 1, overflow: 'hidden' },
+  active: { backgroundColor: colors.orangeDeep, borderColor: colors.orange },
+  text: { color: colors.textPrimary, fontSize: 12, fontWeight: '700' },
+  card: { borderRadius: 20, borderWidth: 1, overflow: 'hidden' },
   cardImage: { minHeight: 270, justifyContent: 'center' },
-  cardArtwork: { opacity: 0.64 },
+  cardArtwork: { opacity: 0.70 },
   cardContent: { padding: 22, gap: 17 },
   row: {
     flexDirection: 'row',
@@ -159,10 +160,10 @@ const s = StyleSheet.create({
   typePill: { paddingHorizontal: 10, paddingVertical: 7, borderRadius: 99, borderWidth: 1 },
   cardHeading: { flexDirection: 'row', gap: 18, alignItems: 'center' },
   symbol: { fontSize: 46 },
-  name: { color: '#fff', fontSize: 25, fontWeight: '900' },
+  name: { color: colors.textPrimary, fontSize: 25, fontWeight: '900' },
   tag: { fontSize: 13, lineHeight: 19, marginTop: 5, fontWeight: '700' },
-  description: { color: '#d7cedf', fontSize: 14, lineHeight: 22 },
-  meta: { color: '#a99db7', fontSize: 11 },
+  description: { color: colors.textSecondary, fontSize: 14, lineHeight: 22 },
+  meta: { color: colors.textMuted, fontSize: 11 },
   metaWrap: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   metaDot: { fontSize: 15, fontWeight: '900' },
   cta: { fontSize: 10, fontWeight: '900', letterSpacing: 1 },
@@ -170,8 +171,8 @@ const s = StyleSheet.create({
     padding: 20,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#ffffff20',
+    borderColor: colors.border,
     gap: 7,
   },
-  small: { color: '#9e92ad', fontSize: 11 },
+  small: { color: colors.textMuted, fontSize: 11 },
 });
