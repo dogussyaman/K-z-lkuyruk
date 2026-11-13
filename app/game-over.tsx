@@ -24,6 +24,7 @@ import { soundService } from '@/services/soundService';
 import { PlayerProfileSheet } from '@/components/PlayerProfileSheet';
 import type { Player } from '@/types/game';
 import { getFoxTitles } from '@/features/game/foxTitles';
+import type { MatchTitleStat } from '@/services/types';
 
 export default function GameOverScreen() {
   const { colors } = useTheme();
@@ -31,6 +32,22 @@ export default function GameOverScreen() {
   const { roomState, currentPlayer, roomCode, service } = useGameStore();
   const { trigger } = useHaptics();
   const [profilePlayer, setProfilePlayer] = useState<Player | null>(null);
+  const [titleStats, setTitleStats] = useState<MatchTitleStat[] | null>(null);
+  const [titleError, setTitleError] = useState<string | null>(null);
+  const [titleRetry, setTitleRetry] = useState(0);
+
+  useEffect(() => {
+    if (roomState?.phase !== 'game_over' || !roomCode) return;
+    let active = true;
+    void service.getMatchTitleStats(roomCode).then((stats) => {
+      if (!active) return;
+      setTitleStats(stats);
+      setTitleError(null);
+    }).catch((cause) => {
+      if (active) setTitleError(cause instanceof Error ? cause.message : 'Unvanlar yüklenemedi.');
+    });
+    return () => { active = false; };
+  }, [roomState?.phase, roomCode, service, titleRetry]);
 
   useEffect(() => {
     soundService.play('true');
@@ -50,7 +67,7 @@ export default function GameOverScreen() {
   const winner = playersList[0];
   const topThree = playersList.slice(0, 3);
   const rest = playersList.slice(3);
-  const foxTitles = roomState ? getFoxTitles(roomState) : [];
+  const foxTitles = roomState ? getFoxTitles(roomState, titleStats ?? undefined) : [];
 
   const myRankIndex = playersList.findIndex((p) => p.id === currentPlayer?.id);
   const myRank = myRankIndex >= 0 ? myRankIndex + 1 : null;
@@ -199,45 +216,57 @@ export default function GameOverScreen() {
           </View>
         )}
 
-        {/* Match-specific Fox titles */}
-        {foxTitles.length > 0 && (
+        {/* Match-specific Fox titles: a single horizontal strip, not six tall boxes. */}
+        {roomState && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>MAÇIN TİLKİ ÜNVANLARI</Text>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingHorizontal: spacing.md }}>
+            {titleError ? (
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => { setTitleError(null); setTitleRetry((n) => n + 1); }}
+                style={{ marginHorizontal: spacing.md, padding: 10, borderRadius: 12, backgroundColor: colors.bgSurface }}
+              >
+                <Text style={{ color: colors.dangerSoft, fontSize: 11 }}>
+                  {titleError} · Tekrar dene
+                </Text>
+              </Pressable>
+            ) : titleStats === null && roomCode ? (
+              <Text style={{ color: colors.textSecondary, fontSize: 11, marginHorizontal: spacing.md }}>
+                Maçın unvanları hazırlanıyor…
+              </Text>
+            ) : null}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: 9, paddingHorizontal: spacing.md, paddingVertical: 6 }}
+              style={{ flexGrow: 0 }}
+            >
               {foxTitles.map((title) => {
                 const recipients = title.playerIds
-                  .map((id) => roomState?.players[id])
+                  .map((id) => roomState.players[id])
                   .filter((player): player is Player => Boolean(player));
                 return (
-                  <View
-                    key={title.id}
-                    style={{
-                      width: '48%',
-                      flexGrow: 1,
-                      flexBasis: '42%',
-                      borderWidth: 1,
-                      borderColor: colors.border,
-                      backgroundColor: colors.bgSurface,
-                      borderRadius: radii.lg,
-                      padding: spacing.sm,
-                      gap: 6,
-                    }}
-                  >
-                    <Text style={{ fontSize: 23 }}>{title.emoji}</Text>
-                    <Text style={{ color: colors.textPrimary, fontFamily: 'Poppins-Bold', fontSize: 13 }}>{title.name}</Text>
-                    <Text style={{ color: colors.textSecondary, fontSize: 11, lineHeight: 16 }}>{title.description}</Text>
-                    {recipients.map((recipient) => (
-                      <View key={recipient.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 }}>
-                        <Avatar avatarKey={recipient.avatarKey} userId={recipient.id} size={25} />
-                        <Text numberOfLines={1} style={{ color: colors.textPrimary, fontFamily: 'Poppins-SemiBold', fontSize: 11, flexShrink: 1 }}>
-                          {recipient.name}
+                  <View key={title.id} style={{
+                    width: 172, backgroundColor: colors.bgSurface, borderColor: colors.border,
+                    borderWidth: 1, borderRadius: radii.lg, padding: spacing.sm, gap: 5,
+                  }}>
+                    <Text style={{ fontSize: 24 }}>{title.emoji}</Text>
+                    <Text style={{ color: colors.textPrimary, fontFamily: 'Poppins-Bold', fontSize: 12 }}>{title.name}</Text>
+                    <Text style={{ color: colors.textSecondary, fontSize: 10, lineHeight: 14 }} numberOfLines={2}>
+                      {title.description}
+                    </Text>
+                    {recipients.map((p) => (
+                      <View key={p.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Avatar avatarKey={p.avatarUrl ?? p.avatarKey} userId={p.id} size={22} />
+                        <Text numberOfLines={1} style={{ color: colors.textPrimary, fontFamily: 'Poppins-SemiBold', fontSize: 10, flex: 1 }}>
+                          {p.id === currentPlayer?.id ? 'Sen' : p.name}
                         </Text>
                       </View>
                     ))}
                   </View>
                 );
               })}
-            </View>
+            </ScrollView>
           </View>
         )}
 
