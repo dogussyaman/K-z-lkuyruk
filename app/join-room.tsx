@@ -576,7 +576,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   sectionCardFocused: {
     borderColor: colors.orange,
-    ...shadows.glowOrange,
+    ...shadows.card,
   },
   codeHeaderRow: {
     flexDirection: 'row',
@@ -649,10 +649,10 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   avatarBoxActive: {
     borderColor: colors.orange,
-    backgroundColor: 'rgba(255, 113, 59, 0.2)',
+    backgroundColor: colors.orangeSurface,
   },
   errorWrap: {
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    backgroundColor: colors.dangerSurface,
     borderWidth: 1,
     borderColor: colors.danger,
     borderRadius: radii.lg,
@@ -734,7 +734,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: spacing.md,
     borderRadius: radii.md,
-    backgroundColor: colors.orange,
+    backgroundColor: colors.orangeDeep,
   },
   roomJoinText: { ...typography.small, color: '#FFFFFF', fontFamily: 'Poppins-Bold' },
 });
