@@ -29,7 +29,7 @@ export function Card({ children, style, variant = 'default', glow = 'none' }: Ca
     variant === 'outline'
       ? themeColors.borderStrong
       : variant === 'comic'
-      ? colors.purple
+      ? themeColors.borderAccent
       : variant === 'accent'
       ? themeColors.borderAccent
       : themeColors.border;
@@ -43,7 +43,7 @@ export function Card({ children, style, variant = 'default', glow = 'none' }: Ca
       ? shadows.glowLime
       : glow === 'blue'
       ? shadows.glowBlue
-      : shadows.card;
+      : { shadowColor: '#000000', shadowOpacity: 0.06, shadowRadius: 7, elevation: 1 };
 
   return (
     <View
@@ -52,7 +52,7 @@ export function Card({ children, style, variant = 'default', glow = 'none' }: Ca
         {
           backgroundColor: bg,
           borderColor: border,
-          borderWidth: variant === 'comic' ? 2 : 1,
+          borderWidth: 1,
         },
         glowStyle,
         style,
@@ -87,7 +87,7 @@ export function CardHeader({
 const styles = StyleSheet.create({
   card: {
     borderRadius: radii.xl,
-    padding: spacing.xl,
+    padding: spacing.lg,
   },
   header: {
     flexDirection: 'row',
