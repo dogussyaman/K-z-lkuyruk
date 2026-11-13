@@ -29,6 +29,8 @@ import type {
   ConnectionState,
   GameService,
   RoomSummary,
+  RoundReadyStatus,
+  MatchTitleStat,
   RoomAccessPreflight,
   FriendRequest,
   RelationshipStatus,
@@ -59,6 +61,8 @@ interface DemoRoom {
   answers: Record<string, AnswerSubmission>;
   abilityActions: AbilityAction[];
   roundResults: Record<string, RoundResultRow>;
+  history: RoundResultRow[][];
+  readyByRound: Record<number, string[]>;
   nudges: Nudge[];
   createdAt: number;
   questionQueue: string[];
@@ -267,6 +271,8 @@ export class DemoGameService implements GameService {
       answers: {},
       abilityActions: [],
       roundResults: {},
+      history: [],
+      readyByRound: {},
       nudges: [],
       createdAt: Date.now(),
       questionQueue: [],
@@ -444,6 +450,54 @@ export class DemoGameService implements GameService {
       });
     }
     return Promise.resolve(list);
+  }
+
+  async getRoundReady(code: string): Promise<RoundReadyStatus> {
+    const room = this.rooms.get(code.trim().toUpperCase());
+    if (!room || !this.currentPlayer || !room.players[this.currentPlayer.id]) {
+      throw new ServiceError('ROOM_ACCESS_DENIED', 'Oda erişim izniniz yok.');
+    }
+    if (room.phase !== 'scoreboard') {
+      throw new ServiceError('WRONG_PHASE', 'Hazırlık yalnızca skor ekranında mümkündür.');
+    }
+    const eligible = Object.values(room.players).filter((player) =>
+      player.isOnline && !player.isBot
+      && (room.config.gameMode !== 'survival' || (player.livesRemaining ?? 3) > 0)
+    );
+    const ready = room.readyByRound[room.currentRound] ?? [];
+    const readyCount = eligible.filter((p) => ready.includes(p.id)).length;
+    return { readyCount, totalCount: eligible.length,
+      isReady: ready.includes(this.currentPlayer.id),
+      allReady: eligible.length > 0 && readyCount >= eligible.length };
+  }
+
+  async markRoundReady(code: string): Promise<RoundReadyStatus> {
+    const status = await this.getRoundReady(code);
+    if (!this.currentPlayer || status.isReady) return status;
+    const room = this.rooms.get(code.trim().toUpperCase())!;
+    const ready = room.readyByRound[room.currentRound] ?? [];
+    room.readyByRound[room.currentRound] = [...ready, this.currentPlayer.id];
+    this.emit({ type: 'state', payload: this.snapshot(room.config.code) });
+    return this.getRoundReady(code);
+  }
+
+  async getMatchTitleStats(code: string): Promise<MatchTitleStat[]> {
+    const room = this.rooms.get(code.trim().toUpperCase());
+    if (!room || !this.currentPlayer || !room.players[this.currentPlayer.id]) {
+      throw new ServiceError('ROOM_ACCESS_DENIED', 'Oda erişim izniniz yok.');
+    }
+    if (room.phase !== 'game_over') throw new ServiceError('WRONG_PHASE', 'Maç henüz bitmedi.');
+    const result = new Map(Object.keys(room.players).map((id) => [
+      id, { playerId: id, correct: 0, victims: 0, trapped: 0 },
+    ] as const));
+    for (const round of room.history) for (const row of round) {
+      const total = result.get(row.playerId);
+      if (!total) continue;
+      if (row.outcome.correct) total.correct++;
+      total.victims += row.victimsCount;
+      if (row.outcome.zartalandın) total.trapped++;
+    }
+    return [...result.values()];
   }
 
   async setReady(code: string, ready: boolean): Promise<void> {
@@ -861,6 +915,7 @@ export class DemoGameService implements GameService {
     });
 
     room.roundResults = rows;
+    room.history.push(Object.values(rows));
     room.players = room.config.gameMode === 'survival'
       ? applySurvivalLives(Object.values(updatedPlayers), rows)
       : updatedPlayers;
@@ -942,6 +997,8 @@ export class DemoGameService implements GameService {
     room.answers = {};
     room.abilityActions = [];
     room.roundResults = {};
+    room.history = [];
+    room.readyByRound = {};
     for (const id of Object.keys(room.players)) {
       room.players[id] = {
         ...room.players[id],
@@ -1174,7 +1231,7 @@ export class DemoGameService implements GameService {
       answers: room.answers,
       abilityActions: room.abilityActions,
       roundResults: room.roundResults,
-      history: [],
+      history: room.history,
       suspectPicks: { ...room.suspectPicks },
       pickTimes: { ...room.pickTimes },
       phaseStartedAt: room.phaseStartedAt,

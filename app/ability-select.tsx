@@ -102,9 +102,12 @@ export default function AbilitySelectScreen() {
   const isEliminated = roomState?.config.gameMode === 'survival' && (me?.livesRemaining ?? 3) <= 0;
   const opponents = playersList.filter((p) => p.id !== me?.id
     && (roomState?.config.gameMode !== 'survival' || (p.livesRemaining ?? 3) > 0));
-  const defaultTargetId = opponents.find((player) =>
+  const eligibleTargets = opponents.filter((player) =>
     player.id !== me?.lastBlockedPlayerId
-  )?.id;
+    && (roomState?.config.gameMode !== 'team_battle' || !me?.teamId || player.teamId !== me.teamId)
+  );
+  // A legal target is used for affordability checks only. UI starts with no target.
+  const potentialTargetId = eligibleTargets[0]?.id;
 
   const abilityState = {
     playerId: me?.id ?? '',
@@ -128,7 +131,7 @@ export default function AbilitySelectScreen() {
     const check = canUseAbility(
       abilityState,
       id,
-      targetId ?? (id === 'block' ? defaultTargetId : undefined)
+      id === 'block' ? potentialTargetId : undefined
     );
     if (!check.allowed) {
       trigger('heavy');
@@ -142,17 +145,17 @@ export default function AbilitySelectScreen() {
       setTargetId(null);
     } else {
       setSelectedAbility(id);
-      const ab = ABILITIES.find((a) => a.id === id);
-      if (!ab?.targetRequired) {
-        setTargetId(null);
-      } else if (defaultTargetId && !targetId) {
-        setTargetId(defaultTargetId);
-      }
+      setTargetId(null); // Never preselect a rival; user must choose explicitly.
     }
   };
 
   const handleConfirm = async () => {
     if (!roomCode || !me || submitting.current) return;
+    if (selectedAbility === 'block' && !targetId) {
+      setError('Bloklamak istediğin oyuncuyu önce sen seçmelisin.');
+      trigger('heavy');
+      return;
+    }
     submitting.current = true;
     trigger('medium');
     setLoading(true);
@@ -188,6 +191,7 @@ export default function AbilitySelectScreen() {
     try {
       await service.confirmAbilitySelection(roomCode);
       setConfirmed(true);
+      await refreshRoom();
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -254,7 +258,7 @@ export default function AbilitySelectScreen() {
             const check = canUseAbility(
               abilityState,
               ab.id,
-              targetId ?? (ab.targetRequired ? defaultTargetId : undefined)
+              ab.targetRequired ? (targetId ?? potentialTargetId) : undefined
             );
             const isSelected = selectedAbility === ab.id;
 
@@ -308,7 +312,7 @@ export default function AbilitySelectScreen() {
           <View style={styles.targetSection}>
             <Text style={styles.targetTitle}>2. ADIM · KİMİ BLOKLAYACAKSIN?</Text>
             <View style={styles.targetsRow}>
-              {opponents.map((opp) => {
+              {eligibleTargets.map((opp) => {
                 const isTarget = targetId === opp.id;
                 return (
                   <Pressable
@@ -337,18 +341,25 @@ export default function AbilitySelectScreen() {
           <Text style={styles.confirmedText}>Hamlen kaydedildi. Diğer oyuncular bekleniyor.</Text>
         ) : null}
         <Button
-          label={
-            selectedAbility
-              ? (selectedAbility === 'shield' ? 'Kalkanı Etkinleştir' : 'Rakibi Blokla')
-              : 'Hamle Yapmadan Geç'
-          }
+          label={selectedAbility
+            ? (selectedAbility === 'shield' ? 'Kalkanı Etkinleştir' : targetId ? 'Seçtiğin Rakibi Blokla' : 'Önce Rakip Seç')
+            : 'Krediyi Sakla, Devam Et'}
           onPress={selectedAbility ? handleConfirm : handleSkip}
           variant={selectedAbility ? 'orange' : 'secondary'}
           loading={loading}
-          disabled={confirmed || isEliminated}
+          disabled={confirmed || isEliminated || (selectedAbility === 'block' && !targetId)}
           fullWidth
           icon={selectedAbility ? <Sparkles color="#FFF" size={18} /> : undefined}
         />
+        {selectedAbility ? (
+          <Button
+            label="Bu Tur Kullanma · Krediyi Sakla"
+            onPress={handleSkip}
+            variant="secondary"
+            disabled={confirmed || isEliminated || loading}
+            fullWidth
+          />
+        ) : null}
       </StickyActionBar>
     </Screen>
   );

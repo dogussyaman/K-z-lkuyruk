@@ -19,7 +19,7 @@ type ResultStage = 'celebration' | 'answers';
 export default function ResultScreen() {
   const { colors } = useTheme();
   const { trigger } = useHaptics();
-  const { roomState, currentPlayer, roomCode, service } = useGameStore();
+  const { roomState, currentPlayer, roomCode, service, refreshRoom } = useGameStore();
   const params = useLocalSearchParams<{ round?: string | string[]; questionId?: string | string[] }>();
   const [initialResult] = useState(() => ({
     round: roomState?.currentRound ?? 1,
@@ -102,7 +102,9 @@ export default function ResultScreen() {
   const players = roomState ? Object.values(roomState.players) : [];
   const me = players.find((player) => player.id === currentPlayer?.id) || currentPlayer;
   const isHost = !!me?.isHost;
-  const fallbackResults = roomState && players.some((player) => !roomState.roundResults?.[player.id])
+  // Live points must come from the authoritative server, not a client-side
+  // estimate using possibly hidden choices or a stale room snapshot.
+  const fallbackResults = service.kind === 'demo' && roomState && players.some((player) => !roomState.roundResults?.[player.id])
     ? resolveZartoRound({
       question,
       players,
@@ -110,6 +112,11 @@ export default function ResultScreen() {
       picks: roomState.picks || {},
       fakeAnswers: roomState.fakeAnswers || {},
       abilityActions: roomState.abilityActions || [],
+      gameMode: roomState.config.gameMode,
+      currentRound: roomState.currentRound,
+      suspectPicks: roomState.suspectPicks || {},
+      pickTimes: roomState.pickTimes || {},
+      phaseStartedAt: roomState.phaseStartedAt,
     })
     : null;
   const results = { ...fallbackResults?.rows, ...roomState?.roundResults };
@@ -122,6 +129,12 @@ export default function ResultScreen() {
   const tricked = !!myResult?.outcome?.zartalandın
     || !!(myPick && !myPick.choice.isCorrect && myPick.choice.authorId);
   const answered = !!(myPick || myResult?.pickedText);
+
+  useEffect(() => {
+    if (service.kind !== 'supabase' || isStaleResult || myResult) return;
+    const id = setTimeout(() => { void refreshRoom().catch(() => {}); }, 1300);
+    return () => clearTimeout(id);
+  }, [service.kind, isStaleResult, myResult, refreshRoom]);
 
   useEffect(() => {
     if (isStaleResult || !myResult) return;
@@ -166,6 +179,26 @@ export default function ResultScreen() {
     );
   }
 
+  if (service.kind === 'supabase' && !myResult) {
+    return (
+      <Screen gradient diagonalSlice>
+        <View style={styles.loading}>
+          <Text style={[styles.status, { color: colors.textPrimary }]}>
+            Turun puanları sunucudan doğrulanıyor…
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => { void refreshRoom().catch(() => {}); }}
+            style={[styles.retry, { backgroundColor: colors.purple }]}
+          >
+            <RotateCcw color="#FFFFFF" size={16} />
+            <Text style={styles.retryText}>Yeniden kontrol et</Text>
+          </Pressable>
+        </View>
+      </Screen>
+    );
+  }
+
   return (
     <Screen gradient diagonalSlice padded={stage !== 'celebration'}>
       {stage === 'celebration' ? (
@@ -175,7 +208,7 @@ export default function ResultScreen() {
           correct={correct}
           tricked={tricked}
           answered={answered}
-          goldenMultiplier={myResult?.goldenMultiplier ?? 1}
+          result={myResult}
         />
       ) : revealError ? (
         <View style={styles.loading}>

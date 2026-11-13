@@ -3,7 +3,8 @@ import { Check, Crown, Gem, X } from 'lucide-react-native';
 import Svg, { Defs, LinearGradient as SvgGradient, Path, Stop } from 'react-native-svg';
 import { Avatar } from '@/components/ui/Avatar';
 import type { Player } from '@/types/game';
-import { POINTS } from '@/features/game/outcomes';
+import { describeRoundAwards, headlineForRound } from '@/features/game/roundAwards';
+import type { RoundResultRow } from '@/types/game';
 
 interface Props {
   trappedPlayers: Player[];
@@ -11,7 +12,7 @@ interface Props {
   correct: boolean;
   tricked: boolean;
   answered: boolean;
-  goldenMultiplier?: number;
+  result?: RoundResultRow;
 }
 
 const CONFETTI = Array.from({ length: 38 }, (_, index) => ({
@@ -25,14 +26,15 @@ const CONFETTI = Array.from({ length: 38 }, (_, index) => ({
 
 /** Celebratory round summary, kept separate from the answer reveal. */
 export function RoundCompactOutcome({
-  trappedPlayers, trappedCount, correct, tricked, answered, goldenMultiplier = 1,
+  trappedPlayers, trappedCount, correct, tricked, answered, result,
 }: Props) {
   const { width, height } = useWindowDimensions();
   const frameWidth = Math.min(width - 48, 440);
   const frameHeight = Math.min(height * 0.7, 580);
-  const fakePoints = trappedCount * POINTS.fakeChosenBonus * (correct ? goldenMultiplier : 1);
-  const correctPoints = correct ? POINTS.correct * goldenMultiplier : 0;
-  const achievementTitle = trappedCount > 0 ? 'HARİKASIN!' : 'BİR SONRAKİ TURDA!';
+  const awards = describeRoundAwards(result, correct, trappedCount);
+  const fakePoints = awards.trapPoints;
+  const correctPoints = awards.correctPoints;
+  const achievementTitle = headlineForRound(correct, trappedCount);
   const achievementDescription = trappedCount > 0
     ? String(trappedCount) + ' Kişiyi\nZartlattın!'
     : 'Bu tur kimse\nsahte cevabına kanmadı';
@@ -126,6 +128,11 @@ export function RoundCompactOutcome({
             <Gem color="#FF8A71" size={14} fill="#FF5575" />
             <Text style={styles.pointsText}>{correct ? '+' + correctPoints : '0'} PUAN</Text>
           </View>
+          {awards.otherPoints !== 0 && (
+            <Text style={styles.extraPoints}>
+              {awards.otherPoints > 0 ? '+' : ''}{awards.otherPoints} ek tur puanı
+            </Text>
+          )}
         </View>
       </View>
     </View>
@@ -188,6 +195,7 @@ const styles = StyleSheet.create({
     borderRadius: 999, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', flexShrink: 0,
   },
   pointsText: { color: '#FFFFFF', fontFamily: 'Poppins-Bold', fontSize: 11, letterSpacing: 0.2 },
+  extraPoints: { color: '#D9F8A6', fontFamily: 'Poppins-SemiBold', fontSize: 10, textAlign: 'center' },
   lower: {
     flex: 0.84, alignItems: 'center', justifyContent: 'center',
     gap: 10, paddingHorizontal: 18, paddingTop: 22, paddingBottom: 20,

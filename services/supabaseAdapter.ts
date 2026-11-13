@@ -12,7 +12,10 @@ import type {
   RelationshipStatus,
   RoomSummary,
   RoundRevealChoice,
+  RoundReadyStatus,
+  MatchTitleStat,
   RoomAccessPreflight,
+  PlayerReportCategory,
   SocialPlayer,
   ServiceEvent,
   ServiceEventHandler,
@@ -409,6 +412,37 @@ export class SupabaseGameService implements GameService {
     return this.exchangeOAuthCode(code);
   }
 
+  async signInWithApple(): Promise<Player> {
+    const sb = ensureSupabase();
+    const redirectTo = Platform.OS === 'web'
+      ? getWebAppUrl('auth/callback')
+      : Linking.createURL('auth/callback');
+    const { data, error } = await sb.auth.signInWithOAuth({
+      provider: 'apple',
+      options: { redirectTo, skipBrowserRedirect: true },
+    });
+    if (error) throw new ServiceError('APPLE_AUTH_FAILED', this.authErrorMessage(error.message));
+    if (!data.url) throw new ServiceError('APPLE_AUTH_FAILED', 'Apple giriş bağlantısı oluşturulamadı.');
+
+    if (Platform.OS === 'web') {
+      window.location.assign(data.url);
+      return new Promise<Player>(() => {});
+    }
+    const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+    if (result.type === 'cancel' || result.type === 'dismiss') {
+      throw new ServiceError('AUTH_CANCELLED', 'Apple girişi iptal edildi.');
+    }
+    if (result.type !== 'success' || !result.url) {
+      throw new ServiceError('APPLE_AUTH_FAILED', 'Apple giriş akışı tamamlanamadı.');
+    }
+    const params = new URL(result.url).searchParams;
+    const oauthError = params.get('error_description') ?? params.get('error');
+    if (oauthError) throw new ServiceError('APPLE_AUTH_FAILED', this.authErrorMessage(oauthError));
+    const code = params.get('code');
+    if (!code) throw new ServiceError('APPLE_AUTH_FAILED', 'Apple yanıtında oturum kodu bulunamadı.');
+    return this.exchangeOAuthCode(code);
+  }
+
   async completeOAuthCallback(code: string): Promise<Player> {
     return this.exchangeOAuthCode(code);
   }
@@ -543,6 +577,25 @@ export class SupabaseGameService implements GameService {
     const sb = ensureSupabase();
     const { error } = await sb.auth.signOut();
     if (error) throw new ServiceError('SIGN_OUT_FAILED', error.message);
+    this.cachedPlayer = null;
+    this.emit({ type: 'auth_state', payload: { player: null, isAnonymous: false } });
+  }
+
+  async deleteAccount(): Promise<void> {
+    const sb = ensureSupabase();
+    if (!this.cachedPlayer) {
+      throw new ServiceError('AUTH_REQUIRED', 'Hesabı silmek için oturum açmalısın.');
+    }
+    const { data, error } = await sb.functions.invoke('delete-account', { method: 'POST' });
+    if (error || !data || data.success !== true) {
+      const message = typeof data?.error === 'string'
+        ? data.error
+        : error?.message || 'Hesap silme servisi işlemi tamamlayamadı.';
+      throw new ServiceError('ACCOUNT_DELETE_FAILED', message);
+    }
+    // The Edge Function has deleted the account. Clear local auth state even
+    // if the server no longer recognizes the old JWT.
+    await sb.auth.signOut({ scope: 'local' });
     this.cachedPlayer = null;
     this.emit({ type: 'auth_state', payload: { player: null, isAnonymous: false } });
   }
@@ -811,6 +864,49 @@ export class SupabaseGameService implements GameService {
       await this.setupRealtimeSubscription(cleanCode);
     }
     return state;
+  }
+
+  private parseRoundReadyStatus(data: unknown): RoundReadyStatus {
+    if (!data || typeof data !== 'object') {
+      throw new ServiceError('READY_STATUS_INVALID', 'Hazırlık bilgisi okunamadı.');
+    }
+    const row = data as Record<string, unknown>;
+    if (typeof row.readyCount !== 'number' || typeof row.totalCount !== 'number'
+      || typeof row.isReady !== 'boolean' || typeof row.allReady !== 'boolean') {
+      throw new ServiceError('READY_STATUS_INVALID', 'Hazırlık bilgisi eksik.');
+    }
+    return { readyCount: row.readyCount, totalCount: row.totalCount,
+      isReady: row.isReady, allReady: row.allReady };
+  }
+
+  async getRoundReady(code: string): Promise<RoundReadyStatus> {
+    const { data, error } = await ensureSupabase().rpc('get_classic_round_ready_secure', {
+      p_room_code: code.trim().toUpperCase(),
+    });
+    if (error) throw new ServiceError('READY_STATUS_FAILED', error.message);
+    return this.parseRoundReadyStatus(data);
+  }
+
+  async markRoundReady(code: string): Promise<RoundReadyStatus> {
+    const { data, error } = await ensureSupabase().rpc('mark_classic_round_ready_secure', {
+      p_room_code: code.trim().toUpperCase(),
+    });
+    if (error) throw new ServiceError('READY_MARK_FAILED', error.message);
+    return this.parseRoundReadyStatus(data);
+  }
+
+  async getMatchTitleStats(code: string): Promise<MatchTitleStat[]> {
+    const { data, error } = await ensureSupabase().rpc('get_classic_match_titles_secure', {
+      p_room_code: code.trim().toUpperCase(),
+    });
+    if (error) throw new ServiceError('MATCH_TITLES_FAILED', error.message);
+    if (!Array.isArray(data)) throw new ServiceError('MATCH_TITLES_INVALID', 'Maç istatistikleri alınamadı.');
+    return data.filter((value): value is MatchTitleStat => {
+      if (!value || typeof value !== 'object') return false;
+      const row = value as Record<string, unknown>;
+      return typeof row.playerId === 'string' && typeof row.correct === 'number'
+        && typeof row.victims === 'number' && typeof row.trapped === 'number';
+    });
   }
 
   async getRoomProgress(code: string): Promise<RoundProgress> {
@@ -1115,6 +1211,24 @@ export class SupabaseGameService implements GameService {
     const sb = ensureSupabase();
     const { error } = await sb.rpc('block_user_secure', { p_other_id: playerId });
     if (error) throw new ServiceError('USER_BLOCK_FAILED', error.message);
+  }
+
+  async reportPlayer(
+    roomCode: string,
+    playerId: string,
+    category: PlayerReportCategory,
+    description: string,
+  ): Promise<void> {
+    if (!this.cachedPlayer) {
+      throw new ServiceError('AUTH_REQUIRED', 'Oyuncuyu bildirmek için giriş yapmalısın.');
+    }
+    const { error } = await ensureSupabase().rpc('report_player_secure', {
+      p_room_code: roomCode.trim().toUpperCase(),
+      p_reported_player_id: playerId,
+      p_category: category,
+      p_description: description.trim().slice(0, 1000),
+    });
+    if (error) throw new ServiceError('PLAYER_REPORT_FAILED', error.message);
   }
 
   async unblockUser(playerId: string): Promise<void> {

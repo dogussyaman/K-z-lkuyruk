@@ -1,6 +1,6 @@
 import { useTheme, useThemeStyles } from '@/theme/ThemeProvider';
 import type { ThemeColors } from '@/theme/ThemeProvider';
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View, ScrollView } from 'react-native';
 import { router } from 'expo-router';
 import { Trophy, ArrowRight, Sparkles, Crown, Medal } from 'lucide-react-native';
@@ -19,12 +19,20 @@ import {
 import { colors, spacing, typography, radii, shadows } from '@/theme';
 import { useGameStore } from '@/store/gameStore';
 import { useHaptics } from '@/hooks/useHaptics';
+import type { RoundReadyStatus } from '@/services/types';
 
 export default function ScoreboardScreen() {
   const { colors } = useTheme();
   const styles = useThemeStyles(createStyles);
   const { roomState, currentPlayer, roomCode, service } = useGameStore();
   const { trigger } = useHaptics();
+  const [advancing, setAdvancing] = useState(false);
+  const [advanceError, setAdvanceError] = useState<string | null>(null);
+  const [readyStatus, setReadyStatus] = useState<RoundReadyStatus | null>(null);
+  const [readyError, setReadyError] = useState<string | null>(null);
+  const [markingReady, setMarkingReady] = useState(false);
+  const advancingFlight = useRef(false);
+  const autoAdvanceAttempt = useRef<string | null>(null);
 
   // Watch for phase change
   useEffect(() => {
@@ -51,20 +59,71 @@ export default function ScoreboardScreen() {
   const restPlayers = playersList.slice(3);
 
   const handleNextRound = async () => {
+    // Only the host may advance server-authoritative rounds. Non-hosts remain
+    // on the scoreboard until the realtime phase switches.
+    if (!roomCode || !isHost || advancingFlight.current) return;
+    advancingFlight.current = true;
     trigger('medium');
-    if (!roomCode) return;
-    if (isFinalRound) {
-      try {
-        await service.advancePhase(roomCode);
-      } catch {
-        // Non-host might not have advance authority, continue to game-over
-      }
-      router.replace('/game-over');
-    } else {
+    setAdvancing(true);
+    setAdvanceError(null);
+    try {
       await service.advancePhase(roomCode);
-      router.replace('/ability-select');
+      router.replace(isFinalRound ? '/game-over' : '/ability-select');
+    } catch (cause) {
+      setAdvanceError(cause instanceof Error ? cause.message : 'Tur ilerletilemedi. Yeniden dene.');
+    } finally {
+      setAdvancing(false);
+      advancingFlight.current = false;
     }
   };
+
+  useEffect(() => {
+    if (roomState?.phase !== 'scoreboard' || !roomCode) return;
+    let stopped = false;
+    let inFlight = false;
+    const fetchReady = async () => {
+      if (inFlight || stopped) return;
+      inFlight = true;
+      try {
+        const status = await service.getRoundReady(roomCode);
+        if (!stopped) {
+          setReadyStatus(status);
+          setReadyError(null);
+        }
+      } catch (cause) {
+        if (!stopped) setReadyError(cause instanceof Error ? cause.message : 'Hazırlık durumu alınamadı.');
+      } finally {
+        inFlight = false;
+      }
+    };
+    void fetchReady();
+    const timer = setInterval(() => { void fetchReady(); }, 2000);
+    return () => { stopped = true; clearInterval(timer); };
+  }, [roomCode, roomState?.phase, roomState?.currentRound, service]);
+
+  const markReady = async () => {
+    if (!roomCode || markingReady || readyStatus?.isReady) return;
+    setMarkingReady(true);
+    setReadyError(null);
+    try {
+      const status = await service.markRoundReady(roomCode);
+      setReadyStatus(status);
+      trigger('success');
+    } catch (cause) {
+      setReadyError(cause instanceof Error ? cause.message : 'Hazırım işlemi tamamlanamadı.');
+    } finally {
+      setMarkingReady(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!roomCode || !isHost || !readyStatus?.allReady || roomState?.phase !== 'scoreboard') return;
+    const key = roomCode + ':' + currentRound;
+    if (autoAdvanceAttempt.current === key) return;
+    autoAdvanceAttempt.current = key;
+    void handleNextRound();
+    // Trigger once per round; failure keeps the manual host retry available.
+  }, [roomCode, currentRound, isHost, readyStatus?.allReady, roomState?.phase]);
 
   return (
     <Screen gradient diagonalSlice>
@@ -198,12 +257,46 @@ export default function ScoreboardScreen() {
 
       </ScrollView>
       <StickyActionBar>
-        {isFinalRound ? (
+        {readyStatus ? (
+          <View style={styles.readyInfo}>
+            <Text style={[styles.readyLabel, { color: colors.textPrimary }]}>
+              {readyStatus.allReady ? 'Herkes hazır! Sonraki aşamaya geçiliyor…'
+                : readyStatus.readyCount + '/' + readyStatus.totalCount + ' oyuncu hazır'}
+            </Text>
+            {!readyStatus.isReady ? (
+              <Button
+                label="Hazırım"
+                onPress={() => { void markReady(); }}
+                variant="secondary"
+                loading={markingReady}
+                disabled={markingReady}
+                fullWidth
+              />
+            ) : !readyStatus.allReady ? (
+              <Text style={[styles.readySub, { color: colors.textSecondary }]}>
+                Hazırsın. Diğer oyuncuların sonuçları incelemesi bekleniyor.
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
+        {readyError ? (
+          <Text accessibilityRole="alert" style={[styles.advanceError, { color: colors.dangerSoft }]}>
+            {readyError}
+          </Text>
+        ) : null}
+        {advanceError ? (
+          <Text accessibilityRole="alert" style={[styles.advanceError, { color: colors.dangerSoft }]}>
+            {advanceError}
+          </Text>
+        ) : null}
+        {isFinalRound && isHost ? (
           <Button
             label="Final Podyumunu Aç!"
             onPress={handleNextRound}
             variant="orange"
             fullWidth
+            loading={advancing}
+            disabled={advancing}
             icon={<Sparkles color="#FFF" size={20} />}
           />
         ) : isHost ? (
@@ -212,12 +305,14 @@ export default function ScoreboardScreen() {
             onPress={handleNextRound}
             variant="orange"
             fullWidth
+            loading={advancing}
+            disabled={advancing}
             icon={<ArrowRight color="#FFF" size={20} />}
           />
         ) : (
           <View style={styles.waitingNotice}>
             <Text style={styles.waitingText}>
-              Oda kurucusunun sonraki turu başlatması bekleniyor…
+              {isFinalRound ? 'Oda kurucusunun finali açması bekleniyor…' : 'Oda kurucusunun sonraki turu başlatması bekleniyor…'}
             </Text>
           </View>
         )}
@@ -227,6 +322,10 @@ export default function ScoreboardScreen() {
 }
 
 const createStyles = (colors: ThemeColors) => StyleSheet.create({
+  advanceError: { fontFamily: 'Poppins-Medium', fontSize: 11, textAlign: 'center', marginBottom: 7 },
+  readyInfo: { gap: 6, alignItems: 'center', paddingBottom: 6 },
+  readyLabel: { fontFamily: 'Poppins-Bold', fontSize: 12 },
+  readySub: { fontFamily: 'Poppins-Medium', fontSize: 10, textAlign: 'center' },
   scroll: {
     paddingBottom: spacing.md,
     paddingTop: 4,
