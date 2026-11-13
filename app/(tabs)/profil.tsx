@@ -196,7 +196,7 @@ export default function ProfilScreen() {
         />
 
         {/* Profile Card */}
-        <Card variant="surface" glow="orange" style={styles.profileCard}>
+        <Card variant="surface" style={styles.profileCard}>
           <View style={styles.avatarRow}>
             <Avatar
               avatarKey={currentPlayer?.avatarUrl ?? selectedAvatar}
@@ -756,7 +756,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
   },
   saveBtn: {
-    backgroundColor: colors.orange,
+    backgroundColor: colors.orangeDeep,
     borderRadius: radii.md,
     padding: 10,
   },
@@ -887,7 +887,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   avatarChoiceActive: {
     borderColor: colors.orange,
-    backgroundColor: 'rgba(255, 113, 59, 0.2)',
+    backgroundColor: colors.orangeSurface,
   },
   avatarSelectedMark: {
     position: 'absolute',
